@@ -24,11 +24,11 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
   const navLinks = [
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { to: "/practice", label: "Practice Hub", icon: Code2 },
-    { to: "/coding", label: "Coding Arena", icon: Terminal, badge: "Judge0" },
-    { to: "/interview", label: "AI Mock Interview", icon: Mic, badge: "AI Live" },
+    { to: "/coding", label: "Coding Arena", icon: Terminal },
+    { to: "/interview", label: "AI Mock Interview", icon: Mic },
     { to: "/resume", label: "ATS Resume Optimizer", icon: FileText },
     { to: "/outcomes", label: "Verified Outcomes", icon: Award },
-    { to: "/pricing", label: "Pricing & Plans", icon: Crown, badge: "Tiers" }
+    { to: "/pricing", label: "Pricing & Plans", icon: Crown }
   ];
 
   const handleLogout = () => {
@@ -133,18 +133,6 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                     />
                     {!isCollapsed && (
                       <span className="truncate flex-1">{link.label}</span>
-                    )}
-                    {!isCollapsed && link.badge && (
-                      <span
-                        className={cn(
-                          "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                          isActive
-                            ? "bg-indigo-200/60 text-indigo-800"
-                            : "bg-slate-100 text-slate-500"
-                        )}
-                      >
-                        {link.badge}
-                      </span>
                     )}
 
                     {/* Collapsed Tooltip */}

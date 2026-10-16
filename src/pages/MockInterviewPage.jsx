@@ -30,7 +30,6 @@ import { aiApi } from "../services/aiApi";
 import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
-import { Badge, PlanBadge } from "../components/common/Badge";
 import { Modal } from "../components/common/Modal";
 
 const INTERVIEW_TRACKS = [
@@ -289,7 +288,6 @@ export function MockInterviewPage() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               AI Mock Interview Arena
             </h1>
-            <Badge variant="purple">Gemini Live Audio</Badge>
           </div>
         </div>
 
@@ -368,7 +366,6 @@ export function MockInterviewPage() {
             <Card className="p-6 border-slate-200/90 shadow-xs">
               <CardHeader
                 title="Interview Configuration"
-                action={<Badge variant="primary">Speech-to-Speech</Badge>}
               />
 
               <div className="space-y-6">
@@ -379,9 +376,9 @@ export function MockInterviewPage() {
                     <label className="block text-xs sm:text-sm font-semibold text-slate-800">
                       Interview Format
                     </label>
-                    <Badge variant={formatMode === "TIME_BASED" ? "primary" : "neutral"} size="sm">
+                    <span className="text-xs text-slate-500 font-medium">
                       {formatMode === "TIME_BASED" ? "AI Adaptive Pacing" : "Fixed Turn Pacing"}
-                    </Badge>
+                    </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
@@ -534,7 +531,9 @@ export function MockInterviewPage() {
                   <div>
                     <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
                       Sarah — Principal AI Interviewer
-                      <Badge variant="primary" size="sm">Live</Badge>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+                      </span>
                     </div>
                     <div className="text-xs text-indigo-600 font-medium">
                       {currentAiStatus === "speaking" && "Speaking response..."}
@@ -645,9 +644,13 @@ export function MockInterviewPage() {
             <Card className="p-6">
               <CardHeader
                 title="Active Session Context"
-                action={<Badge variant="primary">{selectedTrack.title}</Badge>}
               />
               <div className="space-y-3 text-xs text-slate-600">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Target Track</span>
+                  <div className="font-bold text-slate-900 mt-0.5">{selectedTrack.title}</div>
+                </div>
+
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
                   <span className="text-[10px] font-bold uppercase text-slate-400">Target Role</span>
                   <div className="font-bold text-slate-900 mt-0.5">{selectedTrack.role}</div>
@@ -675,7 +678,6 @@ export function MockInterviewPage() {
         <Card className="p-8 space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <div>
-              <Badge variant="primary" className="mb-1">AI Evaluation Scorecard</Badge>
               <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                 {scorecard.trackTitle}
               </h2>

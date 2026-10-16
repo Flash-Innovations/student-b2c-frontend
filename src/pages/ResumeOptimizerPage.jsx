@@ -19,7 +19,6 @@ import { useToast } from "../context/ToastContext";
 import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
-import { Badge } from "../components/common/Badge";
 
 const SAMPLE_RESUME_TEXT = `Harshvardhan Sharma
 Email: harsh.sharma@college.edu | Phone: +91 98765 43210
@@ -116,7 +115,6 @@ export function ResumeOptimizerPage() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               ATS Resume Optimizer
             </h1>
-            <Badge variant="blue">Batch 2028 Calibrated</Badge>
           </div>
         </div>
 
@@ -178,7 +176,9 @@ export function ResumeOptimizerPage() {
                   {selectedFile && (
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-indigo-700 flex items-center justify-between">
                       <span className="truncate">{selectedFile.name}</span>
-                      <Badge variant="success" size="sm">Ready to scan</Badge>
+                      <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Ready to scan
+                      </span>
                     </div>
                   )}
                 </div>
@@ -258,7 +258,6 @@ export function ResumeOptimizerPage() {
         <Card className="p-8 space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <div>
-              <Badge variant="blue" className="mb-1">ATS Compatibility Audit</Badge>
               <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                 Resume Performance Report
               </h2>

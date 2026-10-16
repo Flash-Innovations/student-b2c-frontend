@@ -19,7 +19,6 @@ import { useToast } from "../context/ToastContext";
 import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
-import { Badge } from "../components/common/Badge";
 
 const SAMPLE_QUESTIONS = [
   {
@@ -216,11 +215,13 @@ export function McqSessionPage() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-xl font-mono text-xs font-semibold text-slate-700">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-lg font-mono text-xs font-medium text-slate-700">
             <Clock className="w-3.5 h-3.5 text-slate-500" />
             {formatTimer(timerSeconds)}
           </div>
-          <Badge variant="primary">{topicName}</Badge>
+          <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 border border-slate-200/80">
+            {topicName}
+          </span>
         </div>
       </div>
 
@@ -337,7 +338,6 @@ export function McqSessionPage() {
           </div>
 
           <div>
-            <Badge variant="success" className="mb-2">Session Completed</Badge>
             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
               {topicName} Practice Result
             </h2>

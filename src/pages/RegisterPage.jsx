@@ -105,10 +105,6 @@ export function RegisterPage() {
             onClick={() => navigate("/")}
           />
         </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold mb-1">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Batch 2028 Priority Access</span>
-        </div>
       </div>
 
       <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-xl">

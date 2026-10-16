@@ -144,7 +144,6 @@ export function PlacementOutcomesPage() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               Verified Placement Outcomes
             </h1>
-            <Badge variant="success">Batch 2028 Verified</Badge>
           </div>
         </div>
 
@@ -269,9 +268,9 @@ export function PlacementOutcomesPage() {
 
           <Card className="p-8 bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 text-white rounded-2xl shadow-md">
             <div className="max-w-2xl space-y-3">
-              <Badge variant="primary" className="bg-white/10 text-indigo-200 border-white/20">
-                B2B College Partnership Preview
-              </Badge>
+              <span className="text-[11px] uppercase font-mono tracking-wider font-semibold text-indigo-300">
+                Institutional Partnership Model
+              </span>
               <h3 className="text-2xl font-extrabold tracking-tight">
                 How Flash Powers University NIRF & NAAC Placement Accreditation
               </h3>

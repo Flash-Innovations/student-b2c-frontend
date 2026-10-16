@@ -134,7 +134,6 @@ export function PricingPage() {
       
       {/* Header & Title */}
       <div className="text-center max-w-3xl mx-auto space-y-3">
-        <Badge variant="primary" className="mb-1">Transparent Student Pricing</Badge>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
           Invest in Your Placement Readiness
         </h1>
@@ -177,7 +176,6 @@ export function PricingPage() {
           <div>
             <div className="flex justify-between items-center mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Starter</span>
-              <Badge variant="neutral">₹0 Free</Badge>
             </div>
             
             <h3 className="text-xl font-extrabold text-slate-900">Free Tier</h3>
@@ -287,15 +285,14 @@ export function PricingPage() {
         {/* Tier 3: PREMIUM */}
         <Card className="p-6 flex flex-col justify-between border-indigo-500 ring-2 ring-indigo-500/20 shadow-md relative bg-gradient-to-b from-indigo-50/30 to-white">
           <div className="absolute -top-3 right-6">
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
-              Placement Pro
+            <span className="bg-indigo-600 text-white text-[10px] font-semibold tracking-wider uppercase px-2.5 py-0.5 rounded shadow-xs">
+              Recommended
             </span>
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-purple-600">Enterprise Ready</span>
-              <Badge variant="purple">1,000 Mins Included</Badge>
             </div>
 
             <h3 className="text-xl font-extrabold text-slate-900">Premium Plan</h3>

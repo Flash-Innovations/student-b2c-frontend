@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
-import { Badge } from "../components/common/Badge";
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -38,9 +37,6 @@ export function LandingPage() {
               className="h-8 w-auto max-w-[170px] sm:max-w-[200px] object-contain cursor-pointer"
               onClick={() => navigate("/")}
             />
-            <span className="hidden sm:inline-flex text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-              Batch 2028 Edition
-            </span>
           </div>
 
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
@@ -73,9 +69,9 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-6">
             
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Built for Engineering Students Graduating in 2028</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Campus Placement Intelligence Arena</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-950 tracking-tight leading-tight">
@@ -128,9 +124,8 @@ export function LandingPage() {
       <section id="features" className="py-16 bg-white border-y border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <Badge variant="primary" className="mb-2">Comprehensive Career Prep</Badge>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Everything Needed for 2028 Placements
+              Everything Needed for Campus Placements
             </h2>
             <p className="text-slate-500 text-sm mt-2">
               From foundational aptitude to advanced technical rounds and HR culture fit.

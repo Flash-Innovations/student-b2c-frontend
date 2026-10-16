@@ -25,7 +25,7 @@ import { practiceApi } from "../services/practiceApi";
 import { StatCard } from "../components/common/StatCard";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
-import { Badge, PlanBadge } from "../components/common/Badge";
+import { PlanBadge } from "../components/common/Badge";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -67,17 +67,13 @@ export function DashboardPage() {
       {/* Welcome Banner matching student-web-platform */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 p-6 sm:p-8 text-white shadow-md">
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-indigo-200 border border-white/10 font-mono">
-              <Activity className="w-3.5 h-3.5 text-emerald-400" />
-              Batch 2028 Career Intelligence Active
-            </div>
+          <div className="space-y-1.5">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
               Welcome back, {user?.name ? user.name.split(" ")[0] : "Student"}!
             </h1>
             <p className="text-sm sm:text-base text-indigo-200 max-w-xl">
               {user?.collegeName ? `${user.collegeName} • ` : ""}
-              {user?.branch || "Computer Science"} • Graduating in {user?.graduationYear || "2028"}
+              {user?.branch || "Computer Science"} • Batch of {user?.graduationYear || "2028"}
             </p>
           </div>
 
@@ -169,7 +165,7 @@ export function DashboardPage() {
                   <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600">
                     <BrainCircuit className="w-5 h-5" />
                   </div>
-                  <Badge variant="primary">Aptitude & CS</Badge>
+                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
                 <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
                   Subject & Aptitude MCQs
@@ -177,7 +173,7 @@ export function DashboardPage() {
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   Formula-backed quantitative, logical, OS, DBMS, and core CS questions.
                 </p>
-                <div className="mt-4 flex items-center text-xs font-bold text-indigo-600">
+                <div className="mt-4 flex items-center text-xs font-semibold text-indigo-600">
                   Open Practice Hub <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -191,7 +187,7 @@ export function DashboardPage() {
                   <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
                     <Code className="w-5 h-5" />
                   </div>
-                  <Badge variant="success">Monaco + Judge0</Badge>
+                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
                 <h3 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
                   Sandboxed Coding Arena
@@ -199,7 +195,7 @@ export function DashboardPage() {
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   DSA challenges in C++, Python, Java & JS with real-time test case runner.
                 </p>
-                <div className="mt-4 flex items-center text-xs font-bold text-emerald-600">
+                <div className="mt-4 flex items-center text-xs font-semibold text-emerald-600">
                   Start Coding <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -213,7 +209,7 @@ export function DashboardPage() {
                   <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
                     <Mic className="w-5 h-5" />
                   </div>
-                  <Badge variant="purple">Gemini Live Audio</Badge>
+                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
                 <h3 className="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
                   Conversational Mock Interview
@@ -221,7 +217,7 @@ export function DashboardPage() {
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   Spoken dialogue with Sarah (Principal AI) + question voice tests.
                 </p>
-                <div className="mt-4 flex items-center text-xs font-bold text-purple-600">
+                <div className="mt-4 flex items-center text-xs font-semibold text-purple-600">
                   Launch Session <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -235,7 +231,7 @@ export function DashboardPage() {
                   <div className="p-3 rounded-xl bg-sky-50 text-sky-600">
                     <FileText className="w-5 h-5" />
                   </div>
-                  <Badge variant="blue">ATS Engine</Badge>
+                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
                 <h3 className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
                   ATS Resume Optimizer
@@ -243,7 +239,7 @@ export function DashboardPage() {
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   Scan and optimize keywords for Google, Microsoft, and enterprise systems.
                 </p>
-                <div className="mt-4 flex items-center text-xs font-bold text-sky-600">
+                <div className="mt-4 flex items-center text-xs font-semibold text-sky-600">
                   Run ATS Scan <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
