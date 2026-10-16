@@ -1,72 +1,52 @@
 @import "tailwindcss";
 
 @layer base {
-  html {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color-scheme: dark;
+  :root {
+    --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: var(--font-sans);
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
-  }
-
-  code, pre {
-    font-family: 'JetBrains Mono', monospace;
+  * {
+    box-sizing: border-box;
   }
 }
 
-/* Custom modern scrollbar */
+/* Custom modern scrollbars */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.3);
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.6);
+  background: #94a3b8;
 }
 
-/* Glassmorphism & Glow Utilities */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Utilities for cards and shadows */
+.shadow-xs {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-.glass-panel-hover {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-
-.glass-panel-hover:hover {
-  border-color: rgba(99, 102, 241, 0.35);
-  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.2);
-  transform: translateY(-2px);
-}
-
-.glow-indigo {
-  box-shadow: 0 0 40px -10px rgba(99, 102, 241, 0.35);
-}
-
-.glow-purple {
-  box-shadow: 0 0 40px -10px rgba(168, 85, 247, 0.35);
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 50%, #c084fc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.gradient-gold {
-  background: linear-gradient(135deg, #fde047 0%, #eab308 50%, #ca8a04 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

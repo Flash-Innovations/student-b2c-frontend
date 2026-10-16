@@ -1,297 +1,393 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import {
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CheckCircle2,
+  XCircle,
+  HelpCircle,
+  Award,
+  RotateCcw,
   AlertTriangle,
   ArrowRight,
-  ArrowLeft,
-  RotateCcw,
-  Sparkles,
-  HelpCircle
-} from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { practiceApi } from '../services/practiceApi';
-import { b2cApi } from '../services/b2cApi';
-import { Card } from '../components/common/Card';
-import { Button } from '../components/common/Button';
-import { Badge } from '../components/common/Badge';
+  Sparkles
+} from "lucide-react";
+import katex from "katex";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import { b2cApi } from "../services/b2cApi";
+import { Card, CardHeader } from "../components/common/Card";
+import { Button } from "../components/common/Button";
+import { Badge } from "../components/common/Badge";
+
+const SAMPLE_QUESTIONS = [
+  {
+    id: "q1",
+    question: "A pipe can fill a cistern in 12 hours and another pipe can empty it in 20 hours. If both the pipes are opened together, how long will it take to fill the cistern?",
+    formula: "\\text{Net Rate} = \\frac{1}{12} - \\frac{1}{20} = \\frac{5 - 3}{60} = \\frac{2}{60} = \\frac{1}{30}",
+    options: [
+      "25 hours",
+      "30 hours",
+      "35 hours",
+      "40 hours"
+    ],
+    correctIndex: 1,
+    explanation: "Pipe A's 1 hour work = 1/12. Pipe B's 1 hour work = -1/20. Net rate per hour = 1/12 - 1/20 = (5-3)/60 = 2/60 = 1/30. Hence, it takes 30 hours to fill the cistern."
+  },
+  {
+    id: "q2",
+    question: "In a relational database, what normal form ensures that there is no transitive functional dependency of non-prime attributes on any candidate key?",
+    formula: "X \\rightarrow Y \\text{ and } Y \\rightarrow Z \\implies X \\rightarrow Z \\quad (\\text{Transitive Dependency})",
+    options: [
+      "First Normal Form (1NF)",
+      "Second Normal Form (2NF)",
+      "Third Normal Form (3NF)",
+      "Boyce-Codd Normal Form (BCNF)"
+    ],
+    correctIndex: 2,
+    explanation: "Third Normal Form (3NF) requires 2NF compliance and ensures that no non-prime attribute is transitively dependent on the primary key."
+  },
+  {
+    id: "q3",
+    question: "Which CPU scheduling algorithm gives minimum average waiting time for a given set of processes?",
+    options: [
+      "First-Come, First-Served (FCFS)",
+      "Shortest Job First (SJF / SJN)",
+      "Round Robin (RR)",
+      "Priority Scheduling"
+    ],
+    correctIndex: 1,
+    explanation: "Shortest Job First (SJF) is theoretically optimal in terms of minimizing average waiting time for a scheduled queue of jobs."
+  },
+  {
+    id: "q4",
+    question: "What is the tightest time complexity to find the shortest path from a single source in an unweighted directed graph with V vertices and E edges?",
+    formula: "O(V + E)",
+    options: [
+      "O(V log V)",
+      "O(V^2)",
+      "O(V + E) using Breadth-First Search (BFS)",
+      "O(E log V) using Dijkstra's Algorithm"
+    ],
+    correctIndex: 2,
+    explanation: "In an unweighted graph, standard Breadth-First Search (BFS) computes single-source shortest paths in O(V + E) time."
+  },
+  {
+    id: "q5",
+    question: "Which of the following is true regarding ACID properties in database transactions?",
+    options: [
+      "Atomicity guarantees non-blocking queries.",
+      "Consistency ensures the database transitions only from one valid state to another.",
+      "Durability implies memory-cached persistence before disk flush.",
+      "Isolation prevents relational foreign key constraints."
+    ],
+    correctIndex: 1,
+    explanation: "Consistency ensures any transaction will bring the database from one valid state to another valid state, preserving all defined invariants and constraints."
+  }
+];
 
 export function McqSessionPage() {
-  const { attemptId } = useParams();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
-  const { refreshProfile } = useAuth();
+  const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
+  const { showSuccess, showError, showWarning } = useToast();
 
-  const [loading, setLoading] = useState(false);
-  const [questions, setQuestions] = useState([]);
+  const topicName = searchParams.get("name") || "Quantitative Aptitude";
+  const topicId = searchParams.get("topic") || "QUANTITATIVE";
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState(15 * 60); // 15 mins
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [scoreData, setScoreData] = useState(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(600); // 10 minutes
 
-  const subjectName = location.state?.subjectName || 'Quantitative Aptitude';
+  // Quota check
+  const mcqCount = subscription?.mcqAttemptedCount || 0;
+  const mcqLimit = subscription?.mcqLimit || 100;
+  const isExhausted = !isPaid && mcqCount >= mcqLimit;
 
-  // Sample seed questions for standalone resilience
-  const fallbackQuestions = [
-    {
-      id: 'q1',
-      title: 'Time & Work',
-      statement: 'A can complete a piece of work in 12 days and B in 16 days. If they work on it together for 4 days, what fraction of the work remains unfinished?',
-      options: [
-        { id: 'opt_a', text: '1/3' },
-        { id: 'opt_b', text: '5/12' },
-        { id: 'opt_c', text: '7/16' },
-        { id: 'opt_d', text: '7/12' }
-      ],
-      correctAnswer: 'opt_c',
-      explanation: 'Work done by A in 1 day = 1/12. Work done by B in 1 day = 1/16. Together in 1 day = (1/12 + 1/16) = 7/48. In 4 days = 4 * (7/48) = 7/12 work done. Remaining work = 1 - 7/12 = 5/12.'
-    },
-    {
-      id: 'q2',
-      title: 'Database Transactions',
-      statement: 'Which ACID property guarantees that all database updates within a transaction are committed permanently, even in the event of an immediate system crash or power outage?',
-      options: [
-        { id: 'opt_a', text: 'Atomicity' },
-        { id: 'opt_b', text: 'Consistency' },
-        { id: 'opt_c', text: 'Isolation' },
-        { id: 'opt_d', text: 'Durability' }
-      ],
-      correctAnswer: 'opt_d',
-      explanation: 'Durability ensures that once a transaction commits, its effects survive subsequent server crashes or power failures, typically achieved via Write-Ahead Logging (WAL).'
-    },
-    {
-      id: 'q3',
-      title: 'Operating Systems - Virtual Memory',
-      statement: 'Which page replacement algorithm suffers from Belady\'s Anomaly (where increasing the number of page frames leads to more page faults)?',
-      options: [
-        { id: 'opt_a', text: 'First In First Out (FIFO)' },
-        { id: 'opt_b', text: 'Least Recently Used (LRU)' },
-        { id: 'opt_c', text: 'Optimal Page Replacement (OPT)' },
-        { id: 'opt_d', text: 'Clock Algorithm' }
-      ],
-      correctAnswer: 'opt_a',
-      explanation: 'FIFO is not a stack-based algorithm and therefore suffers from Belady\'s Anomaly for certain reference strings.'
-    }
-  ];
-
+  // Timer
   useEffect(() => {
-    async function fetchQuestions() {
-      try {
-        setLoading(true);
-        const data = await practiceApi.getAttemptQuestions(attemptId);
-        if (data && Array.isArray(data) && data.length > 0) {
-          setQuestions(data);
-        } else {
-          setQuestions(fallbackQuestions);
-        }
-      } catch (err) {
-        setQuestions(fallbackQuestions);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchQuestions();
-  }, [attemptId]);
-
-  // Timer countdown
-  useEffect(() => {
-    if (isSubmitted || timeLeftSeconds <= 0) return;
-    const timer = setInterval(() => {
-      setTimeLeftSeconds((prev) => {
+    if (sessionCompleted || isExhausted) return;
+    const interval = setInterval(() => {
+      setTimerSeconds((prev) => {
         if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit();
+          clearInterval(interval);
+          handleFinishSession();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(timer);
-  }, [isSubmitted, timeLeftSeconds]);
+    return () => clearInterval(interval);
+  }, [sessionCompleted, isExhausted]);
 
-  const handleSelectOption = (questionId, optionId) => {
-    if (isSubmitted) return;
-    setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+  const currentQ = SAMPLE_QUESTIONS[currentIndex];
+
+  const handleSelectOption = (optionIdx) => {
+    if (sessionCompleted) return;
+    setSelectedAnswers((prev) => ({
+      ...prev,
+      [currentIndex]: optionIdx
+    }));
   };
 
-  const handleSubmit = async () => {
-    setIsSubmitted(true);
-    let correctCount = 0;
-    questions.forEach((q) => {
-      const selected = selectedAnswers[q.id];
-      if (selected === q.correctAnswer || selected === 'opt_c' || selected === 'opt_d') {
-        correctCount++;
+  const handleNext = () => {
+    if (currentIndex < SAMPLE_QUESTIONS.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      setShowExplanation(false);
+    } else {
+      handleFinishSession();
+    }
+  };
+
+  const handleFinishSession = async () => {
+    setSessionCompleted(true);
+    try {
+      await b2cApi.recordQuestionAttempt({
+        questionType: "MCQ",
+        count: Object.keys(selectedAnswers).length || 1,
+        topicId
+      });
+      await refreshSubscription();
+      showSuccess("MCQ session completed and saved to your placement telemetry!");
+    } catch (err) {
+      console.warn("Attempt record error:", err);
+    }
+  };
+
+  const formatTimer = (totalSec) => {
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // Render mathematical formula with KaTeX
+  const renderFormulaHtml = (tex) => {
+    if (!tex) return null;
+    try {
+      return { __html: katex.renderToString(tex, { throwOnError: false }) };
+    } catch (e) {
+      return { __html: tex };
+    }
+  };
+
+  if (isExhausted) {
+    return (
+      <Card className="p-8 text-center max-w-lg mx-auto space-y-4 my-8">
+        <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
+        <h3 className="text-xl font-bold text-slate-900">Free MCQ Quota Exhausted</h3>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          You have completed {mcqCount} of {mcqLimit} free MCQs included in the Free tier. Upgrade to Basic (₹99/mo) or Premium (₹199/mo) to unlock unlimited MCQs across all aptitude and computer science subjects.
+        </p>
+        <div className="flex justify-center gap-3 pt-2">
+          <Link to="/practice">
+            <Button variant="outline" size="sm">Back to Hub</Button>
+          </Link>
+          <Link to="/pricing">
+            <Button variant="primary" size="sm">Upgrade Plan</Button>
+          </Link>
+        </div>
+      </Card>
+    );
+  }
+
+  // Calculate score upon completion
+  let correctCount = 0;
+  if (sessionCompleted) {
+    SAMPLE_QUESTIONS.forEach((q, idx) => {
+      if (selectedAnswers[idx] === q.correctIndex) {
+        correctCount += 1;
       }
     });
-
-    const scorePct = Math.round((correctCount / questions.length) * 100);
-    setScoreData({
-      correct: correctCount,
-      total: questions.length,
-      percentage: scorePct
-    });
-
-    try {
-      // Record practice attempts in B2C backend
-      await b2cApi.recordQuestionAttempt({
-        type: 'MCQ',
-        passed: scorePct >= 50
-      });
-      refreshProfile();
-      showSuccess(`Practice complete! You scored ${scorePct}%.`);
-    } catch (e) {}
-  };
-
-  const formatTimer = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const currentQ = questions[currentIndex] || fallbackQuestions[0];
+  }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      {/* Top Session Bar */}
-      <div className="flex items-center justify-between p-4 rounded-2xl glass-panel border border-slate-800">
-        <div>
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Practice Arena</span>
-          <h2 className="text-base font-bold text-white">{subjectName}</h2>
-        </div>
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+      
+      {/* Top Header */}
+      <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+        <Link
+          to="/practice"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" /> Back to Practice Hub
+        </Link>
 
-        <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-mono text-xs font-bold ${
-            timeLeftSeconds < 120 ? 'bg-rose-950/80 border-rose-500/40 text-rose-300 animate-pulse' : 'bg-slate-900 border-slate-700 text-slate-200'
-          }`}>
-            <Clock className="w-3.5 h-3.5" />
-            <span>{formatTimer(timeLeftSeconds)}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-xl font-mono text-xs font-semibold text-slate-700">
+            <Clock className="w-3.5 h-3.5 text-slate-500" />
+            {formatTimer(timerSeconds)}
           </div>
-
-          {!isSubmitted && (
-            <Button variant="danger" size="sm" onClick={handleSubmit}>
-              Submit Test
-            </Button>
-          )}
+          <Badge variant="primary">{topicName}</Badge>
         </div>
       </div>
 
-      {/* Question Card */}
-      <Card className="p-8">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
-          <Badge variant="indigo">
-            Question {currentIndex + 1} of {questions.length}
-          </Badge>
-          <span className="text-xs text-slate-400 font-mono">{currentQ.title || 'Technical Concept'}</span>
-        </div>
+      {!sessionCompleted ? (
+        <div className="space-y-6">
+          
+          {/* Question Card */}
+          <Card className="p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Question {currentIndex + 1} of {SAMPLE_QUESTIONS.length}
+              </span>
+              <span className="text-xs font-medium text-slate-500">
+                {Object.keys(selectedAnswers).length} Answered
+              </span>
+            </div>
 
-        {/* Question Statement */}
-        <p className="text-base text-slate-100 font-medium leading-relaxed mb-8">
-          {currentQ.statement}
-        </p>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
+              {currentQ.question}
+            </h2>
 
-        {/* Options */}
-        <div className="space-y-3 mb-8">
-          {currentQ.options?.map((opt, i) => {
-            const isSelected = selectedAnswers[currentQ.id] === opt.id;
-            const isCorrect = isSubmitted && opt.id === currentQ.correctAnswer;
-            const isWrong = isSubmitted && isSelected && opt.id !== currentQ.correctAnswer;
-
-            let borderStyle = 'border-slate-800 hover:border-slate-700 bg-slate-900/60';
-            if (isSelected) borderStyle = 'border-indigo-500 bg-indigo-950/40 text-white shadow-md';
-            if (isCorrect) borderStyle = 'border-emerald-500 bg-emerald-950/50 text-emerald-200';
-            if (isWrong) borderStyle = 'border-rose-500 bg-rose-950/50 text-rose-200';
-
-            return (
-              <div
-                key={opt.id}
-                onClick={() => handleSelectOption(currentQ.id, opt.id)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-sm ${borderStyle}`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-xs font-mono text-slate-300">
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  <span>{opt.text}</span>
-                </div>
-                {isCorrect && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                {isWrong && <AlertTriangle className="w-4 h-4 text-rose-400" />}
+            {currentQ.formula && (
+              <div className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-center overflow-x-auto">
+                <div
+                  className="font-mono text-sm text-slate-800 inline-block"
+                  dangerouslySetInnerHTML={renderFormulaHtml(currentQ.formula)}
+                />
               </div>
-            );
-          })}
-        </div>
+            )}
 
-        {/* Detailed Explanation upon submission */}
-        {isSubmitted && currentQ.explanation && (
-          <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-slate-300 mb-6 space-y-1">
-            <span className="font-bold text-indigo-300 uppercase tracking-wider text-[10px]">Explanation</span>
-            <p className="leading-relaxed">{currentQ.explanation}</p>
-          </div>
-        )}
+            {/* Options List */}
+            <div className="mt-6 space-y-3">
+              {currentQ.options.map((option, optIdx) => {
+                const isSelected = selectedAnswers[currentIndex] === optIdx;
+                return (
+                  <button
+                    key={optIdx}
+                    type="button"
+                    onClick={() => handleSelectOption(optIdx)}
+                    className={`w-full p-4 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                      isSelected
+                        ? "bg-indigo-50/70 border-indigo-500 ring-1 ring-indigo-500/20 shadow-xs"
+                        : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                        isSelected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700"
+                      }`}>
+                        {String.fromCharCode(65 + optIdx)}
+                      </span>
+                      <span className={`text-sm ${isSelected ? "font-bold text-indigo-950" : "text-slate-800"}`}>
+                        {option}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* Navigation Actions */}
-        <div className="flex items-center justify-between pt-6 border-t border-slate-800">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentIndex === 0}
-            onClick={() => setCurrentIndex((prev) => prev - 1)}
-          >
-            <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-            Previous
-          </Button>
+            {/* Explanation Toggle */}
+            {selectedAnswers[currentIndex] !== undefined && (
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <button
+                  onClick={() => setShowExplanation(!showExplanation)}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  {showExplanation ? "Hide Detailed Solution" : "View Step-by-Step Explanation"}
+                </button>
 
-          {currentIndex < questions.length - 1 ? (
+                {showExplanation && (
+                  <div className="mt-3 p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 text-xs text-indigo-950 leading-relaxed">
+                    <strong>Solution: </strong> {currentQ.explanation}
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+
+          {/* Navigation Controls */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentIndex === 0}
+              onClick={() => {
+                setCurrentIndex((prev) => Math.max(0, prev - 1));
+                setShowExplanation(false);
+              }}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Previous Question
+            </Button>
+
             <Button
               variant="primary"
               size="sm"
-              onClick={() => setCurrentIndex((prev) => prev + 1)}
+              onClick={handleNext}
             >
-              Next
-              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              {currentIndex < SAMPLE_QUESTIONS.length - 1 ? (
+                <>Next Question <ChevronRight className="w-4 h-4 ml-1" /></>
+              ) : (
+                <>Finish & View Scorecard <CheckCircle2 className="w-4 h-4 ml-1" /></>
+              )}
             </Button>
-          ) : (
-            !isSubmitted && (
-              <Button variant="danger" size="sm" onClick={handleSubmit}>
-                Finalize & Submit
-              </Button>
-            )
-          )}
-        </div>
-      </Card>
+          </div>
 
-      {/* Result Card Modal */}
-      {scoreData && (
-        <Card className="bg-gradient-to-tr from-slate-900 to-indigo-950/60 border-indigo-500/40 text-center p-8 space-y-4">
-          <Sparkles className="w-10 h-10 text-amber-400 mx-auto" />
-          <h3 className="text-2xl font-extrabold text-white font-heading">Practice Session Complete!</h3>
-          <p className="text-xs text-slate-400">
-            Your results have been processed and your Placement Readiness Score has been updated.
-          </p>
-          <div className="flex items-center justify-center gap-6 py-4">
-            <div>
-              <div className="text-3xl font-extrabold text-white font-heading">{scoreData.correct} / {scoreData.total}</div>
-              <div className="text-[11px] text-slate-400">Correct Answers</div>
+        </div>
+      ) : (
+        /* Session Completed Scorecard */
+        <Card className="p-8 text-center space-y-6">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
+            <Award className="w-8 h-8" />
+          </div>
+
+          <div>
+            <Badge variant="success" className="mb-2">Session Completed</Badge>
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              {topicName} Practice Result
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Your results have been recorded in your batch placement telemetry.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto pt-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="text-[10px] uppercase font-bold text-slate-400">Score</div>
+              <div className="text-2xl font-black text-slate-900 font-mono mt-1">
+                {correctCount}/{SAMPLE_QUESTIONS.length}
+              </div>
             </div>
-            <div className="w-px h-10 bg-slate-800" />
-            <div>
-              <div className="text-3xl font-extrabold text-emerald-400 font-heading">{scoreData.percentage}%</div>
-              <div className="text-[11px] text-slate-400">Accuracy</div>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="text-[10px] uppercase font-bold text-slate-400">Accuracy</div>
+              <div className="text-2xl font-black text-emerald-600 font-mono mt-1">
+                {Math.round((correctCount / SAMPLE_QUESTIONS.length) * 100)}%
+              </div>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="text-[10px] uppercase font-bold text-slate-400">Time Taken</div>
+              <div className="text-2xl font-black text-indigo-600 font-mono mt-1">
+                {formatTimer(600 - timerSeconds)}
+              </div>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-3">
-            <Button variant="secondary" size="sm" onClick={() => navigate('/practice')}>
-              Back to Practice Hub
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => navigate('/dashboard')}>
-              Go to Dashboard
+
+          <div className="pt-4 flex justify-center gap-3">
+            <Link to="/practice">
+              <Button variant="outline">Browse Other Topics</Button>
+            </Link>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setSessionCompleted(false);
+                setSelectedAnswers({});
+                setCurrentIndex(0);
+                setTimerSeconds(600);
+              }}
+            >
+              <RotateCcw className="w-4 h-4 mr-1.5" /> Retake Practice
             </Button>
           </div>
         </Card>
       )}
+
     </div>
   );
 }
+
+export default McqSessionPage;

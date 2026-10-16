@@ -1,23 +1,41 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  Zap,
+  User,
   Mail,
   Lock,
-  User,
+  Building2,
   GraduationCap,
-  Building,
+  Sparkles,
   ArrowRight,
+  AlertCircle,
   Eye,
-  EyeOff,
-  CheckCircle2,
-  Sparkles
-} from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { Button } from '../components/common/Button';
-import { Card } from '../components/common/Card';
-import { Badge } from '../components/common/Badge';
+  EyeOff
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import { Button } from "../components/common/Button";
+
+const POPULAR_COLLEGES = [
+  "National Institute of Technology (NIT)",
+  "Indian Institute of Technology (IIT)",
+  "Birla Institute of Technology and Science (BITS)",
+  "Vellore Institute of Technology (VIT)",
+  "RV College of Engineering (RVCE)",
+  "Delhi Technological University (DTU)",
+  "Flash Student Open Community"
+];
+
+const ENGINEERING_BRANCHES = [
+  "Computer Science & Engineering (CSE)",
+  "Information Technology (IT)",
+  "Artificial Intelligence & Machine Learning (AI/ML)",
+  "Data Science & Analytics",
+  "Electronics & Communication Engineering (ECE)",
+  "Electrical & Electronics Engineering (EEE)",
+  "Mechanical Engineering",
+  "Other Engineering Branch"
+];
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -25,215 +43,249 @@ export function RegisterPage() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    collegeName: '',
-    graduationYear: '2028',
-    degree: 'B.Tech / B.E.',
-    branch: 'Computer Science & Engineering',
-    phone: ''
+    name: "",
+    email: "",
+    password: "",
+    collegeName: POPULAR_COLLEGES[0],
+    branch: ENGINEERING_BRANCHES[0],
+    graduationYear: 2028,
+    targetRole: "Software Development Engineer (SDE-1)"
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrorMsg("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!formData.name.trim() || !formData.email.trim() || !formData.password) {
-      showError('Please fill in your name, email, and password.');
+      setErrorMsg("Please fill in all required fields.");
       return;
     }
 
     if (formData.password.length < 6) {
-      showError('Password must be at least 6 characters long.');
-      return;
-    }
-
-    if (!formData.collegeName.trim()) {
-      showError('Please enter your college or university name.');
+      setErrorMsg("Password must be at least 6 characters.");
       return;
     }
 
     setLoading(true);
+    setErrorMsg("");
+
     try {
-      const data = await register(formData);
-      showSuccess('Account created! Welcome to the Flash 2028 Cohort.');
-      navigate('/dashboard');
+      await register({
+        ...formData,
+        graduationYear: Number(formData.graduationYear)
+      });
+      showSuccess("Account created successfully! Welcome to Flash.");
+      navigate("/dashboard");
     } catch (err) {
-      showError(err.message || 'Registration failed. Please try again.');
+      const msg = err.message || "Registration failed. Please try again.";
+      setErrorMsg(msg);
+      showError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
-              <Zap className="w-5 h-5 text-white fill-white" />
-            </div>
-            <span className="font-extrabold text-2xl text-white font-heading">FLASH</span>
-          </Link>
-
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h2 className="text-2xl font-bold text-white font-heading">Join the Student Platform</h2>
-            <Badge variant="indigo">Batch of 2028</Badge>
-          </div>
-          <p className="text-xs text-slate-400">
-            Open self-registration. Get instant free access to MCQs, coding compiler, and ATS scoring.
-          </p>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8">
+      
+      {/* Brand Header */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center">
+        <div className="flex justify-center mb-3">
+          <img
+            src="/branding/flash-logo-full.png"
+            alt="FLASH"
+            className="h-16 w-auto max-w-[240px] sm:max-w-[280px] object-contain cursor-pointer transition-transform hover:scale-105"
+            onClick={() => navigate("/")}
+          />
         </div>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold mb-1">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Batch 2028 Priority Access</span>
+        </div>
+        <p className="text-xs text-slate-600 max-w-sm mx-auto">
+          Start your career preparation with 100 free MCQs and 50 DSA coding challenges.
+        </p>
+      </div>
 
-        {/* Card Form */}
-        <Card className="border-slate-800 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="mt-5 sm:mx-auto sm:w-full sm:max-w-xl">
+        {/* Main Card */}
+        <div className="bg-white py-7 px-6 sm:px-8 shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-200/80">
+          
+          <div className="flex items-center gap-2 pb-4 mb-4 border-b border-slate-100">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Create Free Student Account</h2>
+              <p className="text-[11px] text-slate-500">Zero charges • Instant activation</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            
+            {errorMsg && (
+              <div className="flex items-start gap-2.5 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 animate-in fade-in duration-200">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span className="leading-snug">{errorMsg}</span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Full Name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Name</label>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Full Name *
+                </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    required
                     name="name"
+                    required
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="e.g. Aarav Sharma"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="e.g. Harshvardhan Sharma"
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
               </div>
 
-              {/* Email Address */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Student Email *
+                </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
-                    required
                     name="email"
+                    required
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="student@college.edu or gmail"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="e.g. harsh@college.edu"
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Password *
+              </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
+                  type={showPassword ? "text" : "password"}
                   name="password"
+                  required
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Minimum 6 characters"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  placeholder="At least 6 characters"
+                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3 text-slate-400 hover:text-white"
+                  className="p-1 text-slate-400 hover:text-slate-600 absolute right-3 top-1/2 -translate-y-1/2"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* College / Institution */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">College / University Name</label>
-              <div className="relative">
-                <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="text"
-                  required
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  College / Institution
+                </label>
+                <select
                   name="collegeName"
                   value={formData.collegeName}
                   onChange={handleChange}
-                  placeholder="e.g. National Institute of Technology, Trichy"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                />
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white text-slate-900"
+                >
+                  {POPULAR_COLLEGES.map((c, i) => (
+                    <option key={i} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Branch / Specialization
+                </label>
+                <select
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white text-slate-900"
+                >
+                  {ENGINEERING_BRANCHES.map((b, i) => (
+                    <option key={i} value={b}>{b}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Graduation Year */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Graduation Passing Year</label>
-                <div className="relative">
-                  <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  <select
-                    name="graduationYear"
-                    value={formData.graduationYear}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white text-sm focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="2028">2028 (Target Cohort)</option>
-                    <option value="2027">2027</option>
-                    <option value="2026">2026</option>
-                    <option value="2029">2029</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Branch / Stream */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Branch / Specialization</label>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Graduation Batch
+                </label>
                 <input
-                  type="text"
-                  name="branch"
-                  value={formData.branch}
+                  type="number"
+                  name="graduationYear"
+                  value={formData.graduationYear}
                   onChange={handleChange}
-                  placeholder="e.g. Computer Science, AI/ML, ECE"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 font-mono"
                 />
               </div>
-            </div>
 
-            {/* Free Plan Auto-inclusion note */}
-            <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-start gap-3">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <div className="text-xs text-slate-300 leading-relaxed">
-                <span className="font-bold text-white">Free Plan Included:</span> 100 overall MCQs, 50 DSA practice problems on Judge0, and ATS resume scoring activated immediately.
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Target Career Role
+                </label>
+                <input
+                  type="text"
+                  name="targetRole"
+                  value={formData.targetRole}
+                  onChange={handleChange}
+                  placeholder="e.g. SDE-1 / Full Stack"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900"
+                />
               </div>
             </div>
 
             <Button
               type="submit"
               variant="primary"
+              size="md"
               loading={loading}
-              className="w-full"
+              className="w-full mt-2"
             >
-              <span>Create Free Account</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
+              Complete Registration & Start Practicing <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
+
           </form>
 
-          <div className="mt-6 pt-5 border-t border-slate-800 text-center text-xs text-slate-400">
-            <span>Already have an account? </span>
-            <Link to="/login" className="text-indigo-400 font-semibold hover:underline">
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+            Already have an account?{" "}
+            <Link to="/login" className="font-bold text-indigo-600 hover:text-indigo-700">
               Sign In
             </Link>
           </div>
-        </Card>
+
+        </div>
       </div>
     </div>
   );
 }
+
+export default RegisterPage;

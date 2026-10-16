@@ -1,44 +1,63 @@
-import React from 'react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import React from "react";
+import { Crown, Sparkles, Zap } from "lucide-react";
+import { cn } from "../../utils/cn";
 
-export function Badge({
-  children,
-  variant = 'default',
-  size = 'sm',
-  className
-}) {
-  const base = 'inline-flex items-center font-semibold rounded-full uppercase tracking-wider font-mono';
-
-  const variants = {
-    default: 'bg-slate-800 text-slate-300 border border-slate-700',
-    indigo: 'bg-indigo-950/80 text-indigo-300 border border-indigo-500/30',
-    purple: 'bg-purple-950/80 text-purple-300 border border-purple-500/30',
-    emerald: 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30',
-    amber: 'bg-amber-950/80 text-amber-300 border border-amber-500/30',
-    rose: 'bg-rose-950/80 text-rose-300 border border-rose-500/30',
-    gold: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/40'
+export function Badge({ children, variant = "neutral", size = "md", className = "" }) {
+  const variantStyles = {
+    neutral: "bg-slate-100 text-slate-700 border-slate-200",
+    success: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    warning: "bg-amber-50 text-amber-700 border-amber-200",
+    danger: "bg-rose-50 text-rose-700 border-rose-200",
+    primary: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    purple: "bg-purple-50 text-purple-700 border-purple-200",
+    blue: "bg-sky-50 text-sky-700 border-sky-200",
+    outline: "bg-white text-slate-700 border-slate-300"
   };
 
-  const sizes = {
-    xs: 'text-[10px] px-2 py-0.5',
-    sm: 'text-[11px] px-2.5 py-1',
-    md: 'text-xs px-3 py-1.5'
+  const sizeStyles = {
+    sm: "px-2 py-0.5 text-xs font-medium",
+    md: "px-2.5 py-1 text-xs font-semibold",
+    lg: "px-3 py-1.5 text-sm font-semibold"
   };
 
   return (
-    <span className={twMerge(clsx(base, variants[variant], sizes[size], className))}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border transition-colors",
+        variantStyles[variant] || variantStyles.neutral,
+        sizeStyles[size] || sizeStyles.md,
+        className
+      )}
+    >
       {children}
     </span>
   );
 }
 
-export function PlanBadge({ tier = 'FREE', className }) {
-  if (tier === 'PREMIUM') {
-    return <Badge variant="gold" className={twMerge(clsx('shadow-sm shadow-amber-500/20', className))}>✨ Premium</Badge>;
+export function PlanBadge({ tier = "FREE", size = "md", className = "" }) {
+  const normalized = String(tier || "FREE").toUpperCase();
+
+  if (normalized === "PREMIUM") {
+    return (
+      <Badge variant="purple" size={size} className={cn("gap-1 font-bold", className)}>
+        <Crown className="w-3.5 h-3.5 text-purple-600" /> Premium
+      </Badge>
+    );
   }
-  if (tier === 'BASIC') {
-    return <Badge variant="indigo" className={className}>⚡ Basic</Badge>;
+
+  if (normalized === "BASIC") {
+    return (
+      <Badge variant="primary" size={size} className={cn("gap-1 font-bold", className)}>
+        <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Basic
+      </Badge>
+    );
   }
-  return <Badge variant="default" className={className}>Free Plan</Badge>;
+
+  return (
+    <Badge variant="neutral" size={size} className={cn("gap-1 font-bold", className)}>
+      <Zap className="w-3.5 h-3.5 text-slate-500" /> Free Tier
+    </Badge>
+  );
 }
+
+export default Badge;

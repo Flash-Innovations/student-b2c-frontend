@@ -32,11 +32,11 @@ export const ToastProvider = ({ children }) => {
       <div className="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 max-w-md pointer-events-none">
         {toasts.map((toast) => {
           const typeStyles = {
-            success: 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200',
-            error: 'bg-rose-950/90 border-rose-500/40 text-rose-200',
-            warning: 'bg-amber-950/90 border-amber-500/40 text-amber-200',
-            info: 'bg-indigo-950/90 border-indigo-500/40 text-indigo-200'
-          }[toast.type] || 'bg-slate-900 border-slate-700 text-slate-200';
+            success: 'bg-white border-emerald-300 text-emerald-950 shadow-emerald-100',
+            error: 'bg-white border-rose-300 text-rose-950 shadow-rose-100',
+            warning: 'bg-white border-amber-300 text-amber-950 shadow-amber-100',
+            info: 'bg-white border-indigo-300 text-indigo-950 shadow-indigo-100'
+          }[toast.type] || 'bg-white border-slate-200 text-slate-800';
 
           const IconComponent = {
             success: CheckCircle2,
