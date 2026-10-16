@@ -58,7 +58,7 @@ export function LoginPage() {
             src="/branding/flash-logo-full.png"
             alt="FLASH"
             className="h-16 w-auto max-w-[240px] sm:max-w-[280px] object-contain cursor-pointer transition-transform hover:scale-105"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/login")}
           />
         </div>
       </div>

@@ -2,10 +2,9 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
-import { Footer } from "./components/layout/Footer";
+import { useAuth } from "./context/AuthContext";
 
-// Public Pages
-import { LandingPage } from "./pages/LandingPage";
+// Auth Pages
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { PricingPage } from "./pages/PricingPage";
@@ -19,22 +18,27 @@ import { MockInterviewPage } from "./pages/MockInterviewPage";
 import { ResumeOptimizerPage } from "./pages/ResumeOptimizerPage";
 import { PlacementOutcomesPage } from "./pages/PlacementOutcomesPage";
 
+function RootEntry() {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+  return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
+}
+
 export function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
       <Routes>
-        {/* Public Routes with Standalone Layout */}
-        <Route
-          path="/"
-          element={
-            <div className="min-h-screen flex flex-col bg-[#f8f9ff]">
-              <LandingPage />
-              <Footer />
-            </div>
-          }
-        />
+        {/* Default Route: Always opens Login page first for unauthenticated users */}
+        <Route path="/" element={<RootEntry />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/onboarding" element={<Navigate to="/register" replace />} />
 
         {/* Authenticated Student Portal Routes wrapped in DashboardLayout (Sidebar + TopNavbar) */}
         <Route
@@ -56,7 +60,7 @@ export function App() {
         </Route>
 
         {/* Catch-all Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>
   );
