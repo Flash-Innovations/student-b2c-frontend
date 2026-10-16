@@ -282,7 +282,7 @@ export function MockInterviewPage() {
       {/* Header Bar matching student-web-platform */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-purple-50 border border-purple-100 text-purple-600">
               <Mic className="w-5 h-5" />
             </span>
@@ -291,9 +291,6 @@ export function MockInterviewPage() {
             </h1>
             <Badge variant="purple">Gemini Live Audio</Badge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Real-time conversational voice interviews, question-based voice tests, and granular feedback calibrated for 2028 campus hiring.
-          </p>
         </div>
 
         {/* Quota & Minutes Pill */}
@@ -371,7 +368,6 @@ export function MockInterviewPage() {
             <Card className="p-6 border-slate-200/90 shadow-xs">
               <CardHeader
                 title="Interview Configuration"
-                subtitle="Select your interview format to begin your live speech-to-speech mock session."
                 action={<Badge variant="primary">Speech-to-Speech</Badge>}
               />
 
@@ -489,7 +485,6 @@ export function MockInterviewPage() {
             <Card className="p-6">
               <CardHeader
                 title="Interview Rubric"
-                subtitle="Calibrated for Campus 2028 Hiring"
               />
               <div className="space-y-3 text-xs text-slate-600">
                 <div className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
@@ -650,7 +645,7 @@ export function MockInterviewPage() {
             <Card className="p-6">
               <CardHeader
                 title="Active Session Context"
-                subtitle={selectedTrack.title}
+                action={<Badge variant="primary">{selectedTrack.title}</Badge>}
               />
               <div className="space-y-3 text-xs text-slate-600">
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">

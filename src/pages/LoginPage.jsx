@@ -61,12 +61,9 @@ export function LoginPage() {
             onClick={() => navigate("/")}
           />
         </div>
-        <p className="mt-1.5 text-xs text-slate-600 max-w-sm mx-auto">
-          AI-powered career intelligence & placement arena for students.
-        </p>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-md">
         {/* Main Auth Card */}
         <div className="bg-white py-7 px-6 sm:px-8 shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-200/80">
           
@@ -76,7 +73,6 @@ export function LoginPage() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900">Student Portal Sign In</h2>
-              <p className="text-[11px] text-slate-500">Access your practice arena, coding hub, and AI mock tests</p>
             </div>
           </div>
 

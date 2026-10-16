@@ -137,7 +137,7 @@ export function PlacementOutcomesPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600">
               <Award className="w-5 h-5" />
             </span>
@@ -146,9 +146,6 @@ export function PlacementOutcomesPage() {
             </h1>
             <Badge variant="success">Batch 2028 Verified</Badge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Document verified campus offers, contribute to college NIRF benchmarks, and control institutional data sharing.
-          </p>
         </div>
 
         <Button onClick={() => setShowLogModal(true)}>
@@ -291,7 +288,6 @@ export function PlacementOutcomesPage() {
         <Card className="p-6 max-w-2xl space-y-6">
           <CardHeader
             title="Institutional Privacy Settings"
-            subtitle="Control how your telemetry is shared with university administrators."
           />
 
           <div className="space-y-4">

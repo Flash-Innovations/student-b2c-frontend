@@ -109,12 +109,9 @@ export function RegisterPage() {
           <Sparkles className="w-3.5 h-3.5" />
           <span>Batch 2028 Priority Access</span>
         </div>
-        <p className="text-xs text-slate-600 max-w-sm mx-auto">
-          Start your career preparation with 100 free MCQs and 50 DSA coding challenges.
-        </p>
       </div>
 
-      <div className="mt-5 sm:mx-auto sm:w-full sm:max-w-xl">
+      <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-xl">
         {/* Main Card */}
         <div className="bg-white py-7 px-6 sm:px-8 shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-200/80">
           
@@ -124,7 +121,6 @@ export function RegisterPage() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900">Create Free Student Account</h2>
-              <p className="text-[11px] text-slate-500">Zero charges • Instant activation</p>
             </div>
           </div>
 

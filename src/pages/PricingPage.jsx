@@ -133,14 +133,11 @@ export function PricingPage() {
     <div className="space-y-8 animate-in fade-in duration-300">
       
       {/* Header & Title */}
-      <div className="text-center max-w-3xl mx-auto space-y-4">
+      <div className="text-center max-w-3xl mx-auto space-y-3">
         <Badge variant="primary" className="mb-1">Transparent Student Pricing</Badge>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
           Invest in Your Placement Readiness
         </h1>
-        <p className="text-sm sm:text-base text-slate-500 leading-relaxed">
-          Affordable monthly and yearly plans tailored for Indian engineering students. Zero hidden lock-ins.
-        </p>
 
         {/* Billing Cycle Toggle */}
         <div className="flex items-center justify-center gap-3 pt-2">
@@ -361,7 +358,6 @@ export function PricingPage() {
         <Card className="p-6">
           <CardHeader
             title="Pay-As-You-Go Add-On Packs"
-            subtitle="Top up your quota without committing to a recurring subscription"
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

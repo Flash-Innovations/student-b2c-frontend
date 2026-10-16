@@ -109,7 +109,7 @@ export function ResumeOptimizerPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-sky-50 border border-sky-100 text-sky-600">
               <FileText className="w-5 h-5" />
             </span>
@@ -118,9 +118,6 @@ export function ResumeOptimizerPage() {
             </h1>
             <Badge variant="blue">Batch 2028 Calibrated</Badge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Benchmarked against applicant tracking systems from Google, Microsoft, Amazon, and enterprise campus recruiters.
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -225,7 +222,6 @@ export function ResumeOptimizerPage() {
             <Card className="p-6">
               <CardHeader
                 title="What Flash ATS Evaluates"
-                subtitle="Calibrated for Campus 2028 Screening"
               />
               <div className="space-y-3 text-xs text-slate-600">
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2">

@@ -155,7 +155,6 @@ export function DashboardPage() {
           <Card className="p-6">
             <CardHeader
               title="Career Preparation Modules"
-              subtitle="Launch active practice environments calibrated for campus hiring rounds"
               action={<PlanBadge tier={planTier} />}
             />
 
@@ -258,7 +257,6 @@ export function DashboardPage() {
           <Card className="p-6">
             <CardHeader
               title="Usage & Entitlements"
-              subtitle="Batch 2028 Allocation"
             />
 
             <div className="space-y-4">

@@ -221,9 +221,6 @@ export function CodingArenaPage() {
               <Badge variant="success" size="sm">Easy</Badge>
               <Badge variant="neutral" size="sm">Array & Hashing</Badge>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Targeted for SDE-1 technical interview rounds • Judge0 Execution Pipeline
-            </p>
           </div>
         </div>
 

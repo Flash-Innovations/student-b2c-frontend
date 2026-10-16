@@ -111,9 +111,9 @@ export function PracticeHubPage() {
     <div className="space-y-6 animate-in fade-in duration-300">
       
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600">
               <BrainCircuit className="w-5 h-5" />
             </span>
@@ -121,9 +121,6 @@ export function PracticeHubPage() {
               Subject & Aptitude Practice Hub
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Formula-backed aptitude questions, core CS subject topics, and placement test simulations.
-          </p>
         </div>
 
         {/* Quota Pill */}
