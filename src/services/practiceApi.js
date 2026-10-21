@@ -82,9 +82,23 @@ export const practiceApi = {
   submitCode: (codePayload) => practiceRequest('/coding/execute/submit', { method: 'POST', body: codePayload }),
   getSubmissionById: (submissionId) => practiceRequest(`/coding/submissions/${submissionId}`, { method: 'GET' }),
 
-  // Contests
-  getAvailableContests: () => practiceRequest('/contests/available', { method: 'GET' }),
+  // Contests & Assessments
+  getAvailableContests: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return practiceRequest(`/contests/available${q ? `?${q}` : ''}`, { method: 'GET' });
+  },
   getStudentContest: (contestId) => practiceRequest(`/contests/${contestId}/student`, { method: 'GET' }),
   startContestAttempt: (contestId) => practiceRequest(`/contests/${contestId}/attempts/start`, { method: 'POST' }),
-  getContestLeaderboard: (contestId) => practiceRequest(`/contests/${contestId}/leaderboard`, { method: 'GET' })
+  getContestAttempt: (contestId, attemptId) => practiceRequest(`/contests/${contestId}/attempts/${attemptId}`, { method: 'GET' }),
+  getContestQuestions: (contestId, attemptId) => practiceRequest(`/contests/${contestId}/attempts/${attemptId}/questions`, { method: 'GET' }),
+  recordContestResponse: (contestId, attemptId, payload) => practiceRequest(`/contests/${contestId}/attempts/${attemptId}/responses`, { method: 'POST', body: payload }),
+  submitContestAttempt: (contestId, attemptId) => practiceRequest(`/contests/${contestId}/attempts/${attemptId}/submit`, { method: 'POST' }),
+  finalizeContestAttempt: (contestId, attemptId) => practiceRequest(`/contests/${contestId}/attempts/${attemptId}/finalize`, { method: 'POST' }),
+  getContestResult: (contestId, attemptId) => practiceRequest(`/contests/${contestId}/attempts/${attemptId}/result`, { method: 'GET' }),
+  getContestLeaderboard: (contestId, params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return practiceRequest(`/contests/${contestId}/leaderboard${q ? `?${q}` : ''}`, { method: 'GET' });
+  },
+  getMyContestRank: (contestId) => practiceRequest(`/contests/${contestId}/leaderboard/me`, { method: 'GET' })
 };
+

@@ -18,6 +18,13 @@ import { MockInterviewPage } from "./pages/MockInterviewPage";
 import { ResumeOptimizerPage } from "./pages/ResumeOptimizerPage";
 import { PlacementOutcomesPage } from "./pages/PlacementOutcomesPage";
 
+// Contests & Assessments Pages
+import { ContestListPage } from "./pages/ContestListPage";
+import { ContestDetailsPage } from "./pages/ContestDetailsPage";
+import { ContestWorkspacePage } from "./pages/ContestWorkspacePage";
+import { ContestResultPage } from "./pages/ContestResultPage";
+import { ContestLeaderboardPage } from "./pages/ContestLeaderboardPage";
+
 function RootEntry() {
   const { isAuthenticated, loading } = useAuth();
   if (loading) {
@@ -40,6 +47,18 @@ export function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/onboarding" element={<Navigate to="/register" replace />} />
 
+        {/* Dedicated Fullscreen Distraction-Free Contest Workspace */}
+        <Route
+          path="/contests/:contestId/attempt/:attemptId"
+          element={
+            <ProtectedRoute>
+              <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 sm:p-6">
+                <ContestWorkspacePage />
+              </div>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Authenticated Student Portal Routes wrapped in DashboardLayout (Sidebar + TopNavbar) */}
         <Route
           element={
@@ -53,6 +72,13 @@ export function App() {
           <Route path="/practice/mcq" element={<McqSessionPage />} />
           <Route path="/coding" element={<CodingArenaPage />} />
           <Route path="/practice/coding" element={<CodingArenaPage />} />
+
+          {/* Contests & Institutional Assessments */}
+          <Route path="/contests" element={<ContestListPage />} />
+          <Route path="/contests/:contestId" element={<ContestDetailsPage />} />
+          <Route path="/contests/:contestId/result/:attemptId" element={<ContestResultPage />} />
+          <Route path="/contests/:contestId/leaderboard" element={<ContestLeaderboardPage />} />
+
           <Route path="/interview" element={<MockInterviewPage />} />
           <Route path="/resume" element={<ResumeOptimizerPage />} />
           <Route path="/outcomes" element={<PlacementOutcomesPage />} />

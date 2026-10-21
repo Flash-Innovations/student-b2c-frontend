@@ -244,6 +244,35 @@ export function DashboardPage() {
                 </div>
               </div>
 
+              {/* Tile 5: Placement Contests & Assessments */}
+              <div
+                onClick={() => navigate("/contests")}
+                className="p-5 rounded-2xl border border-slate-200/90 hover:border-amber-500 hover:shadow-md transition-all cursor-pointer bg-white group sm:col-span-2"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
+                        Placement Contests & Assessments
+                      </h3>
+                      <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Rounds & SIPS Verified Evaluations
+                      </span>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Compete in scheduled campus placement drives, timed algorithmic programming contests, and standardized institutional aptitude tests.
+                </p>
+                <div className="mt-4 flex items-center text-xs font-semibold text-amber-600">
+                  Browse Active Assessments <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
             </div>
           </Card>
         </div>
