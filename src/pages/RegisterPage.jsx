@@ -16,25 +16,72 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Button } from "../components/common/Button";
 
-const POPULAR_COLLEGES = [
-  "National Institute of Technology (NIT)",
+const POPULAR_COLLEGES_SUGGESTIONS = [
   "Indian Institute of Technology (IIT)",
+  "National Institute of Technology (NIT)",
   "Birla Institute of Technology and Science (BITS)",
   "Vellore Institute of Technology (VIT)",
   "RV College of Engineering (RVCE)",
   "Delhi Technological University (DTU)",
+  "SRM Institute of Science and Technology",
+  "Manipal Institute of Technology",
+  "Thapar Institute of Engineering and Technology",
+  "PSG College of Technology",
+  "Symbiosis International University",
   "Flash Student Open Community"
 ];
 
-const ENGINEERING_BRANCHES = [
-  "Computer Science & Engineering (CSE)",
-  "Information Technology (IT)",
-  "Artificial Intelligence & Machine Learning (AI/ML)",
-  "Data Science & Analytics",
-  "Electronics & Communication Engineering (ECE)",
-  "Electrical & Electronics Engineering (EEE)",
-  "Mechanical Engineering",
-  "Other Engineering Branch"
+const COURSES = [
+  { id: "btech", label: "B.Tech / B.E.", category: "technical" },
+  { id: "bca", label: "BCA", category: "technical" },
+  { id: "mca", label: "MCA", category: "technical" },
+  { id: "mtech", label: "M.Tech", category: "technical" },
+  { id: "bba", label: "BBA", category: "business" },
+  { id: "mba", label: "MBA", category: "business" },
+  { id: "other", label: "Other Degree", category: "other" }
+];
+
+const GRADUATION_BATCHES = [
+  2024,
+  2025,
+  2026,
+  2027,
+  2028,
+  2029,
+  2030
+];
+
+const TECHNICAL_ROLES = [
+  "Software Development Engineer (SDE-1)",
+  "Full Stack Developer",
+  "Frontend Developer",
+  "Backend Developer",
+  "Data Analyst / Data Scientist",
+  "AI / Machine Learning Engineer",
+  "Cloud & DevOps Engineer",
+  "QA / Automation Testing Engineer",
+  "Cybersecurity Analyst",
+  "Systems / Embedded Engineer",
+  "Other Technical Role"
+];
+
+const BUSINESS_ROLES = [
+  "Management Trainee",
+  "Business Analyst",
+  "Product Management Associate",
+  "Marketing & Growth Specialist",
+  "Financial Analyst / FinTech",
+  "Human Resources (HR) Specialist",
+  "Operations & Supply Chain Associate",
+  "Sales & Business Development",
+  "Strategy & Consulting Analyst",
+  "Other Management Role"
+];
+
+const OTHER_ROLES = [
+  ...TECHNICAL_ROLES.slice(0, 5),
+  ...BUSINESS_ROLES.slice(0, 5),
+  "General Associate / Trainee"
 ];
 
 export function RegisterPage() {
@@ -46,10 +93,11 @@ export function RegisterPage() {
     name: "",
     email: "",
     password: "",
-    collegeName: POPULAR_COLLEGES[0],
-    branch: ENGINEERING_BRANCHES[0],
+    collegeName: "",
+    course: COURSES[0].label,
+    branch: COURSES[0].label,
     graduationYear: 2028,
-    targetRole: "Software Development Engineer (SDE-1)"
+    targetRole: TECHNICAL_ROLES[0]
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -61,10 +109,37 @@ export function RegisterPage() {
     setErrorMsg("");
   };
 
+  const handleCourseChange = (e) => {
+    const selectedCourseLabel = e.target.value;
+    const selectedCourse = COURSES.find((c) => c.label === selectedCourseLabel);
+    let rolesForCourse = TECHNICAL_ROLES;
+    if (selectedCourse?.category === "business") {
+      rolesForCourse = BUSINESS_ROLES;
+    } else if (selectedCourse?.category === "other") {
+      rolesForCourse = OTHER_ROLES;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      course: selectedCourseLabel,
+      branch: selectedCourseLabel,
+      targetRole: rolesForCourse[0]
+    }));
+    setErrorMsg("");
+  };
+
+  const currentCourseObj = COURSES.find((c) => c.label === formData.course);
+  const activeRoles =
+    currentCourseObj?.category === "business"
+      ? BUSINESS_ROLES
+      : currentCourseObj?.category === "other"
+      ? OTHER_ROLES
+      : TECHNICAL_ROLES;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password) {
-      setErrorMsg("Please fill in all required fields.");
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password || !formData.collegeName.trim()) {
+      setErrorMsg("Please fill in all required fields including your college name.");
       return;
     }
 
@@ -79,6 +154,7 @@ export function RegisterPage() {
     try {
       await register({
         ...formData,
+        degree: formData.course,
         graduationYear: Number(formData.graduationYear)
       });
       showSuccess("Account created successfully! Welcome to Flash.");
@@ -195,32 +271,42 @@ export function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  College / Institution
+                  College / Institution *
                 </label>
-                <select
-                  name="collegeName"
-                  value={formData.collegeName}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white text-slate-900"
-                >
-                  {POPULAR_COLLEGES.map((c, i) => (
-                    <option key={i} value={c}>{c}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    name="collegeName"
+                    list="popular-colleges"
+                    required
+                    value={formData.collegeName}
+                    onChange={handleChange}
+                    placeholder="Enter your college / university name"
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400"
+                  />
+                  <datalist id="popular-colleges">
+                    {POPULAR_COLLEGES_SUGGESTIONS.map((col, idx) => (
+                      <option key={idx} value={col} />
+                    ))}
+                  </datalist>
+                </div>
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Branch / Specialization
+                  Course / Degree *
                 </label>
                 <select
-                  name="branch"
-                  value={formData.branch}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white text-slate-900"
+                  name="course"
+                  value={formData.course}
+                  onChange={handleCourseChange}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white text-slate-900 font-medium"
                 >
-                  {ENGINEERING_BRANCHES.map((b, i) => (
-                    <option key={i} value={b}>{b}</option>
+                  {COURSES.map((c) => (
+                    <option key={c.id} value={c.label}>
+                      {c.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -229,29 +315,38 @@ export function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Graduation Batch
+                  Graduation Batch *
                 </label>
-                <input
-                  type="number"
+                <select
                   name="graduationYear"
                   value={formData.graduationYear}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 font-mono"
-                />
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white text-slate-900 font-medium"
+                >
+                  {GRADUATION_BATCHES.map((year) => (
+                    <option key={year} value={year}>
+                      Class of {year} {year === 2028 ? "(2028 Batch)" : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Target Career Role
+                  Target Career Role *
                 </label>
-                <input
-                  type="text"
+                <select
                   name="targetRole"
                   value={formData.targetRole}
                   onChange={handleChange}
-                  placeholder="e.g. SDE-1 / Full Stack"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900"
-                />
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white text-slate-900 font-medium"
+                >
+                  {activeRoles.map((role, idx) => (
+                    <option key={idx} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
