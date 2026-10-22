@@ -57,6 +57,7 @@ const PRACTICE_TOPICS = [
     id: "DBMS",
     name: "Database Management (DBMS)",
     category: "Core CS",
+    technicalOnly: true,
     icon: Database,
     color: "bg-amber-50 text-amber-600 border-amber-100",
     questionCount: 190,
@@ -67,6 +68,7 @@ const PRACTICE_TOPICS = [
     id: "OS",
     name: "Operating Systems",
     category: "Core CS",
+    technicalOnly: true,
     icon: Cpu,
     color: "bg-purple-50 text-purple-600 border-purple-100",
     questionCount: 180,
@@ -77,6 +79,7 @@ const PRACTICE_TOPICS = [
     id: "NETWORKS",
     name: "Computer Networks",
     category: "Core CS",
+    technicalOnly: true,
     icon: Network,
     color: "bg-rose-50 text-rose-600 border-rose-100",
     questionCount: 160,
@@ -87,25 +90,58 @@ const PRACTICE_TOPICS = [
     id: "OOP",
     name: "Object-Oriented Programming",
     category: "Core CS",
+    technicalOnly: true,
     icon: Layers,
     color: "bg-blue-50 text-blue-600 border-blue-100",
     questionCount: 210,
     difficulty: "Medium",
     topics: ["Inheritance & Polymorphism", "Encapsulation", "SOLID Principles", "Design Patterns", "Abstract Classes"]
+  },
+  {
+    id: "DI_ANALYTICS",
+    name: "Data Interpretation & Analysis",
+    category: "Aptitude",
+    icon: Layers,
+    color: "bg-amber-50 text-amber-600 border-amber-100",
+    questionCount: 220,
+    difficulty: "Medium",
+    topics: ["Tables & Bar Charts", "Pie Charts", "Caselets", "Data Sufficiency", "Trend Analysis"]
+  },
+  {
+    id: "BUSINESS_GK",
+    name: "Business & Management Foundations",
+    category: "Management",
+    businessOnly: true,
+    icon: BookOpen,
+    color: "bg-purple-50 text-purple-600 border-purple-100",
+    questionCount: 190,
+    difficulty: "Medium",
+    topics: ["Business Strategy", "Financial Terminology", "Marketing Principles", "Organizational Behavior", "Case Analysis"]
   }
 ];
 
 export function PracticeHubPage() {
   const navigate = useNavigate();
-  const { user, subscription, planTier, isPaid } = useAuth();
+  const { user, subscription, planTier, isPaid, isTechnical } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("ALL");
 
   const mcqCount = subscription?.mcqAttemptedCount || 0;
   const mcqLimit = subscription?.mcqLimit || 100;
 
+  // Filter topics based on technical vs non-technical student profile
+  const availableTopics = PRACTICE_TOPICS.filter((t) => {
+    if (!isTechnical && t.technicalOnly) return false;
+    if (isTechnical && t.businessOnly) return false;
+    return true;
+  });
+
   const filteredTopics = selectedCategory === "ALL"
-    ? PRACTICE_TOPICS
-    : PRACTICE_TOPICS.filter((t) => t.category === selectedCategory);
+    ? availableTopics
+    : availableTopics.filter((t) => t.category === selectedCategory);
+
+  const availableTabs = isTechnical
+    ? ["ALL", "Aptitude", "Core CS"]
+    : ["ALL", "Aptitude", "Management"];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -118,7 +154,7 @@ export function PracticeHubPage() {
               <BrainCircuit className="w-5 h-5" />
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Subject & Aptitude Practice Hub
+              {isTechnical ? "Subject & Aptitude Practice Hub" : "Aptitude & Business Reasoning Hub"}
             </h1>
           </div>
         </div>
@@ -141,7 +177,7 @@ export function PracticeHubPage() {
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2">
-        {["ALL", "Aptitude", "Core CS"].map((cat) => (
+        {availableTabs.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
@@ -151,7 +187,7 @@ export function PracticeHubPage() {
                 : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
             }`}
           >
-            {cat === "ALL" ? "All Practice Tracks" : cat}
+            {cat === "ALL" ? (isTechnical ? "All Practice Tracks" : "All Aptitude Tracks") : cat}
           </button>
         ))}
       </div>

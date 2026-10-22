@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Code2,
+  BookOpen,
   Terminal,
   Trophy,
   Mic,
@@ -19,19 +20,21 @@ import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../utils/cn";
 
 export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) {
-  const { user, logout, subscription } = useAuth();
+  const { user, logout, subscription, isTechnical } = useAuth();
   const navigate = useNavigate();
 
-  const navLinks = [
+  const allNavLinks = [
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
-    { to: "/practice", label: "Practice Hub", icon: Code2 },
-    { to: "/coding", label: "Coding Arena", icon: Terminal },
+    { to: "/practice", label: isTechnical ? "Practice Hub" : "Aptitude Practice", icon: isTechnical ? Code2 : BookOpen },
+    { to: "/coding", label: "Coding Arena", icon: Terminal, technicalOnly: true },
     { to: "/contests", label: "Assessments", icon: Trophy },
     { to: "/interview", label: "AI Mock Interview", icon: Mic },
     { to: "/resume", label: "ATS Resume Optimizer", icon: FileText },
     { to: "/outcomes", label: "Verified Outcomes", icon: Award },
     { to: "/pricing", label: "Pricing & Plans", icon: Crown }
   ];
+
+  const navLinks = allNavLinks.filter((link) => !link.technicalOnly || isTechnical);
 
   const handleLogout = () => {
     logout();

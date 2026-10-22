@@ -20,7 +20,7 @@ import { Button } from "../components/common/Button";
 import { Badge, PlanBadge } from "../components/common/Badge";
 
 export function PricingPage() {
-  const { user, subscription, planTier, refreshSubscription } = useAuth();
+  const { user, subscription, planTier, isTechnical, refreshSubscription } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
 
   const [billingCycle, setBillingCycle] = useState("MONTHLY"); // 'MONTHLY' | 'YEARLY'
@@ -192,12 +192,19 @@ export function PricingPage() {
             <ul className="space-y-3 text-xs text-slate-600 border-t border-slate-100 pt-5">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>100 Overall MCQs</strong> (Aptitude & Core CS)</span>
+                <span><strong>100 Overall MCQs</strong> ({isTechnical ? "Aptitude & Core CS" : "Aptitude & Reasoning"})</span>
               </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>50 DSA Coding Problems</strong> (Judge0)</span>
-              </li>
+              {isTechnical ? (
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>50 DSA Coding Problems</strong> (Judge0)</span>
+                </li>
+              ) : (
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Analytical & Case Problem Sets</strong></span>
+                </li>
+              )}
               <li className="flex items-start gap-2 text-slate-400">
                 <span className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center shrink-0 mt-0.5 text-[10px]">—</span>
                 <span>No included mock interview minutes</span>
@@ -249,19 +256,21 @@ export function PricingPage() {
             <ul className="space-y-3 text-xs text-slate-600 border-t border-slate-100 pt-5">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong className="text-slate-900">Unlimited MCQs</strong> across all subjects</span>
+                <span><strong className="text-slate-900">Unlimited MCQs</strong> across all {isTechnical ? "subjects" : "aptitude tracks"}</span>
               </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong className="text-slate-900">Unlimited DSA Coding Problems</strong></span>
-              </li>
+              {isTechnical && (
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong className="text-slate-900">Unlimited DSA Coding Problems</strong></span>
+                </li>
+              )}
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span><strong className="text-slate-900">300 Mins/Month</strong> Gemini Live Audio Mocks</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>Free Entry</strong> to regular contests</span>
+                <span><strong>Free Entry</strong> to regular assessments</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -327,7 +336,7 @@ export function PricingPage() {
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Company-Specific Practice Problems (Google, Amazon, etc.)</span>
+                <span>{isTechnical ? "Company-Specific Practice Problems (Google, Amazon, etc.)" : "Company-Specific Case Studies & Screening Tests"}</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />

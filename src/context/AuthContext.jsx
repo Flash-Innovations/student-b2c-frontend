@@ -73,6 +73,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Compute whether student is technical or non-technical (e.g. BBA, MBA)
+  const isTechnical = React.useMemo(() => {
+    if (!user) return true;
+    const degree = String(user.degree || user.course || user.branch || '').toUpperCase();
+    const role = String(user.targetRole || user.targetRoles?.[0] || '').toUpperCase();
+
+    // Check non-technical degrees (BBA, MBA, Commerce, Management, Arts)
+    if (
+      degree.includes('BBA') ||
+      degree.includes('MBA') ||
+      degree.includes('BUSINESS') ||
+      degree.includes('MANAGEMENT') ||
+      degree.includes('COMMERCE')
+    ) {
+      return false;
+    }
+
+    // Check target roles if degree is "Other" or non-specific
+    if (degree.includes('OTHER')) {
+      const businessKeywords = ['MANAGEMENT', 'BUSINESS', 'MARKETING', 'HR', 'FINANCIAL', 'SALES', 'CONSULTING'];
+      if (businessKeywords.some((kw) => role.includes(kw))) {
+        return false;
+      }
+    }
+
+    return true;
+  }, [user]);
+
   const value = {
     user,
     subscription,
@@ -82,6 +110,7 @@ export const AuthProvider = ({ children }) => {
     planTier: subscription?.planTier || 'FREE',
     isPaid: subscription?.planTier === 'BASIC' || subscription?.planTier === 'PREMIUM',
     isPremium: subscription?.planTier === 'PREMIUM',
+    isTechnical,
     login,
     register,
     logout,

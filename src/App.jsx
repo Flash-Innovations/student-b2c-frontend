@@ -38,6 +38,8 @@ function RootEntry() {
 }
 
 export function App() {
+  const { isTechnical } = useAuth();
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
       <Routes>
@@ -70,8 +72,14 @@ export function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/practice" element={<PracticeHubPage />} />
           <Route path="/practice/mcq" element={<McqSessionPage />} />
-          <Route path="/coding" element={<CodingArenaPage />} />
-          <Route path="/practice/coding" element={<CodingArenaPage />} />
+          <Route
+            path="/coding"
+            element={isTechnical ? <CodingArenaPage /> : <Navigate to="/dashboard" replace />}
+          />
+          <Route
+            path="/practice/coding"
+            element={isTechnical ? <CodingArenaPage /> : <Navigate to="/dashboard" replace />}
+          />
 
           {/* Contests & Institutional Assessments */}
           <Route path="/contests" element={<ContestListPage />} />

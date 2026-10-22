@@ -32,7 +32,7 @@ import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
 
-const INTERVIEW_TRACKS = [
+const TECHNICAL_INTERVIEW_TRACKS = [
   {
     id: "tech-fullstack",
     title: "Full Stack & Web Architecture",
@@ -67,17 +67,60 @@ const INTERVIEW_TRACKS = [
   }
 ];
 
+const BUSINESS_INTERVIEW_TRACKS = [
+  {
+    id: "mgmt-case",
+    title: "Business Problem Solving & Case Analysis",
+    category: "Management",
+    role: "Management Trainee / Consulting",
+    topics: ["Market Sizing", "Profitability Framework", "Root Cause Analysis", "Go-To-Market Strategy"],
+    difficulty: "Medium"
+  },
+  {
+    id: "mgmt-analytics",
+    title: "Business Analytics & Growth Metrics",
+    category: "Analytics",
+    role: "Business Analyst / Strategy",
+    topics: ["KPI Metric Trees", "A/B Testing Insights", "Process Optimization", "Cost-Benefit Evaluation"],
+    difficulty: "Medium"
+  },
+  {
+    id: "mgmt-operations",
+    title: "Operations & Leadership Strategy",
+    category: "Operations",
+    role: "Operations / Project Associate",
+    topics: ["Cross-Functional Collaboration", "Stakeholder Management", "Resource Planning", "Quality Control"],
+    difficulty: "Medium"
+  },
+  {
+    id: "hr-behavioral",
+    title: "HR & Behavioral Competency",
+    category: "Behavioral",
+    role: "STAR Method & Culture Fit",
+    topics: ["Conflict Resolution", "Ownership", "Handling Failure", "Leadership & Teamwork"],
+    difficulty: "All Levels"
+  }
+];
+
 export function MockInterviewPage() {
   const navigate = useNavigate();
-  const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
+  const { user, subscription, planTier, isPaid, isTechnical, refreshSubscription } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
+
+  const availableTracks = isTechnical ? TECHNICAL_INTERVIEW_TRACKS : BUSINESS_INTERVIEW_TRACKS;
 
   const [activeTab, setActiveTab] = useState("setup"); // 'setup' | 'live' | 'scorecard' | 'history'
   const [formatMode, setFormatMode] = useState("TIME_BASED"); // 'TIME_BASED' | 'QUESTION_BASED'
-  const [selectedTrack, setSelectedTrack] = useState(INTERVIEW_TRACKS[0]);
+  const [selectedTrack, setSelectedTrack] = useState(availableTracks[0]);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+
+  useEffect(() => {
+    if (!availableTracks.some((t) => t.id === selectedTrack.id)) {
+      setSelectedTrack(availableTracks[0]);
+    }
+  }, [isTechnical]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [conversation, setConversation] = useState([]);
   const [currentAiStatus, setCurrentAiStatus] = useState("idle"); // 'idle' | 'listening' | 'speaking' | 'evaluating'
@@ -421,7 +464,9 @@ export function MockInterviewPage() {
                           </span>
                         </div>
                         <p className="text-xs text-slate-500 leading-relaxed">
-                          Standard structured test with a set number of prompt questions across core engineering topics.
+                          {isTechnical
+                            ? "Standard structured test with a set number of prompt questions across core engineering topics."
+                            : "Standard structured test with prompt questions across case analysis, business reasoning, and leadership."}
                         </p>
                       </div>
                       {formatMode === "QUESTION_BASED" && <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5 ml-2" />}
@@ -435,7 +480,7 @@ export function MockInterviewPage() {
                     Select Target Track
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {INTERVIEW_TRACKS.map((t) => {
+                    {availableTracks.map((t) => {
                       const isSelected = selectedTrack.id === t.id;
                       return (
                         <button

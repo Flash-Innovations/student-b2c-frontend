@@ -20,7 +20,7 @@ import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 
-const SAMPLE_RESUME_TEXT = `Harshvardhan Sharma
+const TECHNICAL_SAMPLE_RESUME = `Harshvardhan Sharma
 Email: harsh.sharma@college.edu | Phone: +91 98765 43210
 GitHub: github.com/harsh-dev2028 | LinkedIn: linkedin.com/in/harsh-sharma2028
 
@@ -48,15 +48,47 @@ Technical Lead, Campus Open Source Club (2025 - Present)
 - Mentored 120+ first-year and second-year students on Git workflows, competitive programming, and web development.
 - Organized 3 college-wide hackathons with 450+ cumulative participants.`;
 
+const BUSINESS_SAMPLE_RESUME = `Harshvardhan Sharma
+Email: harsh.sharma@college.edu | Phone: +91 98765 43210
+LinkedIn: linkedin.com/in/harsh-sharma2028 | Portfolio: harsh-consulting.me
+
+EDUCATION
+MBA / BBA in Management & Strategy | 2024 - 2028 | CGPA: 8.75
+Faculty of Management Studies
+
+CORE COMPETENCIES & DOMAIN SKILLS
+Business Analysis, Financial Modeling, Market Research, Excel (Advanced), Tableau, PowerBI, 
+Go-to-Market Strategy, Agile Project Management, KPI Dashboards, Stakeholder Presentation
+
+PROJECTS & CASE STUDIES
+D2C Brand Omnichannel Expansion Strategy — Lead Analyst
+- Conducted competitor benchmarking and consumer persona analysis for a ₹25 Cr retail venture.
+- Designed market-sizing framework and projected a 22% improvement in CAC via targeted digital channels.
+- Formulated supply chain risk mitigation protocols for pan-India logistics fulfillment.
+
+Financial Modeling & Valuation Analysis — Financial Analyst
+- Built 3-statement dynamic DCF valuation models in Excel evaluating fintech growth trajectories.
+- Sensitivity-tested cash flows across inflation, churn rate, and interest variance scenarios.
+
+EXPERIENCE & LEADERSHIP
+President, Management & Consulting Club (2025 - Present)
+- Directed 4 national-level case study competitions engaging 600+ student delegates from 40+ colleges.
+- Spearheaded industry executive panels with consulting partners and corporate sponsors.`;
+
 export function ResumeOptimizerPage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, isTechnical } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
 
   const [activeTab, setActiveTab] = useState("upload"); // 'upload' | 'text' | 'results'
-  const [resumeText, setResumeText] = useState(SAMPLE_RESUME_TEXT);
+  const [resumeText, setResumeText] = useState(isTechnical ? TECHNICAL_SAMPLE_RESUME : BUSINESS_SAMPLE_RESUME);
   const [selectedFile, setSelectedFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
+
+  // Sync sample resume when technical profile is established
+  React.useEffect(() => {
+    setResumeText(isTechnical ? TECHNICAL_SAMPLE_RESUME : BUSINESS_SAMPLE_RESUME);
+  }, [isTechnical]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -235,8 +267,10 @@ export function ResumeOptimizerPage() {
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-slate-900 block">Extracted Tech Keywords</strong>
-                    Exact programming languages, frameworks, and system tools.
+                    <strong className="text-slate-900 block">{isTechnical ? "Extracted Tech Keywords" : "Extracted Domain Keywords"}</strong>
+                    {isTechnical
+                      ? "Exact programming languages, frameworks, and system tools."
+                      : "Core competencies, business tools (Excel/Tableau), and frameworks."}
                   </div>
                 </div>
 
@@ -244,7 +278,9 @@ export function ResumeOptimizerPage() {
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
                     <strong className="text-slate-900 block">Quantified Impact</strong>
-                    Numbers and metrics demonstrating engineering results.
+                    {isTechnical
+                      ? "Numbers and metrics demonstrating engineering results."
+                      : "Numbers and metrics demonstrating business, project, and leadership impact."}
                   </div>
                 </div>
               </div>
@@ -262,7 +298,9 @@ export function ResumeOptimizerPage() {
                 Resume Performance Report
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Evaluated against enterprise hiring thresholds for campus technical roles.
+                {isTechnical
+                  ? "Evaluated against enterprise hiring thresholds for campus technical roles."
+                  : "Evaluated against enterprise hiring thresholds for campus management and business roles."}
               </p>
             </div>
 

@@ -29,7 +29,7 @@ import { PlanBadge } from "../components/common/Badge";
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { user, subscription, planTier, isPaid } = useAuth();
+  const { user, subscription, planTier, isPaid, isTechnical } = useAuth();
   const [streakDays, setStreakDays] = useState(3);
   const [loadingStreak, setLoadingStreak] = useState(false);
 
@@ -103,8 +103,8 @@ export function DashboardPage() {
         <div className="absolute right-0 top-0 -bottom-10 w-96 bg-gradient-to-l from-indigo-500/20 to-transparent pointer-events-none" />
       </div>
 
-      {/* Main Metric Cards - Enlarged and spacious layout matching student-web-platform */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5">
+      {/* Main Metric Cards - Dynamically adjusted for Technical vs Non-Technical students */}
+      <div className={`grid grid-cols-2 md:grid-cols-3 ${isTechnical ? "xl:grid-cols-6" : "xl:grid-cols-5"} gap-4 sm:gap-5`}>
         <StatCard
           title="Readiness Score"
           value={`${readinessScore}/100`}
@@ -118,12 +118,21 @@ export function DashboardPage() {
           icon={Target}
           iconBg="bg-emerald-50 text-emerald-600"
         />
-        <StatCard
-          title="Technical Score"
-          value={`${Math.min(92, Math.round(readinessScore * 0.9))}/100`}
-          icon={Code}
-          iconBg="bg-blue-50 text-blue-600"
-        />
+        {isTechnical ? (
+          <StatCard
+            title="Technical Score"
+            value={`${Math.min(92, Math.round(readinessScore * 0.9))}/100`}
+            icon={Code}
+            iconBg="bg-blue-50 text-blue-600"
+          />
+        ) : (
+          <StatCard
+            title="Aptitude Score"
+            value={`${Math.min(94, Math.round(readinessScore * 0.92))}/100`}
+            icon={BrainCircuit}
+            iconBg="bg-blue-50 text-blue-600"
+          />
+        )}
         <StatCard
           title="Mock Minutes"
           value={`${totalMockMinutes} mins`}
@@ -136,12 +145,14 @@ export function DashboardPage() {
           icon={BrainCircuit}
           iconBg="bg-amber-50 text-amber-600"
         />
-        <StatCard
-          title="DSA Solved"
-          value={isPaid ? `${dsaCount} (Unlimited)` : `${dsaCount}/${dsaLimit}`}
-          icon={Terminal}
-          iconBg="bg-rose-50 text-rose-600"
-        />
+        {isTechnical && (
+          <StatCard
+            title="DSA Solved"
+            value={isPaid ? `${dsaCount} (Unlimited)` : `${dsaCount}/${dsaLimit}`}
+            icon={Terminal}
+            iconBg="bg-rose-50 text-rose-600"
+          />
+        )}
       </div>
 
       {/* Two Column Grid: Quota Status & Quick Prep Hub */}
@@ -169,37 +180,41 @@ export function DashboardPage() {
                   <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
                 <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                  Subject & Aptitude MCQs
+                  {isTechnical ? "Subject & Aptitude MCQs" : "Aptitude & Reasoning MCQs"}
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Formula-backed quantitative, logical, OS, DBMS, and core CS questions.
+                  {isTechnical
+                    ? "Formula-backed quantitative, logical, OS, DBMS, and core CS questions."
+                    : "Quantitative aptitude, logical reasoning, verbal competency, and business analytical problems."}
                 </p>
                 <div className="mt-4 flex items-center text-xs font-semibold text-indigo-600">
                   Open Practice Hub <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
 
-              {/* Tile 2: Coding Arena */}
-              <div
-                onClick={() => navigate("/coding")}
-                className="p-5 rounded-2xl border border-slate-200/90 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer bg-white group"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
-                    <Code className="w-5 h-5" />
+              {/* Tile 2: Coding Arena (Technical Only) */}
+              {isTechnical && (
+                <div
+                  onClick={() => navigate("/coding")}
+                  className="p-5 rounded-2xl border border-slate-200/90 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer bg-white group"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
+                      <Code className="w-5 h-5" />
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                  <h3 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                    Sandboxed Coding Arena
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    DSA challenges in C++, Python, Java & JS with real-time test case runner.
+                  </p>
+                  <div className="mt-4 flex items-center text-xs font-semibold text-emerald-600">
+                    Start Coding <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
-                <h3 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                  Sandboxed Coding Arena
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  DSA challenges in C++, Python, Java & JS with real-time test case runner.
-                </p>
-                <div className="mt-4 flex items-center text-xs font-semibold text-emerald-600">
-                  Start Coding <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
+              )}
 
               {/* Tile 3: AI Mock Interview */}
               <div
@@ -300,19 +315,21 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              {/* DSA Quota */}
-              <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                  <span>DSA Coding Problems</span>
-                  <span className="font-mono text-slate-900">{isPaid ? "Unlimited" : `${dsaCount} / ${dsaLimit}`}</span>
+              {/* DSA Quota (Technical Students Only) */}
+              {isTechnical && (
+                <div>
+                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                    <span>DSA Coding Problems</span>
+                    <span className="font-mono text-slate-900">{isPaid ? "Unlimited" : `${dsaCount} / ${dsaLimit}`}</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${isPaid ? 100 : dsaPercent}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-emerald-600 h-full rounded-full transition-all duration-300"
-                    style={{ width: `${isPaid ? 100 : dsaPercent}%` }}
-                  />
-                </div>
-              </div>
+              )}
 
               {/* Mock Minutes */}
               <div>
