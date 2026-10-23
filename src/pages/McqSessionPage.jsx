@@ -16,6 +16,7 @@ import {
 import katex from "katex";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { useScreenContext } from "../context/ScreenContext";
 import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
@@ -91,6 +92,7 @@ export function McqSessionPage() {
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
+  const { setScreenContext, openAssistantWithQuery } = useScreenContext();
 
   const topicName = searchParams.get("name") || "Quantitative Aptitude";
   const topicId = searchParams.get("topic") || "QUANTITATIVE";
@@ -123,6 +125,21 @@ export function McqSessionPage() {
   }, [sessionCompleted, isExhausted]);
 
   const currentQ = SAMPLE_QUESTIONS[currentIndex];
+
+  // Sync active MCQ question with AI Coach Assistant
+  useEffect(() => {
+    if (!currentQ) return;
+    setScreenContext({
+      contextType: "PRACTICE_MCQ",
+      data: {
+        questionTitle: currentQ.question,
+        category: topicName,
+        options: currentQ.options,
+        studentAnswer: selectedAnswers[currentIndex] !== undefined ? currentQ.options[selectedAnswers[currentIndex]] : null,
+        correctOption: showExplanation ? currentQ.options[currentQ.correctIndex] : null
+      }
+    });
+  }, [currentIndex, currentQ, topicName, selectedAnswers, showExplanation, setScreenContext]);
 
   const handleSelectOption = (optionIdx) => {
     if (sessionCompleted) return;
@@ -234,9 +251,19 @@ export function McqSessionPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Question {currentIndex + 1} of {SAMPLE_QUESTIONS.length}
               </span>
-              <span className="text-xs font-medium text-slate-500">
-                {Object.keys(selectedAnswers).length} Answered
-              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => openAssistantWithQuery(`Give me a 30-second elimination hack for this question: "${currentQ.question}" without directly stating the final answer.`, "HINT")}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200/70 hover:bg-indigo-100 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  AI Coach Hint
+                </button>
+                <span className="text-xs font-medium text-slate-500">
+                  {Object.keys(selectedAnswers).length} Answered
+                </span>
+              </div>
             </div>
 
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">

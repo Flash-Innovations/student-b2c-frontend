@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Code2,
@@ -20,6 +20,7 @@ import {
 import Editor from "@monaco-editor/react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { useScreenContext } from "../context/ScreenContext";
 import { practiceApi } from "../services/practiceApi";
 import { b2cApi } from "../services/b2cApi";
 import { Card } from "../components/common/Card";
@@ -107,6 +108,7 @@ export function CodingArenaPage() {
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
+  const { setScreenContext, openAssistantWithQuery } = useScreenContext();
 
   const [language, setLanguage] = useState("cpp");
   const [sourceCode, setSourceCode] = useState(STARTER_CODES.cpp);
@@ -116,6 +118,20 @@ export function CodingArenaPage() {
   const [activeConsoleTab, setActiveConsoleTab] = useState("testcases"); // "testcases" | "output"
   const [executionResult, setExecutionResult] = useState(null);
   const [copied, setCopied] = useState(false);
+
+  // Sync active problem & editor code with AI Assistant
+  useEffect(() => {
+    setScreenContext({
+      contextType: "CODING_ARENA",
+      data: {
+        problemTitle: "Two Sum",
+        difficulty: "Easy",
+        language,
+        sourceCode,
+        executionResult
+      }
+    });
+  }, [language, sourceCode, executionResult, setScreenContext]);
 
   const dsaCount = subscription?.dsaAttemptedCount || 0;
   const dsaLimit = subscription?.dsaLimit || 50;
@@ -236,6 +252,15 @@ export function CodingArenaPage() {
             <option value="java">Java 17 (OpenJDK)</option>
             <option value="javascript">JavaScript (Node 18)</option>
           </select>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
+            onClick={() => openAssistantWithQuery("Give me a progressive hint for Two Sum without revealing the full solution", "HINT")}
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-indigo-600" /> AI Coach
+          </Button>
 
           <Button
             size="sm"

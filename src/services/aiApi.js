@@ -1,6 +1,6 @@
 import { getAuthToken } from './b2cApi';
 
-const AI_BASE_URL = import.meta.env.VITE_AI_API_URL || '';
+const AI_BASE_URL = import.meta.env.VITE_AI_API_URL || '/ai-api';
 const AI_WS_URL = import.meta.env.VITE_AI_WS_URL || 'ws://localhost:5055';
 
 async function aiRequest(endpoint, options = {}) {
@@ -36,13 +36,17 @@ async function aiRequest(endpoint, options = {}) {
     return data;
   } catch (err) {
     if (err.status) throw err;
-    const networkErr = new Error('Cannot connect to AI Mock Interview backend on port 5055.');
+    const networkErr = new Error('Cannot connect to AI service on port 5055.');
     networkErr.status = 0;
     throw networkErr;
   }
 }
 
 export const aiApi = {
+  // Generic HTTP helpers
+  get: (endpoint, options = {}) => aiRequest(endpoint, { ...options, method: 'GET' }),
+  post: (endpoint, body, options = {}) => aiRequest(endpoint, { ...options, method: 'POST', body }),
+
   // Session Lifecycle
   getConfigStatus: () => aiRequest('/api/interviews/config-status', { method: 'GET' }),
   createSession: (sessionData) => aiRequest('/api/interviews/session', { method: 'POST', body: sessionData }),
