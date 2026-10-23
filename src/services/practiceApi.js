@@ -1,6 +1,7 @@
 import { getAuthToken } from './b2cApi';
 
-const PRACTICE_BASE_URL = import.meta.env.VITE_PRACTICE_API_URL || '';
+const PRACTICE_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PRACTICE_API_URL)
+  || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV ? '' : 'https://sips-practice-service.onrender.com');
 
 async function practiceRequest(endpoint, options = {}, retries = 1) {
   const base = PRACTICE_BASE_URL.replace(/\/+$/, '');

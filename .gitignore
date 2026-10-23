@@ -5,6 +5,7 @@ dist-ssr/
 .env
 .env.*
 !.env.example
+!.env.production
 decisions.md
 decisions*.md
 npm-debug.log*

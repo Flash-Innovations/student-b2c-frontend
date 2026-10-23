@@ -4,7 +4,8 @@
  * entitlements, resume analysis, and verified placement outcomes.
  */
 
-const BASE_URL = import.meta.env.VITE_B2C_API_URL || '';
+const BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_B2C_API_URL)
+  || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV ? '' : 'https://student-b2c-backend.onrender.com');
 
 export const getAuthToken = () => {
   try {

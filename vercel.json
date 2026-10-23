@@ -1,0 +1,34 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/b2c/(.*)",
+      "destination": "https://student-b2c-backend.onrender.com/api/b2c/$1"
+    },
+    {
+      "source": "/practice-api/(.*)",
+      "destination": "https://sips-practice-service.onrender.com/$1"
+    },
+    {
+      "source": "/ai-api/(.*)",
+      "destination": "https://ai-backend-rcvr.onrender.com/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/branding/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}

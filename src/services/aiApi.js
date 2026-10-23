@@ -1,7 +1,9 @@
 import { getAuthToken } from './b2cApi';
 
-const AI_BASE_URL = import.meta.env.VITE_AI_API_URL || '/ai-api';
-const AI_WS_URL = import.meta.env.VITE_AI_WS_URL || 'ws://localhost:5055';
+const AI_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AI_API_URL)
+  || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV ? '/ai-api' : 'https://ai-backend-rcvr.onrender.com');
+const AI_WS_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AI_WS_URL)
+  || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV ? 'ws://localhost:5055' : 'wss://ai-backend-rcvr.onrender.com');
 
 async function aiRequest(endpoint, options = {}) {
   const base = AI_BASE_URL.replace(/\/+$/, '');
