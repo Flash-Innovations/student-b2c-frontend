@@ -19,7 +19,8 @@ import {
   Crown,
   Flame,
   Zap,
-  Users2
+  Users2,
+  Trophy
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { practiceApi } from "../services/practiceApi";
