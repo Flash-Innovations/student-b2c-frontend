@@ -9,7 +9,8 @@ import {
   Info,
   Clock,
   Trophy,
-  HelpCircle
+  HelpCircle,
+  Users2
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -84,8 +85,15 @@ export function PricingPage() {
   const handleBuyAddon = async (addonType, itemDetails) => {
     try {
       setProcessingPlan(addonType);
+      let orderType = addonType;
+      if (addonType === "MOCK_MINUTES_PACK") orderType = "MOCK_MINUTES";
+      if (addonType === "CONTEST_REGULAR_PASS") orderType = "REGULAR_CONTEST";
+      if (addonType === "CONTEST_PREMIUM_PASS") orderType = "PREMIUM_CONTEST";
+      if (addonType === "GD_POWERUP") orderType = "GD_POWERUP";
+
       const orderData = await b2cApi.createOrder({
-        addonType,
+        orderType,
+        quantity: 1,
         contestId: itemDetails?.contestId
       });
 
@@ -95,7 +103,7 @@ export function PricingPage() {
 
       openRazorpayCheckout({
         orderId: orderData.orderId,
-        amount: orderData.totalAmountWithGst,
+        amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
         currency: "INR",
         name: "Flash Platform",
         description: itemDetails.title,
@@ -108,8 +116,7 @@ export function PricingPage() {
             await b2cApi.verifyPayment({
               razorpay_order_id: paymentResponse.razorpay_order_id,
               razorpay_payment_id: paymentResponse.razorpay_payment_id,
-              razorpay_signature: paymentResponse.razorpay_signature,
-              transactionId: orderData.transactionId
+              razorpay_signature: paymentResponse.razorpay_signature
             });
 
             showSuccess(`Add-on activated: ${itemDetails.title}`);
@@ -205,6 +212,10 @@ export function PricingPage() {
                   <span><strong>Analytical & Case Problem Sets</strong></span>
                 </li>
               )}
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span><strong>1 Group Discussion / month</strong> (15m, up to 4 peers)</span>
+              </li>
               <li className="flex items-start gap-2 text-slate-400">
                 <span className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center shrink-0 mt-0.5 text-[10px]">—</span>
                 <span>No included mock interview minutes</span>
@@ -264,6 +275,10 @@ export function PricingPage() {
                   <span><strong className="text-slate-900">Unlimited DSA Coding Problems</strong></span>
                 </li>
               )}
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span><strong className="text-slate-900">1 Group Discussion / day</strong> (15m, up to 8 peers)</span>
+              </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span><strong className="text-slate-900">300 Mins/Month</strong> Gemini Live Audio Mocks</span>
@@ -328,6 +343,10 @@ export function PricingPage() {
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span><strong className="text-slate-900">2 Group Discussions / day</strong> (30m, up to 15 peers)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span><strong className="text-slate-900">1,000 Mins/Month</strong> Gemini Live Audio Mocks</span>
               </li>
               <li className="flex items-start gap-2">
@@ -366,7 +385,7 @@ export function PricingPage() {
             title="Pay-As-You-Go Add-On Packs"
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
             {/* Add-on 1: Mock Minutes */}
             <div className="p-5 rounded-2xl border border-slate-200/90 hover:border-indigo-400 transition-all bg-white flex flex-col justify-between">
@@ -395,7 +414,34 @@ export function PricingPage() {
               </div>
             </div>
 
-            {/* Add-on 2: Regular Contest */}
+            {/* Add-on 2: GD Session Power-Up Pass */}
+            <div className="p-5 rounded-2xl border border-slate-200/90 hover:border-indigo-400 transition-all bg-white flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+                    <Users2 className="w-5 h-5" />
+                  </span>
+                  <span className="text-lg font-black text-slate-900 font-mono">₹30</span>
+                </div>
+                <h4 className="font-bold text-slate-900 text-sm">GD Session Power-Up Pass</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  1 extra 15-minute Group Discussion session with live video & audio room access.
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400">+18% GST (₹35.40)</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  loading={processingPlan === "GD_POWERUP"}
+                  onClick={() => handleBuyAddon("GD_POWERUP", { title: "GD Session Power-Up Pass" })}
+                >
+                  Buy Pass
+                </Button>
+              </div>
+            </div>
+
+            {/* Add-on 3: Regular Contest */}
             <div className="p-5 rounded-2xl border border-slate-200/90 hover:border-indigo-400 transition-all bg-white flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -422,7 +468,7 @@ export function PricingPage() {
               </div>
             </div>
 
-            {/* Add-on 3: Premium Contest */}
+            {/* Add-on 4: Premium Contest */}
             <div className="p-5 rounded-2xl border border-slate-200/90 hover:border-indigo-400 transition-all bg-white flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-2">

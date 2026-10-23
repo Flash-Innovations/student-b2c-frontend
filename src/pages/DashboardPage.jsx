@@ -18,7 +18,8 @@ import {
   Sparkles,
   Crown,
   Flame,
-  Zap
+  Zap,
+  Users2
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { practiceApi } from "../services/practiceApi";
@@ -193,7 +194,7 @@ export function DashboardPage() {
               </div>
 
               {/* Tile 2: Coding Arena (Technical Only) */}
-              {isTechnical && (
+              {isTechnical ? (
                 <div
                   onClick={() => navigate("/coding")}
                   className="p-5 rounded-2xl border border-slate-200/90 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer bg-white group"
@@ -212,6 +213,29 @@ export function DashboardPage() {
                   </p>
                   <div className="mt-4 flex items-center text-xs font-semibold text-emerald-600">
                     Start Coding <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => navigate("/gd")}
+                  className="p-5 rounded-2xl border border-slate-200/90 hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer bg-white group"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600">
+                      <Users2 className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                      Live Video & Voice
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    Executive GD Arena
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Corporate case study group discussions with peer MBA & BBA candidates.
+                  </p>
+                  <div className="mt-4 flex items-center text-xs font-semibold text-indigo-600">
+                    Launch Arena <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               )}

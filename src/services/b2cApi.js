@@ -97,7 +97,16 @@ export const b2cApi = {
   logPlacementOffer: (offerData) => b2cRequest('/api/b2c/outcomes/offers', { method: 'POST', body: offerData }),
   getMyOutcomes: () => b2cRequest('/api/b2c/outcomes/offers', { method: 'GET' }),
   updateConsent: (consentData) => b2cRequest('/api/b2c/outcomes/consent', { method: 'PUT', body: consentData }),
-  getCohortReport: (batch = '2028') => b2cRequest(`/api/b2c/outcomes/cohort-insights?batch=${batch}`, { method: 'GET' }),
+  // Group Discussion (GD) Arena
+  getGdStatus: () => b2cRequest('/api/b2c/gd/status', { method: 'GET' }),
+  listGdRooms: () => b2cRequest('/api/b2c/gd/rooms', { method: 'GET' }),
+  createGdRoom: (data) => b2cRequest('/api/b2c/gd/create', { method: 'POST', body: data }),
+  joinGdRoom: (roomId) => b2cRequest(`/api/b2c/gd/${roomId}/join`, { method: 'POST' }),
+  getGdRoom: (roomId) => b2cRequest(`/api/b2c/gd/${roomId}`, { method: 'GET' }),
+  leaveGdRoom: (roomId) => b2cRequest(`/api/b2c/gd/${roomId}/leave`, { method: 'POST' }),
+  sendGdChat: (roomId, text) => b2cRequest(`/api/b2c/gd/${roomId}/chat`, { method: 'POST', body: { text } }),
+  updateParticipantState: (roomId, state) => b2cRequest(`/api/b2c/gd/${roomId}/state`, { method: 'POST', body: state }),
+  buyGdPowerUp: (quantity = 1) => b2cRequest('/api/b2c/subscriptions/create-order', { method: 'POST', body: { orderType: 'GD_POWERUP', quantity } }),
 
   // Health
   getHealth: () => b2cRequest('/api/health', { method: 'GET' })

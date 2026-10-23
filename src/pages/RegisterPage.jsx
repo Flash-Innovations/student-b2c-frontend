@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   User,
   Mail,
@@ -88,6 +88,10 @@ export function RegisterPage() {
   const { register } = useAuth();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const redirectTarget = searchParams.get("redirect") || location.state?.from?.pathname || "/dashboard";
 
   const [formData, setFormData] = useState({
     name: "",
@@ -158,7 +162,7 @@ export function RegisterPage() {
         graduationYear: Number(formData.graduationYear)
       });
       showSuccess("Account created successfully! Welcome to Flash.");
-      navigate("/dashboard");
+      navigate(redirectTarget, { replace: true });
     } catch (err) {
       const msg = err.message || "Registration failed. Please try again.";
       setErrorMsg(msg);
@@ -364,7 +368,10 @@ export function RegisterPage() {
 
           <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
             Already have an account?{" "}
-            <Link to="/login" className="font-bold text-indigo-600 hover:text-indigo-700">
+            <Link
+              to={redirectTarget !== "/dashboard" ? `/login?redirect=${encodeURIComponent(redirectTarget)}` : "/login"}
+              className="font-bold text-indigo-600 hover:text-indigo-700"
+            >
               Sign In
             </Link>
           </div>

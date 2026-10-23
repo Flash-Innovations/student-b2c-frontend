@@ -18,6 +18,10 @@ import { MockInterviewPage } from "./pages/MockInterviewPage";
 import { ResumeOptimizerPage } from "./pages/ResumeOptimizerPage";
 import { PlacementOutcomesPage } from "./pages/PlacementOutcomesPage";
 
+// Group Discussion Arena Pages
+import { GdLobbyPage } from "./pages/GdLobbyPage";
+import { GdRoomPage } from "./pages/GdRoomPage";
+
 // Contests & Assessments Pages
 import { ContestListPage } from "./pages/ContestListPage";
 import { ContestDetailsPage } from "./pages/ContestDetailsPage";
@@ -91,6 +95,10 @@ export function App() {
           <Route path="/resume" element={<ResumeOptimizerPage />} />
           <Route path="/outcomes" element={<PlacementOutcomesPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+
+          {/* Group Discussion Arena */}
+          <Route path="/gd" element={<GdLobbyPage />} />
+          <Route path="/gd/:roomId" element={<GdRoomPage />} />
         </Route>
 
         {/* Catch-all Fallback */}

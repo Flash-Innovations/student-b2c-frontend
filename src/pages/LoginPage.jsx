@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Mail,
   Lock,
@@ -18,6 +18,10 @@ export function LoginPage() {
   const { login } = useAuth();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const redirectTarget = searchParams.get("redirect") || location.state?.from?.pathname || "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +42,7 @@ export function LoginPage() {
     try {
       const data = await login(email.trim(), password);
       showSuccess(`Welcome back, ${data.user?.name || "Student"}!`);
-      navigate("/dashboard");
+      navigate(redirectTarget, { replace: true });
     } catch (err) {
       const msg = err.message || "Invalid email or password.";
       setErrorMsg(msg);
@@ -159,7 +163,10 @@ export function LoginPage() {
 
           <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
             Don't have an account yet?{" "}
-            <Link to="/register" className="font-bold text-indigo-600 hover:text-indigo-700">
+            <Link
+              to={redirectTarget !== "/dashboard" ? `/register?redirect=${encodeURIComponent(redirectTarget)}` : "/register"}
+              className="font-bold text-indigo-600 hover:text-indigo-700"
+            >
               Register (Batch 2028 Free)
             </Link>
           </div>

@@ -13,7 +13,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Users2
 } from "lucide-react";
 import { Avatar } from "../common/Avatar";
 import { useAuth } from "../../context/AuthContext";
@@ -27,6 +28,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { to: "/practice", label: isTechnical ? "Practice Hub" : "Aptitude Practice", icon: isTechnical ? Code2 : BookOpen },
     { to: "/coding", label: "Coding Arena", icon: Terminal, technicalOnly: true },
+    { to: "/gd", label: "GD Arena", icon: Users2, nonTechnicalOnly: true },
     { to: "/contests", label: "Assessments", icon: Trophy },
     { to: "/interview", label: "AI Mock Interview", icon: Mic },
     { to: "/resume", label: "ATS Resume Optimizer", icon: FileText },
@@ -34,7 +36,11 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/pricing", label: "Pricing & Plans", icon: Crown }
   ];
 
-  const navLinks = allNavLinks.filter((link) => !link.technicalOnly || isTechnical);
+  const navLinks = allNavLinks.filter((link) => {
+    if (link.technicalOnly && !isTechnical) return false;
+    if (link.nonTechnicalOnly && isTechnical) return false;
+    return true;
+  });
 
   const handleLogout = () => {
     logout();
