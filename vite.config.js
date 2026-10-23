@@ -18,8 +18,9 @@ export default defineConfig({
       },
       // Practice Platform Backend Proxy
       '/practice-api': {
-        target: 'http://localhost:5050',
+        target: 'https://sips-practice-service.onrender.com',
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/practice-api/, '')
       },
       // AI Backend Proxy (Mock Interviews & Assistants)
