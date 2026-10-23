@@ -243,25 +243,25 @@ export function PlacementOutcomesPage() {
             <Card className="p-5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">2028 Candidates</span>
               <div className="text-2xl font-black text-slate-900 font-mono mt-1">
-                {cohortReport?.totalStudentsActive || 142}
+                {cohortReport?.totalStudents || cohortReport?.totalStudentsActive || 0}
               </div>
             </Card>
             <Card className="p-5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Placement Rate</span>
               <div className="text-2xl font-black text-emerald-600 font-mono mt-1">
-                {cohortReport?.placementConversionRate || "88.4%"}
+                {cohortReport?.placementReadinessRate || cohortReport?.placementConversionRate || "0%"}
               </div>
             </Card>
             <Card className="p-5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Average CTC</span>
               <div className="text-2xl font-black text-blue-600 font-mono mt-1">
-                {cohortReport?.averagePackageLpa || "14.2"} LPA
+                {cohortReport?.averagePlacedCtc || cohortReport?.averagePackageLpa || 0} LPA
               </div>
             </Card>
             <Card className="p-5">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Highest CTC</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Verified Offers</span>
               <div className="text-2xl font-black text-purple-600 font-mono mt-1">
-                {cohortReport?.highestPackageLpa || "44.0"} LPA
+                {cohortReport?.verifiedOffersCount || 0}
               </div>
             </Card>
           </div>

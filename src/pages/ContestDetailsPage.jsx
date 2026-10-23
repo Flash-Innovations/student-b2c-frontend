@@ -29,31 +29,6 @@ import { openRazorpayCheckout } from "../services/razorpayClient";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 
-// Fallback sample details
-const SAMPLE_DETAILS = {
-  id: "sample-placement-grand-prix",
-  title: "National Campus Placement Assessment 2028",
-  description: "Official synchronized placement assessment covering Quantitative Aptitude, Core Computer Science, and Algorithmic Coding.",
-  status: "LIVE",
-  durationMinutes: 90,
-  totalMarks: 100,
-  totalQuestions: 25,
-  startAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-  endAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-  tierRequirement: "REGULAR",
-  instructions: `Assessment Guidelines:
-1. Session Timer: Once started, your server-authoritative timer runs continuously for 90 minutes.
-2. Structure: 12 Quantitative Aptitude MCQs (+2.5 marks each), 10 Core CS MCQs (+3 marks each), 3 Algorithmic Coding Problems (40 marks total).
-3. Negative Marking: -0.5 marks per wrong MCQ answer. Unanswered questions do not incur penalties.
-4. Auto-Saving: Responses and code edits are automatically synchronized with the server.
-5. Coding Sandbox: Tested using Judge0 isolated execution. Ensure standard I/O conventions are followed.`,
-  sectionBreakdown: {
-    APTITUDE: { count: 12, marks: 30 },
-    TECHNICAL: { count: 10, marks: 30 },
-    CODING: { count: 3, marks: 40 }
-  }
-};
-
 export function ContestDetailsPage() {
   const { contestId } = useParams();
   const navigate = useNavigate();
@@ -70,15 +45,28 @@ export function ContestDetailsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await practiceApi.getStudentContest(contestId);
-      if (data && (data.id || data.title)) {
+      let data = null;
+      try {
+        const b2cRes = await b2cApi.getContestById(contestId);
+        if (b2cRes && b2cRes.contest) {
+          data = b2cRes.contest;
+        }
+      } catch (e) {}
+
+      if (!data) {
+        data = await practiceApi.getStudentContest(contestId);
+      }
+
+      if (data && (data.id || data.title || data._id)) {
         setContest(data);
       } else {
-        setContest(SAMPLE_DETAILS);
+        setError("Contest details could not be found.");
+        setContest(null);
       }
     } catch (err) {
-      console.warn("Using sample details as fallback due to:", err.message);
-      setContest({ ...SAMPLE_DETAILS, id: contestId });
+      console.error("Error loading contest details:", err);
+      setError(err.message || "Failed to load contest details.");
+      setContest(null);
     } finally {
       setLoading(false);
     }
@@ -98,7 +86,7 @@ export function ContestDetailsPage() {
       return true;
     }
     const unlocked = subscription?.unlockedContestIds || [];
-    return unlocked.includes(contest?.id);
+    return unlocked.includes(contest?.id || contest?._id);
   };
 
   const handleStartOrResume = async () => {
@@ -106,19 +94,21 @@ export function ContestDetailsPage() {
 
     // Check if attempt already exists in contest details
     if (contest.myAttempt && contest.myAttempt.id) {
-      navigate(`/contests/${contest.id}/attempt/${contest.myAttempt.id}`);
+      navigate(`/contests/${contest.id || contest._id}/attempt/${contest.myAttempt.id}`);
       return;
     }
 
     setStarting(true);
     try {
       const result = await practiceApi.startContestAttempt(contestId);
-      const attemptId = result?.attempt?.id || result?.attemptId || "attempt-session-1";
-      navigate(`/contests/${contest.id}/attempt/${attemptId}`);
+      const attemptId = result?.attempt?.id || result?.attemptId;
+      if (attemptId) {
+        navigate(`/contests/${contest.id || contest._id}/attempt/${attemptId}`);
+      } else {
+        showError("Could not initialize attempt session with assessment server.");
+      }
     } catch (err) {
-      console.warn("Attempt start API failed, using fallback workspace session:", err.message);
-      // Fallback workspace session so student can always take test
-      navigate(`/contests/${contest.id}/attempt/sess-${Date.now()}`);
+      showError(err.message || "Failed to initialize contest attempt.");
     } finally {
       setStarting(false);
     }

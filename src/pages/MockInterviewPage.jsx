@@ -141,28 +141,13 @@ export function MockInterviewPage() {
     async function loadPastHistory() {
       try {
         const data = await aiApi.getHistory();
-        if (data && data.interviews) {
+        if (data && data.interviews && Array.isArray(data.interviews)) {
           setPastSessions(data.interviews);
+        } else {
+          setPastSessions([]);
         }
       } catch (err) {
-        setPastSessions([
-          {
-            id: "sample-1",
-            trackName: "Full Stack & Web Architecture",
-            date: "2026-10-14",
-            durationMins: 18,
-            overallScore: 84,
-            verdict: "Recommended for SDE-1"
-          },
-          {
-            id: "sample-2",
-            trackName: "HR & Behavioral Competency",
-            date: "2026-10-10",
-            durationMins: 12,
-            overallScore: 91,
-            verdict: "Strong STAR Delivery"
-          }
-        ]);
+        setPastSessions([]);
       }
     }
     loadPastHistory();
@@ -233,11 +218,12 @@ export function MockInterviewPage() {
   const handleSendMessage = () => {
     if (!userInputDraft.trim() || !isSessionActive) return;
 
+    const userText = userInputDraft.trim();
     const userMsg = {
       sender: "user",
       name: user?.name ? user.name.split(" ")[0] : "You",
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      text: userInputDraft.trim()
+      text: userText
     };
 
     setConversation((prev) => [...prev, userMsg]);
@@ -246,12 +232,14 @@ export function MockInterviewPage() {
 
     setTimeout(() => {
       let aiReply = "";
-      if (selectedTrack.id === "tech-fullstack") {
-        aiReply = "Good reasoning. When designing that architecture, how did you handle potential cache stampede if your Redis instance had 20,000 concurrent requests during a key expiration?";
+      if (userText.length < 25) {
+        aiReply = `Could you elaborate on that in more detail? Walk me through the trade-offs, constraints, and how this directly impacts system reliability.`;
+      } else if (selectedTrack.id === "tech-fullstack") {
+        aiReply = `Understood. When implementing this architecture, how would you address concurrency hazards, cache consistency, and horizontal scaling across multiple application nodes?`;
       } else if (selectedTrack.id === "tech-dsa") {
-        aiReply = "Strong algorithmic intuition. What is the tightest theoretical upper bound on space complexity, and how could you optimize it in-place using two pointers?";
+        aiReply = `Good algorithmic thought. What are the corner cases (such as overflow or empty inputs), and what is the exact asymptotic time and space complexity of your approach?`;
       } else {
-        aiReply = "Excellent reflection using the STAR framework. If you had to redo that project today, what is one architectural decision you would alter?";
+        aiReply = `Thank you for sharing that experience. What were the measurable outcomes or key metrics from that situation, and what would you improve if facing it again?`;
       }
 
       setConversation((prev) => [
@@ -264,7 +252,7 @@ export function MockInterviewPage() {
         }
       ]);
       setCurrentAiStatus("listening");
-    }, 1800);
+    }, 1200);
   };
 
   const handleEndInterview = async () => {
@@ -286,27 +274,37 @@ export function MockInterviewPage() {
       console.warn("Minute deduction error:", err);
     }
 
+    const userMessages = conversation.filter((c) => c.sender === "user");
+    const totalWords = userMessages.reduce((sum, m) => sum + (m.text ? m.text.trim().split(/\s+/).length : 0), 0);
+    const avgWords = userMessages.length > 0 ? Math.round(totalWords / userMessages.length) : 0;
+
+    let computedScore = userMessages.length === 0 ? 0 : Math.min(95, Math.max(35, 50 + (userMessages.length * 7) + Math.min(20, Math.round(avgWords / 4))));
+    const techScore = userMessages.length === 0 ? 0 : Math.min(100, Math.round(computedScore * 1.02));
+    const problemSolving = userMessages.length === 0 ? 0 : Math.min(100, Math.round(computedScore * 0.98));
+    const communicationScore = userMessages.length === 0 ? 0 : Math.min(100, Math.round(computedScore * 1.04));
+    const confidenceScore = userMessages.length === 0 ? 0 : Math.min(100, Math.round(computedScore * 0.96));
+
     setScorecard({
       trackTitle: selectedTrack.title,
       durationMins: minutesUsed,
-      overallScore: 86,
+      overallScore: computedScore,
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       breakdown: [
-        { label: "Technical Depth & Architecture", score: 88, color: "text-indigo-600" },
-        { label: "Problem Solving & Logic", score: 84, color: "text-blue-600" },
-        { label: "Communication Clarity & STAR Pacing", score: 90, color: "text-emerald-600" },
-        { label: "Confidence & Articulation", score: 82, color: "text-purple-600" }
+        { label: "Technical Depth & Architecture", score: techScore, color: "text-indigo-600" },
+        { label: "Problem Solving & Logic", score: problemSolving, color: "text-blue-600" },
+        { label: "Communication Clarity & STAR Pacing", score: communicationScore, color: "text-emerald-600" },
+        { label: "Confidence & Articulation", score: confidenceScore, color: "text-purple-600" }
       ],
       keyStrengths: [
-        "Articulated trade-offs between Redis caching and DB indexing with crisp quantitative reasoning.",
-        "Composed answers with zero nervous filler words and structured STAR points.",
-        "Demonstrated clear understanding of asymptotic time & space bounds."
+        `Active session engagement with ${userMessages.length} articulated responses.`,
+        `Average verbal response depth of ${avgWords} words per question.`,
+        "Maintained structured STAR framework and concise technical explanations."
       ],
       areasForImprovement: [
-        "Provide explicit latency SLAs (p99) when describing backend system reliability.",
-        "Elaborate more on disaster recovery and rollback strategies under partial failure."
+        "Include quantitative production SLA targets and latency numbers in responses.",
+        "Elaborate on edge condition mitigations and automated rollback strategies."
       ],
-      verdict: "Strong Hire Recommendation for SDE-1 Technical Rounds"
+      verdict: computedScore >= 70 ? "Recommended for On-Campus Placement Rounds" : "Developing - Additional Mock Practice Recommended"
     });
 
     setActiveTab("scorecard");

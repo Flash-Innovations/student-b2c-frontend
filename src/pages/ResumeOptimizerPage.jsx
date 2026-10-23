@@ -21,89 +21,29 @@ import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 
-const TECHNICAL_SAMPLE_RESUME = `Harshvardhan Sharma
-Email: harsh.sharma@college.edu | Phone: +91 98765 43210
-GitHub: github.com/harsh-dev2028 | LinkedIn: linkedin.com/in/harsh-sharma2028
-
-EDUCATION
-B.Tech in Computer Science & Engineering | 2024 - 2028 | CGPA: 8.75
-National Institute of Technology
-
-TECHNICAL SKILLS
-Languages: Python, JavaScript, C++, SQL, HTML, CSS
-Frameworks & Libraries: React, Node.js, Express, Tailwind CSS, Redis
-Tools & Core Concepts: Git, GitHub, Docker, Data Structures, Algorithms, System Design, REST API
-
-PROJECTS
-Flash Career Platform — Full Stack Engineer
-- Built and optimized responsive student career intelligence portal with React, Node.js, and MongoDB.
-- Engineered automated code execution evaluation sandbox in C++ and Docker with sub-second execution limits.
-- Implemented real-time conversational voice interview module leveraging Gemini Live audio pipelines.
-
-High-Throughput In-Memory Cache — Systems Engineer
-- Architected a concurrent key-value cache engine in C++ with LRU eviction and thread-safe read-write locks.
-- Benchmarked and improved read throughput to over 120,000 requests per second under peak load.
-
-EXPERIENCE & LEADERSHIP
-Technical Lead, Campus Open Source Club (2025 - Present)
-- Mentored 120+ first-year and second-year students on Git workflows, competitive programming, and web development.
-- Organized 3 college-wide hackathons with 450+ cumulative participants.`;
-
-const BUSINESS_SAMPLE_RESUME = `Harshvardhan Sharma
-Email: harsh.sharma@college.edu | Phone: +91 98765 43210
-LinkedIn: linkedin.com/in/harsh-sharma2028 | Portfolio: harsh-consulting.me
-
-EDUCATION
-MBA / BBA in Management & Strategy | 2024 - 2028 | CGPA: 8.75
-Faculty of Management Studies
-
-CORE COMPETENCIES & DOMAIN SKILLS
-Business Analysis, Financial Modeling, Market Research, Excel (Advanced), Tableau, PowerBI, 
-Go-to-Market Strategy, Agile Project Management, KPI Dashboards, Stakeholder Presentation
-
-PROJECTS & CASE STUDIES
-D2C Brand Omnichannel Expansion Strategy — Lead Analyst
-- Conducted competitor benchmarking and consumer persona analysis for a ₹25 Cr retail venture.
-- Designed market-sizing framework and projected a 22% improvement in CAC via targeted digital channels.
-- Formulated supply chain risk mitigation protocols for pan-India logistics fulfillment.
-
-Financial Modeling & Valuation Analysis — Financial Analyst
-- Built 3-statement dynamic DCF valuation models in Excel evaluating fintech growth trajectories.
-- Sensitivity-tested cash flows across inflation, churn rate, and interest variance scenarios.
-
-EXPERIENCE & LEADERSHIP
-President, Management & Consulting Club (2025 - Present)
-- Directed 4 national-level case study competitions engaging 600+ student delegates from 40+ colleges.
-- Spearheaded industry executive panels with consulting partners and corporate sponsors.`;
-
 export function ResumeOptimizerPage() {
   const { user, updateUser, isTechnical } = useAuth();
-  const { showSuccess, showError, showInfo } = useToast();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
   const { setScreenContext, openAssistantWithQuery } = useScreenContext();
 
   const [activeTab, setActiveTab] = useState("upload"); // 'upload' | 'text' | 'results'
-  const [resumeText, setResumeText] = useState(isTechnical ? TECHNICAL_SAMPLE_RESUME : BUSINESS_SAMPLE_RESUME);
+  const [resumeText, setResumeText] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
-
-  // Sync sample resume when technical profile is established
-  React.useEffect(() => {
-    setResumeText(isTechnical ? TECHNICAL_SAMPLE_RESUME : BUSINESS_SAMPLE_RESUME);
-  }, [isTechnical]);
 
   // Sync Resume ATS scan status with AI Assistant
   React.useEffect(() => {
     setScreenContext({
       contextType: "RESUME_OPTIMIZER",
       data: {
-        atsScore: analysisResult?.atsScore || 72,
-        detectedSkills: analysisResult?.detectedSkills || (isTechnical ? ["React", "Node.js", "C++", "SQL"] : ["Financial Modeling", "Excel", "Tableau", "Strategy"]),
-        missingKeywords: analysisResult?.missingKeywords || (isTechnical ? ["Kubernetes", "CI/CD pipelines", "System Design Metrics"] : ["DCF Valuation", "Stakeholder Alignment", "Go-To-Market"]),
+        atsScore: analysisResult?.atsScore || 0,
+        detectedSkills: analysisResult?.detectedSkills || [],
+        missingKeywords: analysisResult?.missingKeywords || [],
         hasScanRun: !!analysisResult
       }
     });
-  }, [analysisResult, isTechnical, setScreenContext]);
+  }, [analysisResult, setScreenContext]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -114,6 +54,11 @@ export function ResumeOptimizerPage() {
   };
 
   const handleAnalyze = async () => {
+    if (!selectedFile && (!resumeText || resumeText.trim().length < 20)) {
+      showWarning("Please paste your resume text (at least 20 characters) or upload a resume file.");
+      return;
+    }
+
     try {
       setAnalyzing(true);
       let res = null;
@@ -236,18 +181,13 @@ export function ResumeOptimizerPage() {
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     <Edit3 className="w-4 h-4 text-indigo-600" /> Resume Plain Text / Markdown
                   </span>
-                  <button
-                    onClick={() => setResumeText(SAMPLE_RESUME_TEXT)}
-                    className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <RefreshCw className="w-3 h-3" /> Load Sample 2028 SDE Resume
-                  </button>
                 </div>
 
                 <textarea
                   rows={14}
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
+                  placeholder="Paste your plain text resume content here or use the Upload tab to attach your PDF/Word document..."
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-indigo-600 leading-relaxed"
                 />
               </Card>

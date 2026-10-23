@@ -32,7 +32,7 @@ import { PlanBadge } from "../components/common/Badge";
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid, isTechnical } = useAuth();
-  const [streakDays, setStreakDays] = useState(3);
+  const [streakDays, setStreakDays] = useState(0);
   const [loadingStreak, setLoadingStreak] = useState(false);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export function DashboardPage() {
     loadStreak();
   }, []);
 
-  const readinessScore = user?.readinessScore || 68;
+  const readinessScore = user?.readinessScore || 0;
   const totalMockMinutes = (subscription?.includedMinutesRemaining || 0) + (subscription?.purchasedMinutesBalance || 0);
 
   const mcqCount = subscription?.mcqAttemptedCount || 0;
@@ -112,7 +112,6 @@ export function DashboardPage() {
           value={`${readinessScore}/100`}
           icon={TrendingUp}
           iconBg="bg-indigo-50 text-indigo-600"
-          trend={{ value: "+8%", direction: "up", label: "vs last test" }}
         />
         <StatCard
           title="Placement Probability"

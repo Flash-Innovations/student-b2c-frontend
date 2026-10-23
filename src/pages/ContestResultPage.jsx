@@ -20,24 +20,6 @@ import { Badge } from "../components/common/Badge";
 import { practiceApi } from "../services/practiceApi";
 import { useAuth } from "../context/AuthContext";
 
-// Fallback sample result
-const SAMPLE_RESULT = {
-  status: "SUBMITTED",
-  totalScore: 78.5,
-  totalMarks: 100,
-  aptitudeScore: 22.5,
-  technicalScore: 21.0,
-  codingScore: 35.0,
-  submittedAt: new Date().toISOString(),
-  questionBreakdown: [
-    { questionVersionId: "qv-apt-1", section: "APTITUDE", marksAwarded: 2.5, marksAvailable: 2.5, isCorrect: true },
-    { questionVersionId: "qv-apt-2", section: "APTITUDE", marksAwarded: 2.5, marksAvailable: 2.5, isCorrect: true },
-    { questionVersionId: "qv-tech-1", section: "TECHNICAL", marksAwarded: 3.0, marksAvailable: 3.0, isCorrect: true },
-    { questionVersionId: "qv-tech-2", section: "TECHNICAL", marksAwarded: -0.75, marksAvailable: 3.0, isCorrect: false },
-    { questionVersionId: "qv-code-1", section: "CODING", marksAwarded: 40.0, marksAvailable: 40.0, isCorrect: true }
-  ]
-};
-
 export function ContestResultPage() {
   const { contestId, attemptId } = useParams();
   const navigate = useNavigate();
@@ -56,11 +38,10 @@ export function ContestResultPage() {
         if (data && (data.totalScore !== undefined || data.status)) {
           setResult(data);
         } else {
-          setResult(SAMPLE_RESULT);
+          setError("Assessment result not ready or invalid attempt.");
         }
       } catch (err) {
-        console.warn("Using sample scorecard as fallback due to:", err.message);
-        setResult(SAMPLE_RESULT);
+        setError(err.message || "Failed to load contest results.");
       } finally {
         setLoading(false);
       }
@@ -79,6 +60,24 @@ export function ContestResultPage() {
     );
   }
 
+  if (error || !result) {
+    return (
+      <div className="max-w-md mx-auto py-16 text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-500">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Scorecard Not Available</h2>
+        <p className="text-sm text-slate-600">{error || "No submission result was found for this assessment attempt."}</p>
+        <div className="pt-2">
+          <Button variant="outline" onClick={() => navigate("/contests")}>
+            <ArrowLeft className="w-4 h-4 mr-1.5" />
+            Return to Contests
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const {
     status = "SUBMITTED",
     totalScore = 0,
@@ -87,7 +86,7 @@ export function ContestResultPage() {
     technicalScore = 0,
     codingScore = 0,
     questionBreakdown = []
-  } = result || SAMPLE_RESULT;
+  } = result;
 
   const percentage = totalMarks > 0 ? Math.round((totalScore / totalMarks) * 100) : 0;
 

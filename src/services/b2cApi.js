@@ -107,7 +107,9 @@ export const b2cApi = {
   leaveGdRoom: (roomId) => b2cRequest(`/api/b2c/gd/${roomId}/leave`, { method: 'POST' }),
   sendGdChat: (roomId, text) => b2cRequest(`/api/b2c/gd/${roomId}/chat`, { method: 'POST', body: { text } }),
   updateParticipantState: (roomId, state) => b2cRequest(`/api/b2c/gd/${roomId}/state`, { method: 'POST', body: state }),
-  buyGdPowerUp: (quantity = 1) => b2cRequest('/api/b2c/subscriptions/create-order', { method: 'POST', body: { orderType: 'GD_POWERUP', quantity } }),
+  // Contests
+  getContests: () => b2cRequest('/api/b2c/contests', { method: 'GET' }),
+  getContestById: (id) => b2cRequest(`/api/b2c/contests/${id}`, { method: 'GET' }),
 
   // Health
   getHealth: () => b2cRequest('/api/health', { method: 'GET' })

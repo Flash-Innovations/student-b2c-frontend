@@ -21,72 +21,6 @@ import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 
-const SAMPLE_QUESTIONS = [
-  {
-    id: "q1",
-    question: "A pipe can fill a cistern in 12 hours and another pipe can empty it in 20 hours. If both the pipes are opened together, how long will it take to fill the cistern?",
-    formula: "\\text{Net Rate} = \\frac{1}{12} - \\frac{1}{20} = \\frac{5 - 3}{60} = \\frac{2}{60} = \\frac{1}{30}",
-    options: [
-      "25 hours",
-      "30 hours",
-      "35 hours",
-      "40 hours"
-    ],
-    correctIndex: 1,
-    explanation: "Pipe A's 1 hour work = 1/12. Pipe B's 1 hour work = -1/20. Net rate per hour = 1/12 - 1/20 = (5-3)/60 = 2/60 = 1/30. Hence, it takes 30 hours to fill the cistern."
-  },
-  {
-    id: "q2",
-    question: "In a relational database, what normal form ensures that there is no transitive functional dependency of non-prime attributes on any candidate key?",
-    formula: "X \\rightarrow Y \\text{ and } Y \\rightarrow Z \\implies X \\rightarrow Z \\quad (\\text{Transitive Dependency})",
-    options: [
-      "First Normal Form (1NF)",
-      "Second Normal Form (2NF)",
-      "Third Normal Form (3NF)",
-      "Boyce-Codd Normal Form (BCNF)"
-    ],
-    correctIndex: 2,
-    explanation: "Third Normal Form (3NF) requires 2NF compliance and ensures that no non-prime attribute is transitively dependent on the primary key."
-  },
-  {
-    id: "q3",
-    question: "Which CPU scheduling algorithm gives minimum average waiting time for a given set of processes?",
-    options: [
-      "First-Come, First-Served (FCFS)",
-      "Shortest Job First (SJF / SJN)",
-      "Round Robin (RR)",
-      "Priority Scheduling"
-    ],
-    correctIndex: 1,
-    explanation: "Shortest Job First (SJF) is theoretically optimal in terms of minimizing average waiting time for a scheduled queue of jobs."
-  },
-  {
-    id: "q4",
-    question: "What is the tightest time complexity to find the shortest path from a single source in an unweighted directed graph with V vertices and E edges?",
-    formula: "O(V + E)",
-    options: [
-      "O(V log V)",
-      "O(V^2)",
-      "O(V + E) using Breadth-First Search (BFS)",
-      "O(E log V) using Dijkstra's Algorithm"
-    ],
-    correctIndex: 2,
-    explanation: "In an unweighted graph, standard Breadth-First Search (BFS) computes single-source shortest paths in O(V + E) time."
-  },
-  {
-    id: "q5",
-    question: "Which of the following is true regarding ACID properties in database transactions?",
-    options: [
-      "Atomicity guarantees non-blocking queries.",
-      "Consistency ensures the database transitions only from one valid state to another.",
-      "Durability implies memory-cached persistence before disk flush.",
-      "Isolation prevents relational foreign key constraints."
-    ],
-    correctIndex: 1,
-    explanation: "Consistency ensures any transaction will bring the database from one valid state to another valid state, preserving all defined invariants and constraints."
-  }
-];
-
 export function McqSessionPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -97,11 +31,68 @@ export function McqSessionPage() {
   const topicName = searchParams.get("name") || "Quantitative Aptitude";
   const topicId = searchParams.get("topic") || "QUANTITATIVE";
 
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [showExplanation, setShowExplanation] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(600); // 10 minutes
+
+  // Load real questions from Practice Platform
+  useEffect(() => {
+    let isMounted = true;
+    async function loadQuestions() {
+      setLoading(true);
+      setError(null);
+      try {
+        let list = [];
+        try {
+          const res = await practiceApi.getQuestions({ type: "MCQ", category: topicId });
+          list = Array.isArray(res) ? res : res?.data || res?.questions || [];
+        } catch (e) {
+          try {
+            const res = await practiceApi.getQuestions({ type: "MCQ" });
+            list = Array.isArray(res) ? res : res?.data || res?.questions || [];
+          } catch (err2) {
+            list = [];
+          }
+        }
+
+        if (isMounted) {
+          const normalized = list.map((q) => {
+            let options = q.options || q.versions?.[0]?.options || [];
+            if (typeof options === "string") {
+              try { options = JSON.parse(options); } catch (e) { options = []; }
+            }
+            if (Array.isArray(options) && options.length > 0 && typeof options[0] === "object" && options[0]?.text) {
+              options = options.map(o => o.text);
+            }
+            return {
+              id: q.id,
+              question: q.statement || q.latestTitle || q.title || "Question",
+              formula: q.formula || q.metadata?.formula || null,
+              options: Array.isArray(options) ? options : [],
+              correctIndex: typeof q.correctAnswer === "number" ? q.correctAnswer : (q.correctIndex || 0),
+              explanation: q.explanation || q.versions?.[0]?.explanation || "Standard analytical derivation."
+            };
+          }).filter(q => q.options && q.options.length > 0);
+
+          setQuestions(normalized);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message || "Failed to load practice questions");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadQuestions();
+    return () => { isMounted = false; };
+  }, [topicId]);
 
   // Quota check
   const mcqCount = subscription?.mcqAttemptedCount || 0;
@@ -110,7 +101,7 @@ export function McqSessionPage() {
 
   // Timer
   useEffect(() => {
-    if (sessionCompleted || isExhausted) return;
+    if (sessionCompleted || isExhausted || loading || questions.length === 0) return;
     const interval = setInterval(() => {
       setTimerSeconds((prev) => {
         if (prev <= 1) {
@@ -122,9 +113,9 @@ export function McqSessionPage() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [sessionCompleted, isExhausted]);
+  }, [sessionCompleted, isExhausted, loading, questions.length]);
 
-  const currentQ = SAMPLE_QUESTIONS[currentIndex];
+  const currentQ = questions[currentIndex] || null;
 
   // Sync active MCQ question with AI Coach Assistant
   useEffect(() => {
@@ -150,7 +141,7 @@ export function McqSessionPage() {
   };
 
   const handleNext = () => {
-    if (currentIndex < SAMPLE_QUESTIONS.length - 1) {
+    if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setShowExplanation(false);
     } else {
@@ -189,6 +180,15 @@ export function McqSessionPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-pulse py-8">
+        <div className="h-6 w-32 bg-slate-200 rounded" />
+        <div className="h-64 bg-white border border-slate-200 rounded-xl" />
+      </div>
+    );
+  }
+
   if (isExhausted) {
     return (
       <Card className="p-8 text-center max-w-lg mx-auto space-y-4 my-8">
@@ -209,10 +209,32 @@ export function McqSessionPage() {
     );
   }
 
+  if (questions.length === 0) {
+    return (
+      <div className="max-w-md mx-auto py-16 text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-500">
+          <HelpCircle className="w-6 h-6" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">No Questions Available</h2>
+        <p className="text-sm text-slate-600">
+          There are currently no active practice questions configured for {topicName}.
+        </p>
+        <div className="pt-2">
+          <Link to="/practice">
+            <Button variant="outline">
+              <ChevronLeft className="w-4 h-4 mr-1.5" />
+              Back to Practice Hub
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate score upon completion
   let correctCount = 0;
   if (sessionCompleted) {
-    SAMPLE_QUESTIONS.forEach((q, idx) => {
+    questions.forEach((q, idx) => {
       if (selectedAnswers[idx] === q.correctIndex) {
         correctCount += 1;
       }
@@ -242,14 +264,14 @@ export function McqSessionPage() {
         </div>
       </div>
 
-      {!sessionCompleted ? (
+      {!sessionCompleted && currentQ ? (
         <div className="space-y-6">
           
           {/* Question Card */}
           <Card className="p-6 sm:p-8">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Question {currentIndex + 1} of {SAMPLE_QUESTIONS.length}
+                Question {currentIndex + 1} of {questions.length}
               </span>
               <div className="flex items-center gap-3">
                 <button
@@ -348,7 +370,7 @@ export function McqSessionPage() {
               size="sm"
               onClick={handleNext}
             >
-              {currentIndex < SAMPLE_QUESTIONS.length - 1 ? (
+              {currentIndex < questions.length - 1 ? (
                 <>Next Question <ChevronRight className="w-4 h-4 ml-1" /></>
               ) : (
                 <>Finish & View Scorecard <CheckCircle2 className="w-4 h-4 ml-1" /></>
@@ -377,13 +399,13 @@ export function McqSessionPage() {
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="text-[10px] uppercase font-bold text-slate-400">Score</div>
               <div className="text-2xl font-black text-slate-900 font-mono mt-1">
-                {correctCount}/{SAMPLE_QUESTIONS.length}
+                {correctCount}/{questions.length}
               </div>
             </div>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="text-[10px] uppercase font-bold text-slate-400">Accuracy</div>
               <div className="text-2xl font-black text-emerald-600 font-mono mt-1">
-                {Math.round((correctCount / SAMPLE_QUESTIONS.length) * 100)}%
+                {questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0}%
               </div>
             </div>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">

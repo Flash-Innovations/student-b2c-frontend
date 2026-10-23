@@ -21,61 +21,9 @@ import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
 import { practiceApi } from "../services/practiceApi";
+import { b2cApi } from "../services/b2cApi";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-
-// Fallback sample contests if practice backend has no seeded contests yet
-const SAMPLE_CONTESTS = [
-  {
-    id: "sample-placement-grand-prix",
-    title: "National Campus Placement Assessment 2028",
-    description: "Official synchronized placement assessment covering Quantitative Aptitude, Core Computer Science, and Algorithmic Coding.",
-    status: "LIVE",
-    durationMinutes: 90,
-    totalMarks: 100,
-    totalQuestions: 25,
-    startAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    endAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    tierRequirement: "REGULAR",
-    sectionBreakdown: {
-      APTITUDE: { count: 12, marks: 30 },
-      TECHNICAL: { count: 10, marks: 30 },
-      CODING: { count: 3, marks: 40 }
-    }
-  },
-  {
-    id: "sample-dsa-sprint-oct",
-    title: "Data Structures & Algorithms Sprint",
-    description: "High-speed competitive coding challenge focusing on Dynamic Programming, Graph Theory, and Tree Traversals.",
-    status: "LIVE",
-    durationMinutes: 60,
-    totalMarks: 100,
-    totalQuestions: 4,
-    startAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    endAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-    tierRequirement: "REGULAR",
-    sectionBreakdown: {
-      CODING: { count: 4, marks: 100 }
-    }
-  },
-  {
-    id: "sample-faang-interview-mock",
-    title: "Tier-1 Enterprise Recruitment Simulation",
-    description: "Exclusive mock recruitment assessment modeled directly on Google, Microsoft, and Amazon campus screening rounds.",
-    status: "SCHEDULED",
-    durationMinutes: 120,
-    totalMarks: 150,
-    totalQuestions: 30,
-    startAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    endAt: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-    tierRequirement: "PREMIUM",
-    sectionBreakdown: {
-      APTITUDE: { count: 10, marks: 30 },
-      TECHNICAL: { count: 15, marks: 50 },
-      CODING: { count: 5, marks: 70 }
-    }
-  }
-];
 
 export function ContestListPage() {
   const navigate = useNavigate();
@@ -98,16 +46,28 @@ export function ContestListPage() {
     setError(null);
 
     try {
-      const data = await practiceApi.getAvailableContests();
-      if (Array.isArray(data) && data.length > 0) {
-        setContests(data);
-      } else {
-        // Use realistic sample fallback contests if none seeded on backend
-        setContests(SAMPLE_CONTESTS);
+      let list = [];
+      try {
+        const b2cRes = await b2cApi.getContests();
+        if (b2cRes && Array.isArray(b2cRes.contests)) {
+          list = b2cRes.contests;
+        }
+      } catch (e) {}
+
+      if (list.length === 0) {
+        try {
+          const practiceData = await practiceApi.getAvailableContests();
+          if (Array.isArray(practiceData) && practiceData.length > 0) {
+            list = practiceData;
+          }
+        } catch (e) {}
       }
+
+      setContests(list);
     } catch (err) {
-      console.warn("Using sample contests as fallback due to:", err.message);
-      setContests(SAMPLE_CONTESTS);
+      console.error("Failed to load contests:", err);
+      setError("Unable to load contests. Please check your connection.");
+      setContests([]);
     } finally {
       setLoading(false);
       setIsRefreshing(false);

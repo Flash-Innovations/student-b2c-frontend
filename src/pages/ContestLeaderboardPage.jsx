@@ -18,34 +18,6 @@ import { Badge } from "../components/common/Badge";
 import { practiceApi } from "../services/practiceApi";
 import { useAuth } from "../context/AuthContext";
 
-// Fallback sample leaderboard data
-const SAMPLE_LEADERBOARD = {
-  contestTitle: "National Campus Placement Assessment 2028",
-  contestStatus: "LIVE",
-  totalEntries: 42,
-  myRank: {
-    rank: 4,
-    studentId: "STU-2028-0914",
-    name: "You",
-    aptitudeScore: 22.5,
-    technicalScore: 21.0,
-    codingScore: 35.0,
-    totalScore: 78.5,
-    totalMarks: 100,
-    isRankable: true
-  },
-  entries: [
-    { rank: 1, studentId: "STU-2028-0104", name: "Aarav Sharma", aptitudeScore: 30.0, technicalScore: 27.5, codingScore: 40.0, totalScore: 97.5, totalMarks: 100, submittedAt: new Date(Date.now() - 40 * 60 * 1000).toISOString() },
-    { rank: 2, studentId: "STU-2028-0342", name: "Priya Nair", aptitudeScore: 27.5, technicalScore: 28.0, codingScore: 40.0, totalScore: 95.5, totalMarks: 100, submittedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString() },
-    { rank: 3, studentId: "STU-2028-0089", name: "Rohan Verma", aptitudeScore: 25.0, technicalScore: 26.0, codingScore: 38.0, totalScore: 89.0, totalMarks: 100, submittedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString() },
-    { rank: 4, studentId: "STU-2028-0914", name: "Candidate (You)", aptitudeScore: 22.5, technicalScore: 21.0, codingScore: 35.0, totalScore: 78.5, totalMarks: 100, submittedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
-    { rank: 5, studentId: "STU-2028-0512", name: "Sneha Patel", aptitudeScore: 20.0, technicalScore: 22.5, codingScore: 35.0, totalScore: 77.5, totalMarks: 100, submittedAt: new Date(Date.now() - 18 * 60 * 1000).toISOString() },
-    { rank: 6, studentId: "STU-2028-0720", name: "Ananya Iyer", aptitudeScore: 22.5, technicalScore: 20.0, codingScore: 30.0, totalScore: 72.5, totalMarks: 100, submittedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString() },
-    { rank: 7, studentId: "STU-2028-0641", name: "Vikram Malhotra", aptitudeScore: 18.0, technicalScore: 21.0, codingScore: 32.0, totalScore: 71.0, totalMarks: 100, submittedAt: new Date(Date.now() - 22 * 60 * 1000).toISOString() },
-    { rank: 8, studentId: "STU-2028-0819", name: "Tanvi Deshmukh", aptitudeScore: 20.0, technicalScore: 18.0, codingScore: 30.0, totalScore: 68.0, totalMarks: 100, submittedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() }
-  ]
-};
-
 export function ContestLeaderboardPage() {
   const { contestId } = useParams();
   const navigate = useNavigate();
@@ -53,7 +25,7 @@ export function ContestLeaderboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [leaderboardData, setLeaderboardData] = useState({ entries: [], totalEntries: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -70,12 +42,13 @@ export function ContestLeaderboardPage() {
       if (data && (data.entries || data.leaderboard)) {
         setLeaderboardData(data);
       } else {
-        setLeaderboardData(SAMPLE_LEADERBOARD);
+        setLeaderboardData({ entries: [], totalEntries: 0 });
       }
       setCurrentPage(page);
     } catch (err) {
-      console.warn("Using sample leaderboard as fallback due to:", err.message);
-      setLeaderboardData(SAMPLE_LEADERBOARD);
+      console.error("Failed to load leaderboard:", err);
+      setError("Unable to load leaderboard. Please check your connection.");
+      setLeaderboardData({ entries: [], totalEntries: 0 });
     } finally {
       setLoading(false);
     }
@@ -120,7 +93,7 @@ export function ContestLeaderboardPage() {
     totalEntries = 0,
     myRank = null,
     entries = []
-  } = leaderboardData || SAMPLE_LEADERBOARD;
+  } = leaderboardData || {};
 
   const filteredEntries = entries.filter((e) => {
     if (!searchQuery.trim()) return true;

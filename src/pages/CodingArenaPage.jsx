@@ -154,16 +154,13 @@ export function CodingArenaPage() {
       setExecutionResult(res);
       showSuccess("Code execution completed in Judge0 sandbox!");
     } catch (err) {
-      // Fallback local simulation if port 5050 offline
       setExecutionResult({
-        status: "ACCEPTED",
-        stdout: "[0, 1]\n",
-        executionTimeMs: 42,
-        memoryKb: 1420,
-        testsPassed: 3,
-        testsTotal: 3
+        status: "ERROR",
+        stderr: err.message || "Sandbox execution failed.",
+        testsPassed: 0,
+        testsTotal: 0
       });
-      showSuccess("Simulated execution successful (Local Sandbox).");
+      showError(err.message || "Code execution failed.");
     } finally {
       setRunning(false);
     }
@@ -185,25 +182,16 @@ export function CodingArenaPage() {
         topicId: "DSA_TWO_SUM"
       });
       await refreshSubscription();
-      showSuccess("Solution accepted! 100/100 points recorded to your 2028 batch telemetry.");
+      showSuccess("Solution evaluated successfully!");
     } catch (err) {
-      // Fallback
       setExecutionResult({
-        status: "ACCEPTED",
-        stdout: "[0, 1]\n",
-        executionTimeMs: 38,
-        memoryKb: 1390,
-        testsPassed: 10,
-        testsTotal: 10,
-        score: 100
+        status: "ERROR",
+        stderr: err.message || "Solution submission failed.",
+        testsPassed: 0,
+        testsTotal: 0,
+        score: 0
       });
-      await b2cApi.recordQuestionAttempt({
-        questionType: "DSA",
-        count: 1,
-        topicId: "DSA_TWO_SUM"
-      });
-      await refreshSubscription();
-      showSuccess("Solution verified and recorded!");
+      showError(err.message || "Solution submission failed.");
     } finally {
       setSubmitting(false);
     }

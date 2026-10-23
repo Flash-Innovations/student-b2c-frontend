@@ -82,111 +82,6 @@ rl.on('line', (line) => {
 });`
 };
 
-// Fallback sample questions if backend attempt returns empty
-const SAMPLE_WORKSPACE_QUESTIONS = [
-  {
-    id: "cq-1",
-    section: "APTITUDE",
-    questionVersionId: "qv-apt-1",
-    marks: 2.5,
-    negativeMarks: 0.5,
-    questionVersion: {
-      id: "qv-apt-1",
-      format: "SINGLE_CHOICE",
-      statement: "A train running at 54 km/h takes 20 seconds to pass a platform 180 meters long. What is the length of the train in meters?",
-      options: [
-        { id: "opt-1", text: "120 meters" },
-        { id: "opt-2", text: "150 meters" },
-        { id: "opt-3", text: "180 meters" },
-        { id: "opt-4", text: "200 meters" }
-      ]
-    }
-  },
-  {
-    id: "cq-2",
-    section: "APTITUDE",
-    questionVersionId: "qv-apt-2",
-    marks: 2.5,
-    negativeMarks: 0.5,
-    questionVersion: {
-      id: "qv-apt-2",
-      format: "SINGLE_CHOICE",
-      statement: "In how many different ways can the letters of the word 'CAMPUS' be arranged so that the vowels always come together?",
-      options: [
-        { id: "opt-21", text: "120" },
-        { id: "opt-22", text: "240" },
-        { id: "opt-23", text: "360" },
-        { id: "opt-24", text: "720" }
-      ]
-    }
-  },
-  {
-    id: "cq-3",
-    section: "TECHNICAL",
-    questionVersionId: "qv-tech-1",
-    marks: 3.0,
-    negativeMarks: 0.75,
-    questionVersion: {
-      id: "qv-tech-1",
-      format: "SINGLE_CHOICE",
-      statement: "Which of the following disk scheduling algorithms evaluates the request closest to the current disk arm position, potentially causing starvation of requests far away?",
-      options: [
-        { id: "opt-31", text: "FCFS (First-Come, First-Served)" },
-        { id: "opt-32", text: "SSTF (Shortest Seek Time First)" },
-        { id: "opt-33", text: "SCAN (Elevator Algorithm)" },
-        { id: "opt-34", text: "C-LOOK (Circular Look)" }
-      ]
-    }
-  },
-  {
-    id: "cq-4",
-    section: "TECHNICAL",
-    questionVersionId: "qv-tech-2",
-    marks: 3.0,
-    negativeMarks: 0.75,
-    questionVersion: {
-      id: "qv-tech-2",
-      format: "SINGLE_CHOICE",
-      statement: "In relational database theory, what normal form addresses multi-valued dependencies that are not functional dependencies?",
-      options: [
-        { id: "opt-41", text: "Third Normal Form (3NF)" },
-        { id: "opt-42", text: "Boyce-Codd Normal Form (BCNF)" },
-        { id: "opt-43", text: "Fourth Normal Form (4NF)" },
-        { id: "opt-44", text: "Fifth Normal Form (5NF)" }
-      ]
-    }
-  },
-  {
-    id: "cq-5",
-    section: "CODING",
-    questionVersionId: "qv-code-1",
-    marks: 40.0,
-    negativeMarks: 0.0,
-    questionVersion: {
-      id: "qv-code-1",
-      format: "CODING",
-      statement: "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.",
-      codingProblem: {
-        title: "Two Sum Optimization",
-        difficulty: "Easy",
-        timeLimitMs: 1000,
-        memoryLimitMb: 256,
-        description: "You may assume that each input would have exactly one solution, and you may not use the same element twice. Return the indices in 0-indexed format separated by spaces or formatted as `[index1, index2]`.",
-        constraints: [
-          "2 <= nums.length <= 10^4",
-          "-10^9 <= nums[i] <= 10^9",
-          "-10^9 <= target <= 10^9",
-          "Only one valid answer exists."
-        ],
-        testCases: [
-          { input: "4\n2 7 11 15\n9", expectedOutput: "0 1", isPublic: true },
-          { input: "3\n3 2 4\n6", expectedOutput: "1 2", isPublic: true }
-        ]
-      }
-    }
-  }
-];
-
 export function ContestWorkspacePage() {
   const { contestId, attemptId } = useParams();
   const navigate = useNavigate();
@@ -247,14 +142,12 @@ export function ContestWorkspacePage() {
             setAnswers(hydAnswers);
           }
         } else {
-          // Use sample questions
-          setQuestions(SAMPLE_WORKSPACE_QUESTIONS);
-          setCurrentSection("APTITUDE");
+          setError("No assessment questions configured for this contest attempt.");
+          setQuestions([]);
         }
       } catch (err) {
-        console.warn("Using sample questions for workspace session:", err.message);
-        setQuestions(SAMPLE_WORKSPACE_QUESTIONS);
-        setCurrentSection("APTITUDE");
+        setError(err.message || "Failed to load contest questions.");
+        setQuestions([]);
       } finally {
         setLoading(false);
       }
