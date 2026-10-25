@@ -18,8 +18,21 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useScreenContext } from "../context/ScreenContext";
 import { b2cApi } from "../services/b2cApi";
+import { practiceApi } from "../services/practiceApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
+
+const TOPIC_TYPE_MAP = {
+  QUANTITATIVE: { type: "APTITUDE", category: "QUANTITATIVE" },
+  LOGICAL: { type: "APTITUDE", category: "LOGICAL" },
+  VERBAL: { type: "APTITUDE", category: "VERBAL" },
+  DI_ANALYTICS: { type: "APTITUDE", category: "DATA_INTERPRETATION" },
+  DBMS: { type: "TECHNICAL", category: "DBMS" },
+  OS: { type: "TECHNICAL", category: "OS" },
+  NETWORKS: { type: "TECHNICAL", category: "NETWORKS" },
+  OOP: { type: "TECHNICAL", category: "OOP" },
+  BUSINESS_GK: { type: "NON_TECHNICAL", category: "BUSINESS" }
+};
 
 export function McqSessionPage() {
   const [searchParams] = useSearchParams();
@@ -47,39 +60,65 @@ export function McqSessionPage() {
       setLoading(true);
       setError(null);
       try {
-        let list = [];
+        const config = TOPIC_TYPE_MAP[topicId] || { type: "APTITUDE", category: topicId };
+        let res = null;
         try {
-          const res = await practiceApi.getQuestions({ type: "MCQ", category: topicId });
-          list = Array.isArray(res) ? res : res?.data || res?.questions || [];
+          res = await practiceApi.getQuestions({ type: config.type, category: config.category, limit: 10 });
         } catch (e) {
-          try {
-            const res = await practiceApi.getQuestions({ type: "MCQ" });
-            list = Array.isArray(res) ? res : res?.data || res?.questions || [];
-          } catch (err2) {
-            list = [];
-          }
+          res = await practiceApi.getQuestions({ type: config.type, limit: 10 });
         }
 
-        if (isMounted) {
-          const normalized = list.map((q) => {
-            let options = q.options || q.versions?.[0]?.options || [];
-            if (typeof options === "string") {
-              try { options = JSON.parse(options); } catch (e) { options = []; }
-            }
-            if (Array.isArray(options) && options.length > 0 && typeof options[0] === "object" && options[0]?.text) {
-              options = options.map(o => o.text);
-            }
-            return {
-              id: q.id,
-              question: q.statement || q.latestTitle || q.title || "Question",
-              formula: q.formula || q.metadata?.formula || null,
-              options: Array.isArray(options) ? options : [],
-              correctIndex: typeof q.correctAnswer === "number" ? q.correctAnswer : (q.correctIndex || 0),
-              explanation: q.explanation || q.versions?.[0]?.explanation || "Standard analytical derivation."
-            };
-          }).filter(q => q.options && q.options.length > 0);
+        let list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+        if (list.length === 0) {
+          const fallbackRes = await practiceApi.getQuestions({ type: "APTITUDE", limit: 10 });
+          list = Array.isArray(fallbackRes) ? fallbackRes : Array.isArray(fallbackRes?.data) ? fallbackRes.data : [];
+        }
 
-          setQuestions(normalized);
+        // Fetch detailed question data (options, correct answer, explanation)
+        const detailed = await Promise.all(
+          list.slice(0, 10).map(async (item) => {
+            try {
+              const qRes = await practiceApi.getQuestionById(item.id);
+              const q = qRes?.data || qRes || item;
+              const v = (q.versions && q.versions[0]) || {};
+
+              let options = v.options || q.options || [];
+              if (typeof options === "string") {
+                try { options = JSON.parse(options); } catch (e) { options = []; }
+              }
+
+              const optionTexts = (Array.isArray(options) ? options : []).map(opt =>
+                typeof opt === "object" ? opt.text : opt
+              );
+
+              let correctIndex = 0;
+              const rawAns = v.correctAnswer?.optionId || v.correctAnswer || q.correctAnswer;
+              if (typeof rawAns === "string") {
+                const found = (Array.isArray(options) ? options : []).findIndex(
+                  opt => opt.id === rawAns || opt.text === rawAns
+                );
+                correctIndex = found >= 0 ? found : Math.max(0, rawAns.toUpperCase().charCodeAt(0) - 65);
+              } else if (typeof rawAns === "number") {
+                correctIndex = rawAns;
+              }
+
+              return {
+                id: q.id,
+                question: v.statement || q.statement || q.latestTitle || "Practice Question",
+                formula: q.formula || v.metadata?.formula || null,
+                options: optionTexts,
+                correctIndex,
+                explanation: v.explanation || q.explanation || "Standard analytical derivation."
+              };
+            } catch (detailErr) {
+              return null;
+            }
+          })
+        );
+
+        if (isMounted) {
+          const valid = detailed.filter(q => q && q.options && q.options.length > 0);
+          setQuestions(valid);
         }
       } catch (err) {
         if (isMounted) {
