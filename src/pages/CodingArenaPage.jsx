@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Code2,
   Play,
@@ -15,7 +15,9 @@ import {
   RefreshCw,
   Copy,
   Check,
-  Sparkles
+  Sparkles,
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { useAuth } from "../context/AuthContext";
@@ -28,88 +30,64 @@ import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
 
 const STARTER_CODES = {
-  cpp: `// C++ (GCC) Solution - 2028 Campus Prep
+  cpp: `// C++ (GCC) Solution
 #include <iostream>
 #include <vector>
+#include <string>
+#include <algorithm>
 #include <unordered_map>
 using namespace std;
-
-vector<int> twoSum(vector<int>& nums, int target) {
-    unordered_map<int, int> seen;
-    for (int i = 0; i < (int)nums.size(); i++) {
-        int complement = target - nums[i];
-        if (seen.find(complement) != seen.end()) {
-            return {seen[complement], i};
-        }
-        seen[nums[i]] = i;
-    }
-    return {};
-}
 
 int main() {
     ios_base::sync_with_stdio(false);
     cin.tie(NULL);
-    cout << "[0, 1]" << endl;
+    
+    // Read input from stdin and write output to stdout
+    
     return 0;
 }`,
-  python: `# Python 3 Solution - 2028 Campus Prep
+  python: `# Python 3 Solution
 import sys
 
-def two_sum(nums, target):
-    seen = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in seen:
-            return [seen[complement], i]
-        seen[num] = i
-    return []
+def main():
+    input_data = sys.stdin.read().split()
+    if not input_data:
+        return
+    # Write solution logic here
 
 if __name__ == '__main__':
-    print("[0, 1]")
+    main()
 `,
-  java: `// Java (OpenJDK) Solution - 2028 Campus Prep
+  java: `// Java (OpenJDK) Solution
 import java.util.*;
 
 public class Main {
-    public static int[] twoSum(int[] nums, int target) {
-        Map<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            int complement = target - nums[i];
-            if (map.containsKey(complement)) {
-                return new int[] { map.get(complement), i };
-            }
-            map.put(nums[i], i);
-        }
-        return new int[0];
-    }
-
     public static void main(String[] args) {
-        System.out.println("[0, 1]");
+        Scanner sc = new Scanner(System.in);
+        // Write solution logic here
     }
 }`,
   javascript: `// JavaScript (Node.js) Solution
-function twoSum(nums, target) {
-    const seen = new Map();
-    for (let i = 0; i < nums.length; i++) {
-        const complement = target - nums[i];
-        if (seen.has(complement)) {
-            return [seen.get(complement), i];
-        }
-        seen.set(nums[i], i);
-    }
-    return [];
+const fs = require('fs');
+
+function main() {
+    const input = fs.readFileSync(0, 'utf-8');
+    // Write solution logic here
 }
 
-console.log("[0, 1]");
+main();
 `
 };
 
 export function CodingArenaPage() {
+  const { questionId } = useParams();
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
   const { setScreenContext, openAssistantWithQuery } = useScreenContext();
 
+  const [problem, setProblem] = useState(null);
+  const [loadingProblem, setLoadingProblem] = useState(true);
   const [language, setLanguage] = useState("cpp");
   const [sourceCode, setSourceCode] = useState(STARTER_CODES.cpp);
   const [editorTheme, setEditorTheme] = useState("vs-dark"); // "vs-dark" | "light"
@@ -119,19 +97,96 @@ export function CodingArenaPage() {
   const [executionResult, setExecutionResult] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  // Fetch real problem by questionId
+  useEffect(() => {
+    let isMounted = true;
+    async function loadQuestion() {
+      if (!questionId) {
+        setProblem({
+          id: "two-sum",
+          title: "Two Sum",
+          category: "Array & Hashing",
+          difficulty: "EASY",
+          statement: `Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.`,
+          exampleInput: "nums = [2,7,11,15], target = 9",
+          exampleOutput: "[0,1]",
+          constraints: "2 <= nums.length <= 10^4\n-10^9 <= nums[i] <= 10^9\n-10^9 <= target <= 10^9\nOnly one valid answer exists.",
+          timeLimit: "1.0s",
+          memoryLimit: "256MB",
+          testCases: [
+            { input: "nums = [2,7,11,15], target = 9", expectedOutput: "[0,1]" },
+            { input: "nums = [3,2,4], target = 6", expectedOutput: "[1,2]" }
+          ]
+        });
+        setLoadingProblem(false);
+        return;
+      }
+
+      setLoadingProblem(true);
+      try {
+        const res = await practiceApi.getQuestionById(questionId);
+        const data = res?.data || res;
+        if (data && isMounted) {
+          const version = (data.versions && data.versions[0]) || {};
+          const cp = version.codingProblem || {};
+          const testCases = (cp.testCases || []).map((tc) => ({
+            input: tc.input || "",
+            expectedOutput: tc.expectedOutput || "",
+            isHidden: tc.isHidden
+          }));
+
+          setProblem({
+            id: data.id,
+            title: version.title || data.latestTitle || data.title || "Coding Challenge",
+            category: (data.subcategory || data.category || "DSA").replace(/_/g, " "),
+            difficulty: (data.difficulty || "MEDIUM").toUpperCase(),
+            statement: version.statement || data.statement || "No detailed statement provided.",
+            constraints: cp.constraints || "Time Limit: 2.0s | Memory Limit: 128MB",
+            timeLimit: cp.timeLimitMs ? `${cp.timeLimitMs / 1000}s` : "2.0s",
+            memoryLimit: cp.memoryLimitKb ? `${Math.round(cp.memoryLimitKb / 1024)}MB` : "128MB",
+            testCases: testCases.length > 0 ? testCases : [
+              { input: "[Sample Input]", expectedOutput: "[Sample Output]" }
+            ]
+          });
+        }
+      } catch (err) {
+        console.warn("Could not load question details:", err);
+        if (isMounted) {
+          setProblem({
+            id: questionId,
+            title: "Algorithm Challenge",
+            category: "DSA",
+            difficulty: "MEDIUM",
+            statement: `Solve the algorithmic challenge for question ${questionId}. Read input from stdin and produce correct output on stdout.`,
+            constraints: "Time Limit: 2.0s | Memory Limit: 128MB",
+            timeLimit: "2.0s",
+            memoryLimit: "128MB",
+            testCases: [{ input: "[Input]", expectedOutput: "[Output]" }]
+          });
+        }
+      } finally {
+        if (isMounted) setLoadingProblem(false);
+      }
+    }
+
+    loadQuestion();
+    return () => { isMounted = false; };
+  }, [questionId]);
+
   // Sync active problem & editor code with AI Assistant
   useEffect(() => {
+    if (!problem) return;
     setScreenContext({
       contextType: "CODING_ARENA",
       data: {
-        problemTitle: "Two Sum",
-        difficulty: "Easy",
+        problemTitle: problem.title,
+        difficulty: problem.difficulty,
         language,
         sourceCode,
         executionResult
       }
     });
-  }, [language, sourceCode, executionResult, setScreenContext]);
+  }, [problem, language, sourceCode, executionResult, setScreenContext]);
 
   const dsaCount = subscription?.dsaAttemptedCount || 0;
   const dsaLimit = subscription?.dsaLimit || 50;
@@ -179,7 +234,7 @@ export function CodingArenaPage() {
       await b2cApi.recordQuestionAttempt({
         questionType: "DSA",
         count: 1,
-        topicId: "DSA_TWO_SUM"
+        topicId: problem?.id || "DSA"
       });
       await refreshSubscription();
       showSuccess("Solution evaluated successfully!");
@@ -203,27 +258,43 @@ export function CodingArenaPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const getDifficultyBadge = (difficulty) => {
+    switch ((difficulty || "").toUpperCase()) {
+      case "EASY":
+        return <Badge variant="success" size="sm">Easy</Badge>;
+      case "MEDIUM":
+        return <Badge variant="warning" size="sm">Medium</Badge>;
+      case "HARD":
+        return <Badge variant="danger" size="sm">Hard</Badge>;
+      default:
+        return <Badge variant="neutral" size="sm">{difficulty || "Medium"}</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       
-      {/* Top Bar matching student-web-platform */}
+      {/* Top Bar Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <Link
-            to="/practice"
-            className="p-1.5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-            title="Back to Practice Hub"
+            to="/coding"
+            className="p-1.5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-xs font-semibold"
+            title="Back to Questions List"
           >
-            <ChevronRight className="w-4 h-4 rotate-180" />
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">All Challenges</span>
           </Link>
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-                Two Sum (Array Hash Map Optimization)
+              <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                {problem?.title || "Loading Problem..."}
               </h1>
-              <Badge variant="success" size="sm">Easy</Badge>
-              <Badge variant="neutral" size="sm">Array & Hashing</Badge>
+              {problem && getDifficultyBadge(problem.difficulty)}
+              {problem?.category && (
+                <Badge variant="neutral" size="sm">{problem.category}</Badge>
+              )}
             </div>
           </div>
         </div>
@@ -245,7 +316,7 @@ export function CodingArenaPage() {
             size="sm"
             variant="outline"
             className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
-            onClick={() => openAssistantWithQuery("Give me a progressive hint for Two Sum without revealing the full solution", "HINT")}
+            onClick={() => openAssistantWithQuery(`Give me a progressive hint for ${problem?.title || "this problem"} without revealing the full solution`, "HINT")}
           >
             <Sparkles className="w-3.5 h-3.5 mr-1.5 text-indigo-600" /> AI Coach
           </Button>
@@ -276,46 +347,34 @@ export function CodingArenaPage() {
         {/* Left Column (5 Cols): Problem Description Card */}
         <div className="lg:col-span-5 space-y-4">
           <Card className="p-6 h-full flex flex-col justify-between overflow-y-auto max-h-[700px]">
-            <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 mb-1">Problem Statement</h3>
-                <p>
-                  Given an array of integers <code className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-800 font-mono">nums</code> and an integer <code className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-800 font-mono">target</code>, return indices of the two numbers such that they add up to <code className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-800 font-mono">target</code>.
-                </p>
-                <p className="mt-2">
-                  You may assume that each input would have <strong>exactly one solution</strong>, and you may not use the same element twice. You can return the answer in any order.
-                </p>
+            {loadingProblem ? (
+              <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mb-2" />
+                <span className="text-xs">Loading problem statement...</span>
               </div>
-
-              <div className="space-y-3 pt-2">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                  <div className="font-bold text-slate-800 mb-1">Example 1:</div>
-                  <div><strong>Input:</strong> nums = [2,7,11,15], target = 9</div>
-                  <div><strong>Output:</strong> [0,1]</div>
-                  <div className="text-slate-500 mt-1"><strong>Explanation:</strong> Because nums[0] + nums[1] == 9, we return [0, 1].</div>
+            ) : (
+              <div className="space-y-5 text-xs text-slate-600 leading-relaxed">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 mb-2">Problem Statement</h3>
+                  <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans text-xs bg-slate-50/50 p-3.5 rounded-xl border border-slate-100">
+                    {problem?.statement || "No problem statement provided."}
+                  </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                  <div className="font-bold text-slate-800 mb-1">Example 2:</div>
-                  <div><strong>Input:</strong> nums = [3,2,4], target = 6</div>
-                  <div><strong>Output:</strong> [1,2]</div>
-                </div>
+                {problem?.constraints && (
+                  <div>
+                    <h4 className="font-bold text-slate-900 mb-1.5">Constraints:</h4>
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 font-mono text-[11px] text-slate-700 whitespace-pre-wrap">
+                      {problem.constraints}
+                    </div>
+                  </div>
+                )}
               </div>
-
-              <div>
-                <h4 className="font-bold text-slate-800 mb-1">Constraints:</h4>
-                <ul className="list-disc pl-4 space-y-1 text-slate-500 font-mono text-[11px]">
-                  <li>2 &le; nums.length &le; 10<sup>4</sup></li>
-                  <li>-10<sup>9</sup> &le; nums[i] &le; 10<sup>9</sup></li>
-                  <li>-10<sup>9</sup> &le; target &le; 10<sup>9</sup></li>
-                  <li>Only one valid answer exists.</li>
-                </ul>
-              </div>
-            </div>
+            )}
 
             <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-              <span>Time Limit: 1.0s</span>
-              <span>Memory Limit: 256MB</span>
+              <span>Time Limit: {problem?.timeLimit || "2.0s"}</span>
+              <span>Memory Limit: {problem?.memoryLimit || "128MB"}</span>
             </div>
           </Card>
         </div>
@@ -403,13 +462,18 @@ export function CodingArenaPage() {
             </div>
 
             {activeConsoleTab === "testcases" ? (
-              <div className="space-y-2 text-xs font-mono">
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700">
-                  <strong>Case 1:</strong> nums = [2,7,11,15], target = 9 &rarr; <strong>Expected: [0,1]</strong>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700">
-                  <strong>Case 2:</strong> nums = [3,2,4], target = 6 &rarr; <strong>Expected: [1,2]</strong>
-                </div>
+              <div className="space-y-2 text-xs font-mono max-h-[160px] overflow-y-auto">
+                {problem?.testCases && problem.testCases.length > 0 ? (
+                  problem.testCases.map((tc, idx) => (
+                    <div key={idx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 space-y-1">
+                      <div className="font-bold text-slate-900">Case {idx + 1}:</div>
+                      <div><strong>Input:</strong> <span className="text-indigo-600 font-mono break-all">{tc.input}</span></div>
+                      <div><strong>Expected:</strong> <span className="text-emerald-600 font-mono break-all">{tc.expectedOutput}</span></div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-slate-500 py-3 text-center">No public test cases provided.</div>
+                )}
               </div>
             ) : (
               <div className="p-3 rounded-lg bg-slate-950 font-mono text-xs text-slate-200 min-h-[80px]">

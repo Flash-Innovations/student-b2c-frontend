@@ -14,6 +14,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { PracticeHubPage } from "./pages/PracticeHubPage";
 import { McqSessionPage } from "./pages/McqSessionPage";
 import { CodingArenaPage } from "./pages/CodingArenaPage";
+import { CodingQuestionListPage } from "./pages/CodingQuestionListPage";
 import { MockInterviewPage } from "./pages/MockInterviewPage";
 import { ResumeOptimizerPage } from "./pages/ResumeOptimizerPage";
 import { PlacementOutcomesPage } from "./pages/PlacementOutcomesPage";
@@ -78,10 +79,18 @@ export function App() {
           <Route path="/practice/mcq" element={<McqSessionPage />} />
           <Route
             path="/coding"
+            element={isTechnical ? <CodingQuestionListPage /> : <Navigate to="/dashboard" replace />}
+          />
+          <Route
+            path="/coding/:questionId"
             element={isTechnical ? <CodingArenaPage /> : <Navigate to="/dashboard" replace />}
           />
           <Route
             path="/practice/coding"
+            element={isTechnical ? <CodingQuestionListPage /> : <Navigate to="/dashboard" replace />}
+          />
+          <Route
+            path="/practice/coding/:questionId"
             element={isTechnical ? <CodingArenaPage /> : <Navigate to="/dashboard" replace />}
           />
 

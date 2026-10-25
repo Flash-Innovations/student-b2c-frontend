@@ -175,6 +175,36 @@ export function PracticeHubPage() {
         </div>
       </div>
 
+      {/* Coding Arena Quick Launch Card for Technical Students */}
+      {isTechnical && (
+        <Card className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white border-slate-800 shadow-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-300">
+                <Terminal className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  Coding Arena & Algorithmic Challenges
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">LeetCode Style</span>
+                </h3>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Practice Data Structures & Algorithms with real-time sandbox execution, test cases, and AI coaching.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="primary"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white whitespace-nowrap self-start sm:self-auto"
+              onClick={() => navigate("/coding")}
+            >
+              Browse Problem Bank <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Filter Tabs */}
       <div className="flex items-center gap-2">
         {availableTabs.map((cat) => (
