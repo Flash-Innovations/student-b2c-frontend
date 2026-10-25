@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BrainCircuit,
@@ -15,12 +15,14 @@ import {
   CheckCircle2,
   Lock,
   Clock,
-  Terminal
+  Terminal,
+  Search
 } from "lucide-react";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
 import { useAuth } from "../context/AuthContext";
+import { practiceApi } from "../services/practiceApi";
 
 const PRACTICE_TOPICS = [
   {
@@ -124,9 +126,33 @@ export function PracticeHubPage() {
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid, isTechnical } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [topicCounts, setTopicCounts] = useState({});
 
   const mcqCount = subscription?.mcqAttemptedCount || 0;
   const mcqLimit = subscription?.mcqLimit || 100;
+
+  // Fetch real-time active question counts from database
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchCounts() {
+      try {
+        const res = await practiceApi.getTopics();
+        const list = res?.topics || res?.data || [];
+        const countMap = {};
+        for (const t of list) {
+          if (t.name) {
+            countMap[t.name.toUpperCase()] = t.count || t.questionCount || 0;
+          }
+        }
+        if (isMounted) setTopicCounts(countMap);
+      } catch (err) {
+        console.warn("Failed to load topic counts from question bank:", err);
+      }
+    }
+    fetchCounts();
+    return () => { isMounted = false; };
+  }, []);
 
   // Filter topics based on technical vs non-technical student profile
   const availableTopics = PRACTICE_TOPICS.filter((t) => {
@@ -135,9 +161,16 @@ export function PracticeHubPage() {
     return true;
   });
 
-  const filteredTopics = selectedCategory === "ALL"
-    ? availableTopics
-    : availableTopics.filter((t) => t.category === selectedCategory);
+  const filteredTopics = availableTopics.filter((t) => {
+    const matchesCategory = selectedCategory === "ALL" || t.category === selectedCategory;
+    if (!matchesCategory) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      t.name.toLowerCase().includes(q) ||
+      t.topics.some(sub => sub.toLowerCase().includes(q))
+    );
+  });
 
   const availableTabs = isTechnical
     ? ["ALL", "Aptitude", "Core CS"]
@@ -196,7 +229,7 @@ export function PracticeHubPage() {
             <Button
               size="sm"
               variant="primary"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white whitespace-nowrap self-start sm:self-auto"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white whitespace-nowrap self-start sm:self-auto cursor-pointer"
               onClick={() => navigate("/coding")}
             >
               Browse Problem Bank <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -205,72 +238,100 @@ export function PracticeHubPage() {
         </Card>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2">
-        {availableTabs.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              selectedCategory === cat
-                ? "bg-indigo-600 text-white shadow-xs"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
-            }`}
-          >
-            {cat === "ALL" ? (isTechnical ? "All Practice Tracks" : "All Aptitude Tracks") : cat}
-          </button>
-        ))}
+      {/* Filter Tabs and Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          {availableTabs.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                selectedCategory === cat
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
+              }`}
+            >
+              {cat === "ALL" ? (isTechnical ? "All Practice Tracks" : "All Aptitude Tracks") : cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Search Input */}
+        <div className="relative min-w-[220px] max-w-xs">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search topics or subtopics..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl text-xs bg-white border border-slate-200/80 focus:outline-hidden focus:border-indigo-500 text-slate-800 placeholder-slate-400 shadow-2xs"
+          />
+        </div>
       </div>
 
       {/* Topics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTopics.map((topic) => {
-          const Icon = topic.icon;
-          return (
-            <Card key={topic.id} hover className="p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-2xl border ${topic.color} shadow-xs`}>
-                    <Icon className="w-6 h-6" />
+      {filteredTopics.length === 0 ? (
+        <Card className="p-8 text-center max-w-md mx-auto space-y-3">
+          <p className="text-sm font-semibold text-slate-700">No matching practice tracks found</p>
+          <p className="text-xs text-slate-500">Try adjusting your search keywords or switching category filters.</p>
+          <Button size="xs" variant="outline" onClick={() => { setSelectedCategory("ALL"); setSearchQuery(""); }}>
+            Reset Filters
+          </Button>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTopics.map((topic) => {
+            const Icon = topic.icon;
+            const liveCount = topicCounts[topic.id] || 
+              topicCounts[topic.id === "DI_ANALYTICS" ? "DATA_INTERPRETATION" : topic.id] || 
+              topic.questionCount;
+
+            return (
+              <Card key={topic.id} hover className="p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-3 rounded-2xl border ${topic.color} shadow-xs`}>
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <Badge variant="neutral" size="sm">{topic.category}</Badge>
                   </div>
-                  <Badge variant="neutral" size="sm">{topic.category}</Badge>
+
+                  <h3 className="text-base font-bold text-slate-900 mb-1">
+                    {topic.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-4">
+                    {liveCount} Curated Questions • {topic.difficulty}
+                  </p>
+
+                  <div className="space-y-1.5 mb-6">
+                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Key Subtopics:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {topic.topics.map((sub, i) => (
+                        <span key={i} className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60 font-medium">
+                          {sub}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900 mb-1">
-                  {topic.name}
-                </h3>
-                <p className="text-xs text-slate-500 mb-4">
-                  {topic.questionCount} Curated Questions • {topic.difficulty}
-                </p>
-
-                <div className="space-y-1.5 mb-6">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Key Subtopics:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {topic.topics.map((sub, i) => (
-                      <span key={i} className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60 font-medium">
-                        {sub}
-                      </span>
-                    ))}
-                  </div>
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs text-slate-400 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> 10 Qs / Session
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => navigate(`/practice/mcq?topic=${topic.id}&name=${encodeURIComponent(topic.name)}`)}
+                  >
+                    Start Practice <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
                 </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs text-slate-400 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> 10 Qs / Session
-                </span>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => navigate(`/practice/mcq?topic=${topic.id}&name=${encodeURIComponent(topic.name)}`)}
-                >
-                  Start Practice <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </Button>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
     </div>
   );

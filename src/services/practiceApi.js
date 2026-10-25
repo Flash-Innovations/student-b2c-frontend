@@ -93,7 +93,8 @@ export const practiceApi = {
   getGlobalCatalog: () => practiceRequest('/api/subjects/global-catalog', { method: 'GET' }),
   getSubjectById: (id) => practiceRequest(`/api/subjects/${id}`, { method: 'GET' }),
 
-  // Question Banks
+  // Question Banks & Topics
+  getTopics: () => practiceRequest('/api/questions/topics', { method: 'GET' }),
   getQuestions: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return practiceRequest(`/api/questions${q ? `?${q}` : ''}`, { method: 'GET' });
@@ -101,12 +102,19 @@ export const practiceApi = {
   getQuestionById: (id) => practiceRequest(`/api/questions/${id}`, { method: 'GET' }),
   getQuestionVersionById: (versionId) => practiceRequest(`/api/question-versions/${versionId}`, { method: 'GET' }),
 
+  // Student Practice Hub Questions (PostgreSQL)
+  getPracticeQuestions: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return practiceRequest(`/practice/questions${q ? `?${q}` : ''}`, { method: 'GET' });
+  },
+  verifyPracticeAnswer: (payload) => practiceRequest('/practice/verify', { method: 'POST', body: payload }),
+
   // Practice Sessions (MCQs)
   createAttempt: (payload) => practiceRequest('/api/practice/attempts', { method: 'POST', body: payload }),
   getAttemptById: (attemptId) => practiceRequest(`/api/practice/attempts/${attemptId}`, { method: 'GET' }),
   getAttemptQuestions: (attemptId) => practiceRequest(`/api/practice/attempts/${attemptId}/questions`, { method: 'GET' }),
   recordResponse: (attemptId, responseData) => practiceRequest(`/api/practice/attempts/${attemptId}/responses`, { method: 'POST', body: responseData }),
-  submitAttempt: (attemptId) => practiceRequest(`/api/practice/attempts/${attemptId}/submit`, { method: 'POST' }),
+  submitAttempt: (attemptId, payload = {}) => practiceRequest(`/api/practice/attempts/${attemptId}/submit`, { method: 'POST', body: payload }),
   getAttemptResult: (attemptId) => practiceRequest(`/api/practice/attempts/${attemptId}/result`, { method: 'GET' }),
   getStreak: () => practiceRequest('/api/practice/streak', { method: 'GET' }),
   getHistory: () => practiceRequest('/api/practice/history', { method: 'GET' }),
@@ -121,14 +129,29 @@ export const practiceApi = {
     const q = new URLSearchParams(params).toString();
     return practiceRequest(`/api/contests/available${q ? `?${q}` : ''}`, { method: 'GET' });
   },
+  getMyContestAttempts: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return practiceRequest(`/api/contests/my-attempts${q ? `?${q}` : ''}`, { method: 'GET' });
+  },
   getStudentContest: (contestId) => practiceRequest(`/api/contests/${contestId}/student`, { method: 'GET' }),
   startContestAttempt: (contestId) => practiceRequest(`/api/contests/${contestId}/attempts/start`, { method: 'POST' }),
   getContestAttempt: (contestId, attemptId) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}`, { method: 'GET' }),
   getContestQuestions: (contestId, attemptId) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/questions`, { method: 'GET' }),
   recordContestResponse: (contestId, attemptId, payload) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/responses`, { method: 'POST', body: payload }),
-  submitContestAttempt: (contestId, attemptId) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/submit`, { method: 'POST' }),
+  submitContestAttempt: (contestId, attemptId) => {
+    if (attemptId) {
+      return practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/submit`, { method: 'POST' });
+    }
+    return practiceRequest(`/api/contests/${contestId}/attempts/submit`, { method: 'POST' });
+  },
   finalizeContestAttempt: (contestId, attemptId) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/finalize`, { method: 'POST' }),
-  getContestResult: (contestId, attemptId) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/result`, { method: 'GET' }),
+  getContestResult: (contestId, attemptId) => {
+    if (contestId && attemptId) {
+      return practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/result`, { method: 'GET' });
+    }
+    const id = attemptId || contestId;
+    return practiceRequest(`/api/contests/attempts/${id}/result`, { method: 'GET' });
+  },
   getContestLeaderboard: (contestId, params = {}) => {
     const q = new URLSearchParams(params).toString();
     return practiceRequest(`/api/contests/${contestId}/leaderboard${q ? `?${q}` : ''}`, { method: 'GET' });

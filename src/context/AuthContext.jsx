@@ -115,7 +115,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateToken,
-    refreshProfile: fetchProfile
+    refreshProfile: fetchProfile,
+    refreshSubscription: fetchProfile
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

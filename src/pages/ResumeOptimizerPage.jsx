@@ -70,7 +70,7 @@ export function ResumeOptimizerPage() {
         res = await b2cApi.analyzeResume(formData);
       } else {
         res = await b2cApi.analyzeResume({
-          resumeText,
+          resumeText: resumeText.trim(),
           filename: "candidate_resume.txt"
         });
       }
@@ -187,7 +187,7 @@ export function ResumeOptimizerPage() {
                   rows={14}
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  placeholder="Paste your plain text resume content here or use the Upload tab to attach your PDF/Word document..."
+                  placeholder="Paste your raw resume text or markdown here (e.g., Education, Skills, Projects, Experience)..."
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-indigo-600 leading-relaxed"
                 />
               </Card>

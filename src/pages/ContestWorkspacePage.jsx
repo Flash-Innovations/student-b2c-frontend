@@ -106,8 +106,10 @@ export function ContestWorkspacePage() {
   const [submittingCode, setSubmittingCode] = useState(false);
   const [executionResult, setExecutionResult] = useState(null);
 
-  // Timer: 90 mins default or server synced
+  // Timer & Authoritative Deadline reconciliation refs
   const [remainingSeconds, setRemainingSeconds] = useState(90 * 60);
+  const attemptDeadlineRef = useRef(null);
+  const serverClockOffsetRef = useRef(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [tabSwitches, setTabSwitches] = useState(0);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -121,31 +123,101 @@ export function ContestWorkspacePage() {
       try {
         const res = await practiceApi.getContestQuestions(contestId, attemptId);
         if (res && res.questions && res.questions.length > 0) {
-          setQuestions(res.questions);
+          // If attempt is already submitted or timed out, navigate to result
+          if (res.status === "SUBMITTED" || res.status === "TIMED_OUT") {
+            navigate(`/contests/${contestId}/result/${attemptId}`, { replace: true });
+            return;
+          }
+
+          // Normalize questions client-side as well for maximum resilience
+          const normalized = res.questions.map((q, idx) => {
+            const qvId = q.questionVersionId || q.questionVersion?.id || q.id || `qv_${idx + 1}`;
+            const statement = q.statement || q.questionVersion?.statement || q.questionText || q.description || q.title || "";
+            let rawOpts = q.options || q.questionVersion?.options || [];
+            if (typeof rawOpts === "string") {
+              try { rawOpts = JSON.parse(rawOpts); } catch (_) { rawOpts = []; }
+            }
+            if (!Array.isArray(rawOpts)) rawOpts = [];
+            const options = rawOpts.map((opt, oIdx) => ({
+              id: typeof opt === "string" ? `opt_${oIdx}` : (opt.id || `opt_${oIdx}`),
+              text: typeof opt === "string" ? opt : (opt.text || opt.value || opt.label || "")
+            }));
+            const sampleTestCases = q.sampleTestCases || q.questionVersion?.codingProblem?.testCases || [];
+            const constraints = q.constraints || q.questionVersion?.codingProblem?.constraints || "";
+
+            return {
+              ...q,
+              id: q.id || qvId,
+              questionId: q.questionId || q.id,
+              questionVersionId: qvId,
+              title: q.title || `Question ${idx + 1}`,
+              statement,
+              options,
+              constraints,
+              sampleTestCases,
+              questionVersion: {
+                id: qvId,
+                title: q.title || `Question ${idx + 1}`,
+                statement,
+                options,
+                codingProblem: {
+                  constraints,
+                  testCases: sampleTestCases
+                }
+              }
+            };
+          });
+
+          setQuestions(normalized);
           // Set initial section
-          const initialSec = res.questions[0].section || "APTITUDE";
+          const initialSec = normalized[0]?.section || "APTITUDE";
           setCurrentSection(initialSec);
 
-          // Calculate remaining timer from backend if provided
-          if (res.remainingMs) {
+          // Calculate authoritative remaining timer from backend
+          if (res.serverTime) {
+            serverClockOffsetRef.current = new Date(res.serverTime).getTime() - Date.now();
+          }
+          if (res.attemptDeadline) {
+            attemptDeadlineRef.current = new Date(res.attemptDeadline).getTime();
+          }
+
+          if (res.remainingSeconds !== undefined && res.remainingSeconds !== null) {
+            setRemainingSeconds(Math.max(0, res.remainingSeconds));
+          } else if (res.remainingMs) {
             setRemainingSeconds(Math.max(0, Math.floor(res.remainingMs / 1000)));
           }
 
-          // Hydrate saved responses
+          // Hydrate saved responses, review flags & coding editor state
           if (res.savedResponses) {
             const hydAnswers = {};
+            const hydCoding = {};
+            const hydReview = {};
             Object.entries(res.savedResponses).forEach(([qvId, resp]) => {
               if (resp && resp.answerData) {
                 hydAnswers[qvId] = resp.answerData;
+                if (resp.answerData.isMarkedForReview) {
+                  hydReview[qvId] = true;
+                }
+                if (resp.answerData.sourceCode) {
+                  hydCoding[qvId] = {
+                    language: resp.answerData.language || "cpp",
+                    code: resp.answerData.sourceCode
+                  };
+                }
               }
             });
             setAnswers(hydAnswers);
+            setMarkedForReview(hydReview);
+            if (Object.keys(hydCoding).length > 0) {
+              setCodingState((prev) => ({ ...prev, ...hydCoding }));
+            }
           }
         } else {
           setError("No assessment questions configured for this contest attempt.");
           setQuestions([]);
         }
       } catch (err) {
+        console.error("Failed to load contest questions:", err);
         setError(err.message || "Failed to load contest questions.");
         setQuestions([]);
       } finally {
@@ -154,18 +226,38 @@ export function ContestWorkspacePage() {
     }
 
     loadWorkspace();
-  }, [contestId, attemptId]);
+  }, [contestId, attemptId, navigate]);
 
-  // Server Countdown Timer loop
+  // Server Countdown Timer loop with authoritative deadline reconciliation
   useEffect(() => {
+    let warned5Min = false;
+    let warned1Min = false;
+
     const timer = setInterval(() => {
       setRemainingSeconds((prev) => {
-        if (prev <= 1) {
+        let current = prev;
+        if (attemptDeadlineRef.current) {
+          const authoritativeNow = Date.now() + serverClockOffsetRef.current;
+          current = Math.max(0, Math.floor((attemptDeadlineRef.current - authoritativeNow) / 1000));
+        } else {
+          current = Math.max(0, prev - 1);
+        }
+
+        if (current === 300 && !warned5Min) {
+          warned5Min = true;
+          showWarning("Assessment notice: 5 minutes remaining before automatic submission.");
+        }
+        if (current === 60 && !warned1Min) {
+          warned1Min = true;
+          showWarning("Urgent: 1 minute remaining! Finalize your assessment now.");
+        }
+
+        if (current <= 0) {
           clearInterval(timer);
           handleTimeExpired();
           return 0;
         }
-        return prev - 1;
+        return current;
       });
     }, 1000);
 
@@ -225,13 +317,77 @@ export function ContestWorkspacePage() {
   const sections = Array.from(new Set(questions.map((q) => q.section || "APTITUDE")));
   const sectionQuestions = questions.filter((q) => (q.section || "APTITUDE") === currentSection);
   const currentQuestion = sectionQuestions[currentQuestionIndex] || sectionQuestions[0];
-  const qvId = currentQuestion?.questionVersionId || currentQuestion?.questionVersion?.id;
+  const qvId = currentQuestion?.questionVersionId || currentQuestion?.questionVersion?.id || currentQuestion?.id;
   const isCoding = currentQuestion?.section === "CODING";
 
+  // Resolved question statement, options, constraints, sample test cases
+  const currentStatement = 
+    currentQuestion?.statement ||
+    currentQuestion?.questionVersion?.statement ||
+    currentQuestion?.questionText ||
+    currentQuestion?.description ||
+    "";
+
+  const rawOptions = 
+    currentQuestion?.options || 
+    currentQuestion?.questionVersion?.options || 
+    [];
+
+  const currentOptions = (Array.isArray(rawOptions) ? rawOptions : []).map((opt, idx) => ({
+    id: typeof opt === "string" ? `opt_${idx}` : (opt.id || `opt_${idx}`),
+    text: typeof opt === "string" ? opt : (opt.text || opt.value || opt.label || "")
+  }));
+
+  const currentConstraints = 
+    currentQuestion?.constraints || 
+    currentQuestion?.questionVersion?.codingProblem?.constraints || 
+    "";
+
+  const sampleCases = 
+    currentQuestion?.sampleTestCases || 
+    currentQuestion?.questionVersion?.codingProblem?.testCases || 
+    [];
+
+  // Navigation handlers across questions & sections
+  const handlePrevQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+    } else {
+      const secIdx = sections.indexOf(currentSection);
+      if (secIdx > 0) {
+        const prevSec = sections[secIdx - 1];
+        const prevSecQuestions = questions.filter((q) => (q.section || "APTITUDE") === prevSec);
+        setCurrentSection(prevSec);
+        setCurrentQuestionIndex(Math.max(0, prevSecQuestions.length - 1));
+      }
+    }
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < sectionQuestions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    } else {
+      const secIdx = sections.indexOf(currentSection);
+      if (secIdx !== -1 && secIdx < sections.length - 1) {
+        const nextSec = sections[secIdx + 1];
+        setCurrentSection(nextSec);
+        setCurrentQuestionIndex(0);
+      }
+    }
+  };
+
+  const isFirstQuestionOverall = currentQuestionIndex === 0 && sections.indexOf(currentSection) === 0;
+  const isLastQuestionOverall = currentQuestionIndex === sectionQuestions.length - 1 && sections.indexOf(currentSection) === sections.length - 1;
+
   // Autosave MCQ selection
-  const handleSelectOption = async (optionId) => {
+  const handleSelectOption = async (optionId, optionText) => {
     if (!qvId) return;
-    const newAnswerData = { optionId };
+    const isMarked = Boolean(markedForReview[qvId]);
+    const newAnswerData = { 
+      optionId, 
+      selectedOption: optionText || optionId,
+      isMarkedForReview: isMarked
+    };
     setAnswers((prev) => ({ ...prev, [qvId]: newAnswerData }));
     setSavingStatus("saving");
 
@@ -249,6 +405,7 @@ export function ContestWorkspacePage() {
   // Clear answer
   const handleClearAnswer = async () => {
     if (!qvId) return;
+    const isMarked = Boolean(markedForReview[qvId]);
     setAnswers((prev) => {
       const copy = { ...prev };
       delete copy[qvId];
@@ -258,18 +415,30 @@ export function ContestWorkspacePage() {
     try {
       await practiceApi.recordContestResponse(contestId, attemptId, {
         questionVersionId: qvId,
-        answerData: {}
+        answerData: { unattempted: true, isMarkedForReview: isMarked }
       });
     } catch (e) {}
   };
 
   // Toggle Mark for Review
-  const handleToggleReview = () => {
+  const handleToggleReview = async () => {
     if (!qvId) return;
+    const nextVal = !markedForReview[qvId];
     setMarkedForReview((prev) => ({
       ...prev,
-      [qvId]: !prev[qvId]
+      [qvId]: nextVal
     }));
+
+    const existing = answers[qvId] || {};
+    const updatedAnswerData = { ...existing, isMarkedForReview: nextVal };
+    setAnswers((prev) => ({ ...prev, [qvId]: updatedAnswerData }));
+
+    try {
+      await practiceApi.recordContestResponse(contestId, attemptId, {
+        questionVersionId: qvId,
+        answerData: updatedAnswerData
+      });
+    } catch (_) {}
   };
 
   // Coding language and code state for active question
@@ -313,14 +482,12 @@ export function ContestWorkspacePage() {
       showSuccess("Sample test cases executed!");
     } catch (err) {
       setExecutionResult({
-        status: "ACCEPTED",
-        stdout: "0 1\n",
-        executionTimeMs: 44,
-        memoryKb: 1420,
-        testsPassed: 2,
-        testsTotal: 2
+        status: "ERROR",
+        stderr: err.message || "Code execution failed.",
+        testsPassed: 0,
+        testsTotal: 0
       });
-      showSuccess("Sample test cases verified!");
+      showError(err.message || "Code execution failed.");
     } finally {
       setRunningCode(false);
     }
@@ -338,26 +505,35 @@ export function ContestWorkspacePage() {
         contestAttemptId: attemptId
       });
       setExecutionResult(res);
+      const isMarked = Boolean(markedForReview[qvId]);
+      const codingAnswerData = {
+        language: currentLang,
+        sourceCode: currentCode,
+        status: res.status,
+        testsPassed: res.testsPassed,
+        testsTotal: res.testsTotal,
+        earnedMarks: res.earnedMarks,
+        isMarkedForReview: isMarked
+      };
       setAnswers((prev) => ({
         ...prev,
-        [qvId]: { language: currentLang, sourceCode: currentCode, status: res.status }
+        [qvId]: codingAnswerData
       }));
+      try {
+        await practiceApi.recordContestResponse(contestId, attemptId, {
+          questionVersionId: qvId,
+          answerData: codingAnswerData
+        });
+      } catch (_) {}
       showSuccess("Coding solution recorded!");
     } catch (err) {
       setExecutionResult({
-        status: "ACCEPTED",
-        stdout: "0 1\n",
-        executionTimeMs: 40,
-        memoryKb: 1390,
-        testsPassed: 5,
-        testsTotal: 5,
-        score: 40
+        status: "ERROR",
+        stderr: err.message || "Submission failed.",
+        testsPassed: 0,
+        testsTotal: 0
       });
-      setAnswers((prev) => ({
-        ...prev,
-        [qvId]: { language: currentLang, sourceCode: currentCode, status: "ACCEPTED" }
-      }));
-      showSuccess("Coding challenge solution verified!");
+      showError(err.message || "Failed to submit code.");
     } finally {
       setSubmittingCode(false);
     }
@@ -371,8 +547,7 @@ export function ContestWorkspacePage() {
       showSuccess("Assessment submitted successfully!");
       navigate(`/contests/${contestId}/result/${attemptId}`, { replace: true });
     } catch (err) {
-      console.warn("Direct submit fallback:", err.message);
-      navigate(`/contests/${contestId}/result/${attemptId}`, { replace: true });
+      showError(err.message || "Failed to submit assessment.");
     } finally {
       setSubmittingContest(false);
     }
@@ -395,6 +570,23 @@ export function ContestWorkspacePage() {
           <p className="text-xs font-semibold text-slate-500">Preparing Assessment Sandbox...</p>
         </div>
       </div>
+    );
+  }
+
+  if (error || questions.length === 0) {
+    return (
+      <Card className="max-w-md mx-auto my-16 p-6 border-rose-200 bg-white text-center space-y-4">
+        <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-bold text-slate-900">Workspace Unavailable</h3>
+        <p className="text-xs text-slate-600">{error || "No questions found for this contest attempt."}</p>
+        <div className="flex justify-center gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => navigate("/contests")}>
+            Back to Contests
+          </Button>
+        </div>
+      </Card>
     );
   }
 
@@ -552,43 +744,81 @@ export function ContestWorkspacePage() {
               </div>
             </div>
 
-            {/* Problem Statement */}
-            <div className="text-sm font-medium text-slate-800 leading-relaxed">
-              {currentQuestion?.questionVersion?.statement || "Question statement..."}
+            {/* Question Title & Problem Statement */}
+            <div className="space-y-3">
+              {currentQuestion?.title && (
+                <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                  {currentQuestion.title}
+                </h2>
+              )}
+
+              <div className="text-sm font-normal text-slate-800 leading-relaxed whitespace-pre-wrap font-sans bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                {currentStatement ? (
+                  currentStatement
+                ) : (
+                  <div className="flex items-center gap-2 text-rose-600 bg-rose-50 p-3 rounded-lg border border-rose-200">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span className="text-xs font-semibold">
+                      Question statement is empty or unavailable for this question (ID: {qvId}).
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Coding Constraints */}
+              {isCoding && currentConstraints && (
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                  <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                    Constraints & Limits
+                  </div>
+                  <div className="text-xs font-mono text-slate-600 whitespace-pre-wrap">
+                    {currentConstraints}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* MCQ Options Rendering */}
             {!isCoding && (
               <div className="space-y-2.5 pt-2">
-                {currentQuestion?.questionVersion?.options?.map((option, idx) => {
-                  const isSelected = answers[qvId]?.optionId === option.id;
-                  const optionLabel = String.fromCharCode(65 + idx);
+                {currentOptions.length > 0 ? (
+                  currentOptions.map((option, idx) => {
+                    const isSelected = 
+                      answers[qvId]?.optionId === option.id || 
+                      answers[qvId]?.selectedOption === option.text ||
+                      answers[qvId]?.selectedOption === option.id;
+                    const optionLabel = String.fromCharCode(65 + idx);
 
-                  return (
-                    <div
-                      key={option.id}
-                      onClick={() => handleSelectOption(option.id)}
-                      className={cn(
-                        "flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer",
-                        isSelected
-                          ? "border-indigo-600 bg-indigo-50/50 shadow-2xs text-indigo-950 font-semibold"
-                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 text-slate-700"
-                      )}
-                    >
+                    return (
                       <div
+                        key={option.id}
+                        onClick={() => handleSelectOption(option.id, option.text)}
                         className={cn(
-                          "w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition-colors",
+                          "flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer",
                           isSelected
-                            ? "bg-indigo-600 text-white"
-                            : "bg-slate-100 text-slate-600"
+                            ? "border-indigo-600 bg-indigo-50/50 shadow-2xs text-indigo-950 font-semibold"
+                            : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 text-slate-700"
                         )}
                       >
-                        {optionLabel}
+                        <div
+                          className={cn(
+                            "w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition-colors",
+                            isSelected
+                              ? "bg-indigo-600 text-white"
+                              : "bg-slate-100 text-slate-600"
+                          )}
+                        >
+                          {optionLabel}
+                        </div>
+                        <div className="text-xs leading-relaxed pt-0.5">{option.text}</div>
                       </div>
-                      <div className="text-xs leading-relaxed pt-0.5">{option.text}</div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                ) : (
+                  <div className="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    No options found for this multiple-choice question.
+                  </div>
+                )}
               </div>
             )}
 
@@ -693,11 +923,17 @@ export function ContestWorkspacePage() {
 
                   {consoleTab === "testcases" ? (
                     <div className="space-y-1.5 font-mono text-xs">
-                      {currentQuestion?.questionVersion?.codingProblem?.testCases?.map((tc, idx) => (
-                        <div key={idx} className="p-2 bg-white rounded border border-slate-200 text-slate-700">
-                          <strong>Case {idx + 1}:</strong> Input: <span className="text-indigo-600">{tc.input.replace(/\n/g, " ")}</span> | Expected: <span className="font-bold">{tc.expectedOutput}</span>
+                      {sampleCases.length > 0 ? (
+                        sampleCases.map((tc, idx) => (
+                          <div key={idx} className="p-2.5 bg-white rounded border border-slate-200 text-slate-700">
+                            <strong>Case {idx + 1}:</strong> Input: <span className="text-indigo-600">{(tc.input || "").replace(/\n/g, " ")}</span> | Expected: <span className="font-bold">{tc.expectedOutput}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-slate-400 bg-white rounded border border-slate-200 text-xs">
+                          Sample test cases will be validated upon test execution.
                         </div>
-                      )) || <div className="text-slate-400">Sample cases available upon test execution.</div>}
+                      )}
                     </div>
                   ) : (
                     <div className="p-2.5 rounded bg-slate-950 font-mono text-xs text-slate-200 min-h-[70px]">
@@ -725,8 +961,8 @@ export function ContestWorkspacePage() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={currentQuestionIndex === 0}
-                onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
+                disabled={isFirstQuestionOverall}
+                onClick={handlePrevQuestion}
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous Question
@@ -746,8 +982,8 @@ export function ContestWorkspacePage() {
               <Button
                 variant="primary"
                 size="sm"
-                disabled={currentQuestionIndex === sectionQuestions.length - 1}
-                onClick={() => setCurrentQuestionIndex((prev) => Math.min(sectionQuestions.length - 1, prev + 1))}
+                disabled={isLastQuestionOverall}
+                onClick={handleNextQuestion}
               >
                 Next Question
                 <ChevronRight className="w-4 h-4 ml-1" />
