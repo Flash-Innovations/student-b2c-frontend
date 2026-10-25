@@ -47,7 +47,7 @@ export function ContestLeaderboardPage() {
       setCurrentPage(page);
     } catch (err) {
       console.error("Failed to load leaderboard:", err);
-      setError("Unable to load leaderboard. Please check your connection.");
+      setError(err.message || "Unable to load leaderboard. Please check your connection.");
       setLeaderboardData({ entries: [], totalEntries: 0 });
     } finally {
       setLoading(false);
@@ -233,16 +233,24 @@ export function ContestLeaderboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
-              {filteredEntries.map((entry) => {
-                const isMe = entry.studentId === "STU-2028-0914" || entry.name?.includes("You");
+              {filteredEntries.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                    <p className="text-sm font-semibold text-slate-700">No submissions recorded yet.</p>
+                    <p className="text-xs text-slate-400 mt-1">Candidates will appear here after submitting their contest attempts.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredEntries.map((entry) => {
+                  const isMe = Boolean(user?.id && (entry.studentId === user.id || entry.userId === user.id));
 
-                return (
-                  <tr
-                    key={entry.studentId || entry.rank}
-                    className={`hover:bg-slate-50/80 transition-colors ${
-                      isMe ? "bg-indigo-50/40 font-semibold" : ""
-                    }`}
-                  >
+                  return (
+                    <tr
+                      key={entry.studentId || entry.rank}
+                      className={`hover:bg-slate-50/80 transition-colors ${
+                        isMe ? "bg-indigo-50/40 font-semibold" : ""
+                      }`}
+                    >
                     <td className="py-3 px-4 text-center">
                       {getRankBadge(entry.rank)}
                     </td>
@@ -269,9 +277,10 @@ export function ContestLeaderboardPage() {
                     <td className="py-3 px-4 text-right text-slate-400 font-mono text-[11px]">
                       {entry.submittedAt ? new Date(entry.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
                     </td>
-                  </tr>
-                );
-              })}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

@@ -797,28 +797,36 @@ export function MockInterviewPage() {
         <div className="space-y-4">
           <h3 className="text-base font-bold text-slate-900">Completed Mock Interview Sessions</h3>
           <div className="space-y-3">
-            {pastSessions.map((session, i) => (
-              <Card key={i} className="p-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
-                    <BrainCircuit className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-sm">{session.trackName}</h4>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {session.date} • {session.durationMins || 15} Mins • {session.verdict}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-xl font-black text-emerald-600 font-mono">
-                    {session.overallScore}%
-                  </div>
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Score</div>
-                </div>
+            {pastSessions.length === 0 ? (
+              <Card className="p-8 text-center text-slate-500">
+                <BrainCircuit className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-700">No past mock sessions found</p>
+                <p className="text-xs text-slate-400 mt-1">Start your first AI mock interview from the setup tab to see your scorecard history here.</p>
               </Card>
-            ))}
+            ) : (
+              pastSessions.map((session, i) => (
+                <Card key={i} className="p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
+                      <BrainCircuit className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">{session.trackName}</h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {session.date} • {session.durationMins || 15} Mins • {session.verdict}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-xl font-black text-emerald-600 font-mono">
+                      {session.overallScore}%
+                    </div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400">Score</div>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       )}

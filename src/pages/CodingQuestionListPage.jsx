@@ -54,7 +54,7 @@ export function CodingQuestionListPage() {
     }
     setError(null);
     try {
-      const res = await practiceApi.getQuestions({ type: "CODING" });
+      const res = await practiceApi.getQuestions({ type: "CODING", limit: 1000 });
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)

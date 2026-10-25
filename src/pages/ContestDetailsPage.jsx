@@ -79,10 +79,12 @@ export function ContestDetailsPage() {
   }, [contestId]);
 
   // Check entitlement
-  const isPremiumContest = contest?.tierRequirement === "PREMIUM" || contest?.isPremium;
+  const reqTier = (contest?.tierRequired || contest?.tierRequirement || "FREE").toUpperCase();
+  const isPremiumContest = reqTier === "PREMIUM" || contest?.isPremium;
   const isEntitled = () => {
+    if (reqTier === "FREE") return true;
     if (planTier === "PREMIUM") return true;
-    if (!isPremiumContest && (planTier === "BASIC" || subscription?.regularContestsFree)) {
+    if ((reqTier === "BASIC" || reqTier === "REGULAR") && (planTier === "BASIC" || subscription?.regularContestsFree)) {
       return true;
     }
     const unlocked = subscription?.unlockedContestIds || [];

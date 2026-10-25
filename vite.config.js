@@ -16,9 +16,9 @@ export default defineConfig({
         target: 'http://localhost:5001',
         changeOrigin: true
       },
-      // Practice Platform Backend Proxy
+      // Practice Platform Backend Proxy (Unified Backend on port 5001)
       '/practice-api': {
-        target: 'https://sips-practice-service.onrender.com',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/practice-api/, '')

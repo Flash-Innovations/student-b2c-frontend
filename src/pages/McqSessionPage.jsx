@@ -17,8 +17,8 @@ import katex from "katex";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useScreenContext } from "../context/ScreenContext";
-import { b2cApi } from "../services/b2cApi";
 import { practiceApi } from "../services/practiceApi";
+import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 
@@ -33,7 +33,6 @@ const TOPIC_TYPE_MAP = {
   OOP: { type: "TECHNICAL", category: "OOP" },
   BUSINESS_GK: { type: "NON_TECHNICAL", category: "BUSINESS" }
 };
-
 export function McqSessionPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -49,66 +48,118 @@ export function McqSessionPage() {
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [verifications, setVerifications] = useState({});
   const [showExplanation, setShowExplanation] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(600); // 10 minutes
+  const [attemptId, setAttemptId] = useState(null);
+  const [sessionResult, setSessionResult] = useState(null);
+  const [sessionStartTime, setSessionStartTime] = useState(Date.now());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load real questions from Practice Platform
-  useEffect(() => {
-    let isMounted = true;
-    async function loadQuestions() {
-      setLoading(true);
-      setError(null);
+  // Load real practice questions from backend
+  const loadQuestions = async () => {
+    setLoading(true);
+    setError(null);
+    setSessionCompleted(false);
+    setSessionResult(null);
+    setSelectedAnswers({});
+    setVerifications({});
+    setCurrentIndex(0);
+    setShowExplanation(false);
+    setTimerSeconds(600);
+    const startMs = Date.now();
+    setSessionStartTime(startMs);
+
+    try {
+      const topicConfig = TOPIC_TYPE_MAP[topicId] || { type: "MCQ", category: topicId };
+      const categoryParam = topicConfig.category || topicId;
+
+      let valid = [];
+      // 1. Try PostgreSQL student practice endpoint first
       try {
-        const config = TOPIC_TYPE_MAP[topicId] || { type: "APTITUDE", category: topicId };
+        const res = await practiceApi.getPracticeQuestions({
+          topic: categoryParam,
+          category: categoryParam,
+          type: "MCQ",
+          limit: 20
+        });
+
+        const list = (res && (res.questions || res.data)) || [];
+        if (Array.isArray(list) && list.length > 0) {
+          const formatted = list.map((q) => {
+            let options = q.options || q.optionTexts || [];
+            if (typeof options === "string") {
+              try { options = JSON.parse(options); } catch (e) { options = []; }
+            }
+            const optionTexts = (Array.isArray(options) ? options : []).map(opt =>
+              typeof opt === "object" && opt !== null ? (opt.text || opt.value || '') : String(opt)
+            );
+
+            return {
+              id: q.id,
+              versionId: q.versionId || q.questionVersionId || q.id,
+              question: q.statement || q.title || q.latestTitle || "Practice Question",
+              options: optionTexts,
+              formula: q.formula || (q.constraints?.includes('$') ? q.constraints : null),
+              explanation: q.explanation || null
+            };
+          }).filter(q => q.options && q.options.length > 0);
+
+          if (formatted.length > 0) {
+            valid = formatted;
+          }
+        }
+      } catch (pgErr) {
+        console.warn("Direct practice questions fetch error, attempting catalog fallback:", pgErr);
+      }
+
+      // 2. Fallback: Query practice platform by topic type & category map
+      if (valid.length === 0) {
         let res = null;
         try {
-          res = await practiceApi.getQuestions({ type: config.type, category: config.category, limit: 10 });
+          res = await practiceApi.getQuestions({
+            type: topicConfig.type || "MCQ",
+            category: categoryParam,
+            limit: 20
+          });
         } catch (e) {
-          res = await practiceApi.getQuestions({ type: config.type, limit: 10 });
+          res = await practiceApi.getQuestions({ topic: categoryParam, limit: 20 });
         }
 
-        let list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+        let list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : Array.isArray(res?.questions) ? res.questions : [];
         if (list.length === 0) {
-          const fallbackRes = await practiceApi.getQuestions({ type: "APTITUDE", limit: 10 });
-          list = Array.isArray(fallbackRes) ? fallbackRes : Array.isArray(fallbackRes?.data) ? fallbackRes.data : [];
+          const fallbackRes = await practiceApi.getQuestions({ type: "MCQ", limit: 20 });
+          list = Array.isArray(fallbackRes) ? fallbackRes : Array.isArray(fallbackRes?.data) ? fallbackRes.data : Array.isArray(fallbackRes?.questions) ? fallbackRes.questions : [];
         }
 
-        // Fetch detailed question data (options, correct answer, explanation)
+        // Fetch detailed question data if options are not already embedded
         const detailed = await Promise.all(
-          list.slice(0, 10).map(async (item) => {
+          list.slice(0, 15).map(async (item) => {
             try {
-              const qRes = await practiceApi.getQuestionById(item.id);
-              const q = qRes?.data || qRes || item;
+              let q = item;
+              if (!q.options || q.options.length === 0) {
+                const qRes = await practiceApi.getQuestionById(item.id);
+                q = qRes?.data || qRes || item;
+              }
               const v = (q.versions && q.versions[0]) || {};
 
-              let options = v.options || q.options || [];
+              let options = q.options || q.optionTexts || v.options || [];
               if (typeof options === "string") {
                 try { options = JSON.parse(options); } catch (e) { options = []; }
               }
 
               const optionTexts = (Array.isArray(options) ? options : []).map(opt =>
-                typeof opt === "object" ? opt.text : opt
+                typeof opt === "object" && opt !== null ? (opt.text || opt.value || '') : String(opt)
               );
-
-              let correctIndex = 0;
-              const rawAns = v.correctAnswer?.optionId || v.correctAnswer || q.correctAnswer;
-              if (typeof rawAns === "string") {
-                const found = (Array.isArray(options) ? options : []).findIndex(
-                  opt => opt.id === rawAns || opt.text === rawAns
-                );
-                correctIndex = found >= 0 ? found : Math.max(0, rawAns.toUpperCase().charCodeAt(0) - 65);
-              } else if (typeof rawAns === "number") {
-                correctIndex = rawAns;
-              }
 
               return {
                 id: q.id,
-                question: v.statement || q.statement || q.latestTitle || "Practice Question",
+                versionId: q.versionId || v.id || q.id,
+                question: q.statement || v.statement || q.title || q.latestTitle || "Practice Question",
                 formula: q.formula || v.metadata?.formula || null,
                 options: optionTexts,
-                correctIndex,
-                explanation: v.explanation || q.explanation || "Standard analytical derivation."
+                explanation: q.explanation || v.explanation || null
               };
             } catch (detailErr) {
               return null;
@@ -116,22 +167,38 @@ export function McqSessionPage() {
           })
         );
 
-        if (isMounted) {
-          const valid = detailed.filter(q => q && q.options && q.options.length > 0);
-          setQuestions(valid);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err.message || "Failed to load practice questions");
-        }
-      } finally {
-        if (isMounted) setLoading(false);
+        valid = detailed.filter(q => q && q.options && q.options.length > 0);
       }
-    }
 
+      setQuestions(valid);
+
+      // Initialize unique backend practice attempt session
+      if (valid.length > 0) {
+        try {
+          const attemptRes = await practiceApi.createAttempt({
+            topic: topicName,
+            category: categoryParam,
+            questionIds: valid.map(q => q.id),
+            questionVersionIds: valid.map(q => q.versionId || q.id)
+          });
+          if (attemptRes && (attemptRes.attemptId || attemptRes.data?.id)) {
+            setAttemptId(attemptRes.attemptId || attemptRes.data.id);
+          }
+        } catch (attErr) {
+          console.warn("Could not register backend practice attempt, proceeding with local session:", attErr);
+        }
+      }
+    } catch (err) {
+      console.error("MCQ Load questions error:", err);
+      setError(err.message || "Failed to load practice questions from question bank.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadQuestions();
-    return () => { isMounted = false; };
-  }, [topicId]);
+  }, [topicName, topicId]);
 
   // Quota check
   const mcqCount = subscription?.mcqAttemptedCount || 0;
@@ -166,17 +233,49 @@ export function McqSessionPage() {
         category: topicName,
         options: currentQ.options,
         studentAnswer: selectedAnswers[currentIndex] !== undefined ? currentQ.options[selectedAnswers[currentIndex]] : null,
-        correctOption: showExplanation ? currentQ.options[currentQ.correctIndex] : null
+        correctOption: showExplanation ? verifications[currentIndex]?.correctAnswer : null
       }
     });
-  }, [currentIndex, currentQ, topicName, selectedAnswers, showExplanation, setScreenContext]);
+  }, [currentIndex, currentQ, topicName, selectedAnswers, showExplanation, verifications, setScreenContext]);
 
-  const handleSelectOption = (optionIdx) => {
-    if (sessionCompleted) return;
+  const handleSelectOption = async (optionIdx) => {
+    if (sessionCompleted || !currentQ) return;
     setSelectedAnswers((prev) => ({
       ...prev,
       [currentIndex]: optionIdx
     }));
+
+    // Record response on backend practice attempt
+    if (attemptId) {
+      practiceApi.recordResponse(attemptId, {
+        questionId: currentQ.id,
+        questionVersionId: currentQ.versionId || currentQ.id,
+        answerIndex: optionIdx,
+        selectedOption: currentQ.options[optionIdx]
+      }).catch((e) => console.warn("Record practice response warning:", e));
+    }
+
+    // Verify against PostgreSQL backend
+    try {
+      const selectedText = currentQ.options[optionIdx];
+      const res = await practiceApi.verifyPracticeAnswer({
+        questionId: currentQ.id,
+        selectedOption: selectedText,
+        answerIndex: optionIdx
+      });
+      if (res && res.success) {
+        setVerifications((prev) => ({
+          ...prev,
+          [currentIndex]: {
+            isCorrect: res.isCorrect,
+            correctAnswer: res.correctAnswer,
+            explanation: res.explanation || currentQ.explanation
+          }
+        }));
+      }
+    } catch (err) {
+      console.warn("Verify answer error:", err);
+    }
   };
 
   const handleNext = () => {
@@ -189,23 +288,93 @@ export function McqSessionPage() {
   };
 
   const handleFinishSession = async () => {
+    setIsSubmitting(true);
+    let finalResult = null;
+
+    // Build student responses map
+    const formattedResponses = questions.map((q, idx) => ({
+      questionId: q.id,
+      questionVersionId: q.versionId || q.id,
+      answerIndex: selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null ? selectedAnswers[idx] : null,
+      selectedOption: selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null ? q.options[selectedAnswers[idx]] : null
+    }));
+
+    if (attemptId) {
+      try {
+        const timeSpent = Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000));
+        const submitRes = await practiceApi.submitAttempt(attemptId, {
+          responses: formattedResponses,
+          timeSpentSeconds: timeSpent
+        });
+        if (submitRes && submitRes.data) {
+          finalResult = submitRes.data;
+        }
+      } catch (submitErr) {
+        console.warn("Submit attempt API error, falling back to authoritative local evaluation:", submitErr);
+      }
+    }
+
+    // Authoritative fallback calculation if offline or backend error
+    if (!finalResult) {
+      const attempted = questions.filter((_, idx) => selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null).length;
+      const correct = questions.filter((_, idx) => verifications[idx]?.isCorrect === true).length;
+      const incorrect = Math.max(0, attempted - correct);
+      const unanswered = Math.max(0, questions.length - attempted);
+      const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
+      const timeTakenSec = Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000));
+
+      finalResult = {
+        totalQuestions: questions.length,
+        attemptedQuestions: attempted,
+        correctAnswers: correct,
+        incorrectAnswers: incorrect,
+        unansweredQuestions: unanswered,
+        score: correct,
+        maximumMarks: questions.length,
+        accuracy,
+        accuracyDisplay: attempted === 0 ? "0%" : `${accuracy}%`,
+        timeTakenSeconds: timeTakenSec,
+        timeTakenDisplay: formatTimer(timeTakenSec)
+      };
+    }
+
+    setSessionResult(finalResult);
     setSessionCompleted(true);
-    try {
-      await b2cApi.recordQuestionAttempt({
-        questionType: "MCQ",
-        count: Object.keys(selectedAnswers).length || 1,
-        topicId
-      });
-      await refreshSubscription();
-      showSuccess("MCQ session completed and saved to your placement telemetry!");
-    } catch (err) {
-      console.warn("Attempt record error:", err);
+    setIsSubmitting(false);
+
+    // Only record quota if at least one question was attempted
+    if (finalResult.attemptedQuestions > 0) {
+      try {
+        await b2cApi.recordQuestionAttempt({
+          questionType: "MCQ",
+          count: finalResult.attemptedQuestions,
+          topicId
+        });
+        await refreshSubscription();
+        showSuccess("MCQ session completed and saved to your placement telemetry!");
+      } catch (err) {
+        console.warn("Attempt record error:", err);
+      }
     }
   };
 
+  const handleRetakePractice = () => {
+    setSessionCompleted(false);
+    setSessionResult(null);
+    setSelectedAnswers({});
+    setVerifications({});
+    setCurrentIndex(0);
+    setShowExplanation(false);
+    setTimerSeconds(600);
+    setAttemptId(null);
+    setSessionStartTime(Date.now());
+    loadQuestions();
+  };
+
   const formatTimer = (totalSec) => {
-    const mins = Math.floor(totalSec / 60);
-    const secs = totalSec % 60;
+    const s = Math.max(0, parseInt(totalSec, 10) || 0);
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
@@ -228,6 +397,23 @@ export function McqSessionPage() {
     );
   }
 
+  if (error) {
+    return (
+      <Card className="p-8 text-center max-w-lg mx-auto space-y-4 my-8">
+        <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto" />
+        <h3 className="text-xl font-bold text-slate-900">Questions Unavailable</h3>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          {error}
+        </p>
+        <div className="flex justify-center gap-3 pt-2">
+          <Button variant="primary" size="sm" onClick={() => loadQuestions()}>Try Again</Button>
+          <Link to="/practice">
+            <Button variant="outline" size="sm">Back to Practice Hub</Button>
+          </Link>
+        </div>
+      </Card>
+    );
+  }
   if (isExhausted) {
     return (
       <Card className="p-8 text-center max-w-lg mx-auto space-y-4 my-8">
@@ -270,15 +456,25 @@ export function McqSessionPage() {
     );
   }
 
-  // Calculate score upon completion
-  let correctCount = 0;
-  if (sessionCompleted) {
-    questions.forEach((q, idx) => {
-      if (selectedAnswers[idx] === q.correctIndex) {
-        correctCount += 1;
-      }
-    });
-  }
+  // Scorecard values derived from authoritative sessionResult or safe fallback
+  const displayedScore = sessionResult ? sessionResult.score : 0;
+  const displayedMaxMarks = sessionResult ? (sessionResult.maximumMarks || questions.length) : questions.length;
+  const displayedAttempted = sessionResult
+    ? sessionResult.attemptedQuestions
+    : questions.filter((_, idx) => selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null).length;
+  const displayedCorrect = sessionResult
+    ? sessionResult.correctAnswers
+    : questions.filter((_, idx) => verifications[idx]?.isCorrect === true).length;
+  const displayedIncorrect = sessionResult
+    ? sessionResult.incorrectAnswers
+    : Math.max(0, displayedAttempted - displayedCorrect);
+  const displayedUnanswered = sessionResult
+    ? sessionResult.unansweredQuestions
+    : Math.max(0, questions.length - displayedAttempted);
+  const displayedAccuracy = sessionResult
+    ? (sessionResult.accuracyDisplay || (displayedAttempted === 0 ? "0%" : `${sessionResult.accuracy}%`))
+    : (displayedAttempted === 0 ? "0%" : `${Math.round((displayedCorrect / displayedAttempted) * 100)}%`);
+  const displayedTimeTaken = sessionResult?.timeTakenDisplay || formatTimer(Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000)));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
@@ -315,7 +511,7 @@ export function McqSessionPage() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => openAssistantWithQuery(`Give me a 30-second elimination hack for this question: "${currentQ.question}" without directly stating the final answer.`, "HINT")}
+                  onClick={() => openAssistantWithQuery(`Give me a 30-second elimination hack for this question: "${currentQ?.question}" without directly stating the final answer.`, "HINT")}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200/70 hover:bg-indigo-100 transition-colors cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
@@ -328,10 +524,10 @@ export function McqSessionPage() {
             </div>
 
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
-              {currentQ.question}
+              {currentQ?.question}
             </h2>
 
-            {currentQ.formula && (
+            {currentQ?.formula && (
               <div className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-center overflow-x-auto">
                 <div
                   className="font-mono text-sm text-slate-800 inline-block"
@@ -342,7 +538,7 @@ export function McqSessionPage() {
 
             {/* Options List */}
             <div className="mt-6 space-y-3">
-              {currentQ.options.map((option, optIdx) => {
+              {(currentQ?.options || []).map((option, optIdx) => {
                 const isSelected = selectedAnswers[currentIndex] === optIdx;
                 return (
                   <button
@@ -383,7 +579,12 @@ export function McqSessionPage() {
 
                 {showExplanation && (
                   <div className="mt-3 p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 text-xs text-indigo-950 leading-relaxed">
-                    <strong>Solution: </strong> {currentQ.explanation}
+                    <strong>Solution: </strong> {verifications[currentIndex]?.explanation || "Solution verified via authoritative question bank."}
+                    {verifications[currentIndex]?.correctAnswer && (
+                      <div className="mt-1 font-semibold text-emerald-700">
+                        Correct Answer: {verifications[currentIndex].correctAnswer}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -407,10 +608,13 @@ export function McqSessionPage() {
             <Button
               variant="primary"
               size="sm"
+              disabled={isSubmitting}
               onClick={handleNext}
             >
               {currentIndex < questions.length - 1 ? (
                 <>Next Question <ChevronRight className="w-4 h-4 ml-1" /></>
+              ) : isSubmitting ? (
+                <>Evaluating Answers...</>
               ) : (
                 <>Finish & View Scorecard <CheckCircle2 className="w-4 h-4 ml-1" /></>
               )}
@@ -430,27 +634,58 @@ export function McqSessionPage() {
               {topicName} Practice Result
             </h2>
             <p className="text-xs text-slate-500 mt-1">
-              Your results have been recorded in your batch placement telemetry.
+              {displayedAttempted === 0 
+                ? "Session finished without attempting any questions." 
+                : "Your results have been recorded in your batch placement telemetry."}
             </p>
           </div>
 
+          {/* Primary Metrics Grid: Score, Accuracy, Time Taken */}
           <div className="grid grid-cols-3 gap-4 max-w-md mx-auto pt-2">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="text-[10px] uppercase font-bold text-slate-400">Score</div>
               <div className="text-2xl font-black text-slate-900 font-mono mt-1">
-                {correctCount}/{questions.length}
+                {displayedScore}/{displayedMaxMarks}
               </div>
             </div>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="text-[10px] uppercase font-bold text-slate-400">Accuracy</div>
               <div className="text-2xl font-black text-emerald-600 font-mono mt-1">
-                {questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0}%
+                {displayedAccuracy}
               </div>
             </div>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="text-[10px] uppercase font-bold text-slate-400">Time Taken</div>
               <div className="text-2xl font-black text-indigo-600 font-mono mt-1">
-                {formatTimer(600 - timerSeconds)}
+                {displayedTimeTaken}
+              </div>
+            </div>
+          </div>
+
+          {/* Question Breakdown: Attempted, Correct, Incorrect, Unanswered */}
+          <div className="grid grid-cols-4 gap-3 max-w-lg mx-auto pt-2">
+            <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100/80 text-center">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Attempted</div>
+              <div className="text-lg font-black text-indigo-950 font-mono mt-0.5">
+                {displayedAttempted}
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100/80 text-center">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Correct</div>
+              <div className="text-lg font-black text-emerald-950 font-mono mt-0.5">
+                {displayedCorrect}
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-rose-50/50 border border-rose-100/80 text-center">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Incorrect</div>
+              <div className="text-lg font-black text-rose-950 font-mono mt-0.5">
+                {displayedIncorrect}
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-100/60 border border-slate-200/80 text-center">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Unanswered</div>
+              <div className="text-lg font-black text-slate-800 font-mono mt-0.5">
+                {displayedUnanswered}
               </div>
             </div>
           </div>
@@ -461,12 +696,7 @@ export function McqSessionPage() {
             </Link>
             <Button
               variant="primary"
-              onClick={() => {
-                setSessionCompleted(false);
-                setSelectedAnswers({});
-                setCurrentIndex(0);
-                setTimerSeconds(600);
-              }}
+              onClick={handleRetakePractice}
             >
               <RotateCcw className="w-4 h-4 mr-1.5" /> Retake Practice
             </Button>
