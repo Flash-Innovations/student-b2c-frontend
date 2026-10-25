@@ -55,7 +55,13 @@ export function CodingQuestionListPage() {
     setError(null);
     try {
       const res = await practiceApi.getQuestions({ type: "CODING" });
-      const list = Array.isArray(res) ? res : res?.data || res?.questions || [];
+      const list = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.questions)
+            ? res.questions
+            : [];
       setQuestions(list);
     } catch (err) {
       console.error("Failed to load coding questions:", err);

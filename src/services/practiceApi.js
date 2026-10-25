@@ -1,14 +1,29 @@
 import { getAuthToken } from './b2cApi';
 
-const envUrl = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PRACTICE_API_URL;
-const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
+function resolvePracticeBaseUrl() {
+  const envUrl = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PRACTICE_API_URL;
+  if (!envUrl) return '/practice-api';
+  
+  const trimmed = String(envUrl).trim();
+  // Never connect to offline localhost:5050
+  if (trimmed.includes('localhost:5050')) return '/practice-api';
+  
+  // Relative proxies (Vite / Vercel proxy rewrite)
+  if (trimmed.startsWith('/')) return trimmed;
+  
+  // If protocol was omitted in env variable (e.g. "sips-practice-service.onrender.com"), prepend https://
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+}
 
-const PRACTICE_BASE_URL = (envUrl && !envUrl.includes('localhost:5050'))
-  ? envUrl
-  : (isDev ? '/practice-api' : 'https://sips-practice-service.onrender.com');
+const PRIMARY_BASE_URL = resolvePracticeBaseUrl();
+const FALLBACK_BASE_URL = PRIMARY_BASE_URL.startsWith('http') ? '/practice-api' : 'https://sips-practice-service.onrender.com';
 
-async function practiceRequest(endpoint, options = {}, retries = 1) {
-  const base = PRACTICE_BASE_URL.replace(/\/+$/, '');
+async function practiceRequest(endpoint, options = {}, retries = 1, useFallback = false) {
+  const currentBase = useFallback ? FALLBACK_BASE_URL : PRIMARY_BASE_URL;
+  const base = currentBase.replace(/\/+$/, '');
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${base}${path}`;
   const token = getAuthToken();
@@ -29,12 +44,19 @@ async function practiceRequest(endpoint, options = {}, retries = 1) {
 
   try {
     const response = await fetch(url, { ...options, headers });
-    const contentType = response.headers.get('content-type');
+    const contentType = response.headers.get('content-type') || '';
     let data = null;
-    if (contentType && contentType.includes('application/json')) {
+    if (contentType.includes('application/json')) {
       data = await response.json();
     } else {
-      data = await response.text();
+      const text = await response.text();
+      // If the response is HTML (e.g. SPA index.html fallback), it's not a valid API response
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        const htmlErr = new Error('Practice Platform endpoint returned HTML instead of JSON.');
+        htmlErr.status = 502;
+        throw htmlErr;
+      }
+      data = text;
     }
 
     if (!response.ok) {
@@ -47,13 +69,17 @@ async function practiceRequest(endpoint, options = {}, retries = 1) {
 
     return data;
   } catch (err) {
-    if (err.status) throw err;
+    // If primary failed or returned HTML/502, try fallback (e.g. switch between /practice-api and direct domain)
+    if (!useFallback && FALLBACK_BASE_URL !== PRIMARY_BASE_URL) {
+      return practiceRequest(endpoint, options, retries, true);
+    }
+    if (err.status && err.status !== 502) throw err;
     if (retries > 0) {
       await new Promise((r) => setTimeout(r, 800));
-      return practiceRequest(endpoint, options, retries - 1);
+      return practiceRequest(endpoint, options, retries - 1, useFallback);
     }
-    const networkErr = new Error('Cannot connect to Practice Hub engine.');
-    networkErr.status = 0;
+    const networkErr = new Error(err.message || 'Cannot connect to Practice Hub engine.');
+    networkErr.status = err.status || 0;
     throw networkErr;
   }
 }
