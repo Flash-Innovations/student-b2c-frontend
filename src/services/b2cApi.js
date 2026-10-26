@@ -101,6 +101,10 @@ export const b2cApi = {
   confirmResumeSkills: (confirmedSkills) => b2cRequest('/api/b2c/auth/resume/confirm-skills', { method: 'POST', body: { confirmedSkills } }),
   deleteResume: () => b2cRequest('/api/b2c/auth/resume', { method: 'DELETE' }),
 
+  // Razorpay Standard Web Checkout
+  createStandardOrder: (data) => b2cRequest('/api/create-order', { method: 'POST', body: data }),
+  verifyStandardPayment: (data) => b2cRequest('/api/verify-payment', { method: 'POST', body: data }),
+
   // Subscriptions & Razorpay
   getPlans: () => b2cRequest('/api/b2c/subscriptions/plans', { method: 'GET' }),
   createOrder: (orderPayload) => b2cRequest('/api/b2c/subscriptions/create-order', { method: 'POST', body: orderPayload }),
