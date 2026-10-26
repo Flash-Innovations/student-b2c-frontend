@@ -6,6 +6,7 @@ import { ToastProvider } from './context/ToastContext';
 import { ScreenProvider } from './context/ScreenContext';
 import App from './App';
 import './index.css';
+import 'katex/dist/katex.min.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

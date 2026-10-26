@@ -26,6 +26,7 @@ import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
 import { Modal } from "../components/common/Modal";
+import { MathRenderer } from "../components/common/MathRenderer";
 import { practiceApi } from "../services/practiceApi";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -748,13 +749,13 @@ export function ContestWorkspacePage() {
             <div className="space-y-3">
               {currentQuestion?.title && (
                 <h2 className="text-base font-bold text-slate-900 tracking-tight">
-                  {currentQuestion.title}
+                  <MathRenderer content={currentQuestion.title} inline />
                 </h2>
               )}
 
-              <div className="text-sm font-normal text-slate-800 leading-relaxed whitespace-pre-wrap font-sans bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+              <div className="text-sm font-normal text-slate-800 leading-relaxed font-sans bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                 {currentStatement ? (
-                  currentStatement
+                  <MathRenderer content={currentStatement} />
                 ) : (
                   <div className="flex items-center gap-2 text-rose-600 bg-rose-50 p-3 rounded-lg border border-rose-200">
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -771,8 +772,8 @@ export function ContestWorkspacePage() {
                   <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Constraints & Limits
                   </div>
-                  <div className="text-xs font-mono text-slate-600 whitespace-pre-wrap">
-                    {currentConstraints}
+                  <div className="text-xs font-sans text-slate-700 leading-relaxed">
+                    <MathRenderer content={currentConstraints} />
                   </div>
                 </div>
               )}
@@ -810,7 +811,9 @@ export function ContestWorkspacePage() {
                         >
                           {optionLabel}
                         </div>
-                        <div className="text-xs leading-relaxed pt-0.5">{option.text}</div>
+                        <div className="text-xs leading-relaxed pt-0.5">
+                          <MathRenderer content={option.text} inline />
+                        </div>
                       </div>
                     );
                   })

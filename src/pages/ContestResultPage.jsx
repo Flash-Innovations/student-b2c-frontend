@@ -28,6 +28,7 @@ import {
 import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
+import { MathRenderer } from "../components/common/MathRenderer";
 import { practiceApi } from "../services/practiceApi";
 import { useAuth } from "../context/AuthContext";
 
@@ -368,8 +369,8 @@ export function ContestResultPage() {
                 </div>
 
                 {/* Question Statement */}
-                <div className="text-sm font-normal text-slate-800 leading-relaxed whitespace-pre-wrap">
-                  {q.statement || "No statement text provided for this question."}
+                <div className="text-sm font-normal text-slate-800 leading-relaxed">
+                  <MathRenderer content={q.statement || "No statement text provided for this question."} />
                 </div>
 
                 {/* MCQ Options Rendering */}
@@ -494,7 +495,9 @@ export function ContestResultPage() {
                     {q.codingDetails?.constraints && (
                       <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
                         <span className="font-bold text-slate-700 block">Constraints:</span>
-                        <p className="font-mono text-slate-600 whitespace-pre-wrap">{q.codingDetails.constraints}</p>
+                        <div className="text-slate-700 leading-relaxed">
+                          <MathRenderer content={q.codingDetails.constraints} />
+                        </div>
                       </div>
                     )}
 
@@ -568,9 +571,9 @@ export function ContestResultPage() {
                       <Lightbulb className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
                       Explanation & Solution Approach:
                     </span>
-                    <p className="leading-relaxed whitespace-pre-wrap text-indigo-900/90 font-normal">
-                      {q.explanation}
-                    </p>
+                    <div className="leading-relaxed text-indigo-900/90 font-normal">
+                      <MathRenderer content={q.explanation} />
+                    </div>
                   </div>
                 )}
               </Card>

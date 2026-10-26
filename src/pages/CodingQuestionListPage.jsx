@@ -21,6 +21,7 @@ import {
 import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
+import { MathRenderer } from "../components/common/MathRenderer";
 import { practiceApi } from "../services/practiceApi";
 import { useAuth } from "../context/AuthContext";
 
@@ -397,7 +398,7 @@ export function CodingQuestionListPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                          {displayTitle}
+                          <MathRenderer content={displayTitle} inline />
                         </h4>
                       </div>
 

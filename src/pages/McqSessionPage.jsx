@@ -13,7 +13,7 @@ import {
   ArrowRight,
   Sparkles
 } from "lucide-react";
-import katex from "katex";
+import { MathRenderer } from "../components/common/MathRenderer";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useScreenContext } from "../context/ScreenContext";
@@ -524,15 +524,12 @@ export function McqSessionPage() {
             </div>
 
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
-              {currentQ?.question}
+              <MathRenderer content={currentQ?.question} />
             </h2>
 
             {currentQ?.formula && (
               <div className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-center overflow-x-auto">
-                <div
-                  className="font-mono text-sm text-slate-800 inline-block"
-                  dangerouslySetInnerHTML={renderFormulaHtml(currentQ.formula)}
-                />
+                <MathRenderer content={currentQ.formula.startsWith("$") ? currentQ.formula : `$$${currentQ.formula}$$`} />
               </div>
             )}
 
@@ -558,7 +555,7 @@ export function McqSessionPage() {
                         {String.fromCharCode(65 + optIdx)}
                       </span>
                       <span className={`text-sm ${isSelected ? "font-bold text-indigo-950" : "text-slate-800"}`}>
-                        {option}
+                        <MathRenderer content={option} inline />
                       </span>
                     </div>
                   </button>
@@ -579,9 +576,10 @@ export function McqSessionPage() {
 
                 {showExplanation && (
                   <div className="mt-3 p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 text-xs text-indigo-950 leading-relaxed">
-                    <strong>Solution: </strong> {verifications[currentIndex]?.explanation || "Solution verified via authoritative question bank."}
+                    <div className="font-bold text-indigo-900 mb-1">Solution Explanation:</div>
+                    <MathRenderer content={verifications[currentIndex]?.explanation || "Solution verified via authoritative question bank."} />
                     {verifications[currentIndex]?.correctAnswer && (
-                      <div className="mt-1 font-semibold text-emerald-700">
+                      <div className="mt-2 font-semibold text-emerald-700">
                         Correct Answer: {verifications[currentIndex].correctAnswer}
                       </div>
                     )}

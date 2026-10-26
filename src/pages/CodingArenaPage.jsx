@@ -30,6 +30,7 @@ import { b2cApi } from "../services/b2cApi";
 import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
+import { MathRenderer } from "../components/common/MathRenderer";
 
 const STARTER_CODES = {
   cpp: `// C++ (GCC) Solution
@@ -426,7 +427,7 @@ export function CodingArenaPage() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-                {problem?.title || "Loading Problem..."}
+                <MathRenderer content={problem?.title || "Loading Problem..."} inline />
               </h1>
               {problem && getDifficultyBadge(problem.difficulty)}
               {problem?.category && (
@@ -509,16 +510,16 @@ export function CodingArenaPage() {
                       <RefreshCw className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div className="whitespace-pre-wrap text-slate-800 leading-relaxed font-sans text-xs bg-slate-50/70 p-4 rounded-xl border border-slate-100">
-                    {problem?.statement || "No problem statement provided."}
+                  <div className="text-slate-800 leading-relaxed font-sans text-xs bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+                    <MathRenderer content={problem?.statement || "No problem statement provided."} />
                   </div>
                 </div>
 
                 {problem?.inputFormat && (
                   <div>
                     <h4 className="font-bold text-slate-900 mb-1">Input Format:</h4>
-                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 text-slate-700 font-mono text-[11px] whitespace-pre-wrap">
-                      {problem.inputFormat}
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 text-slate-700 font-sans text-[11px] leading-relaxed">
+                      <MathRenderer content={problem.inputFormat} />
                     </div>
                   </div>
                 )}
@@ -526,8 +527,8 @@ export function CodingArenaPage() {
                 {problem?.outputFormat && (
                   <div>
                     <h4 className="font-bold text-slate-900 mb-1">Output Format:</h4>
-                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 text-slate-700 font-mono text-[11px] whitespace-pre-wrap">
-                      {problem.outputFormat}
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 text-slate-700 font-sans text-[11px] leading-relaxed">
+                      <MathRenderer content={problem.outputFormat} />
                     </div>
                   </div>
                 )}
@@ -535,8 +536,8 @@ export function CodingArenaPage() {
                 {problem?.constraints && (
                   <div>
                     <h4 className="font-bold text-slate-900 mb-1.5">Constraints:</h4>
-                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 font-mono text-[11px] text-slate-700 whitespace-pre-wrap">
-                      {problem.constraints}
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 font-sans text-[11px] text-slate-700 leading-relaxed">
+                      <MathRenderer content={problem.constraints} />
                     </div>
                   </div>
                 )}
@@ -647,6 +648,11 @@ export function CodingArenaPage() {
                       </div>
                       <div><strong>Input:</strong> <span className="text-indigo-600 font-mono break-all whitespace-pre-wrap">{tc.input || "(empty input)"}</span></div>
                       <div><strong>Expected:</strong> <span className="text-emerald-600 font-mono break-all whitespace-pre-wrap">{tc.expectedOutput || "(empty)"}</span></div>
+                      {tc.explanation && (
+                        <div className="pt-1 text-slate-600 font-sans">
+                          <strong>Explanation:</strong> <MathRenderer content={tc.explanation} inline />
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
