@@ -266,6 +266,23 @@ export function StudentProfilePage() {
     };
   }, [student, codingProfiles]);
 
+  const specializationDisplay = useMemo(() => {
+    const degree = student?.degree?.trim() || "";
+    const branch = student?.branch?.trim() || "";
+    if (branch && degree && branch.toLowerCase() !== degree.toLowerCase()) {
+      return `${degree} • ${branch}`;
+    }
+    return branch || degree || "Engineering Candidate";
+  }, [student?.degree, student?.branch]);
+
+  const latestProjectsSyncedAt = useMemo(() => {
+    return (student?.projects || []).reduce((latest, p) => {
+      if (!p.syncedAt) return latest;
+      if (!latest) return p.syncedAt;
+      return new Date(p.syncedAt) > new Date(latest) ? p.syncedAt : latest;
+    }, null);
+  }, [student?.projects]);
+
   // 1. Avatar Upload & Delete Handlers
   const handleImageFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -780,23 +797,6 @@ export function StudentProfilePage() {
       </div>
     );
   }
-
-  const specializationDisplay = useMemo(() => {
-    const degree = student?.degree?.trim() || "";
-    const branch = student?.branch?.trim() || "";
-    if (branch && degree && branch.toLowerCase() !== degree.toLowerCase()) {
-      return `${degree} • ${branch}`;
-    }
-    return branch || degree || "Engineering Candidate";
-  }, [student?.degree, student?.branch]);
-
-  const latestProjectsSyncedAt = useMemo(() => {
-    return (student?.projects || []).reduce((latest, p) => {
-      if (!p.syncedAt) return latest;
-      if (!latest) return p.syncedAt;
-      return new Date(p.syncedAt) > new Date(latest) ? p.syncedAt : latest;
-    }, null);
-  }, [student?.projects]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-16">
