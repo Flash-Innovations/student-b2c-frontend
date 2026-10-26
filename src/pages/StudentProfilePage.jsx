@@ -781,11 +781,25 @@ export function StudentProfilePage() {
     );
   }
 
-  const leetcodeProfile = codingProfiles.find(p => p.platform === "LEETCODE");
-  const codeforcesProfile = codingProfiles.find(p => p.platform === "CODEFORCES");
+  const specializationDisplay = useMemo(() => {
+    const degree = student?.degree?.trim() || "";
+    const branch = student?.branch?.trim() || "";
+    if (branch && degree && branch.toLowerCase() !== degree.toLowerCase()) {
+      return `${degree} • ${branch}`;
+    }
+    return branch || degree || "Engineering Candidate";
+  }, [student?.degree, student?.branch]);
+
+  const latestProjectsSyncedAt = useMemo(() => {
+    return (student?.projects || []).reduce((latest, p) => {
+      if (!p.syncedAt) return latest;
+      if (!latest) return p.syncedAt;
+      return new Date(p.syncedAt) > new Date(latest) ? p.syncedAt : latest;
+    }, null);
+  }, [student?.projects]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-16">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-16">
       {/* Hidden File Inputs */}
       <input
         type="file"
@@ -802,120 +816,110 @@ export function StudentProfilePage() {
         className="hidden"
       />
 
-      {/* 1. Hero Profile Card (No Roll No, No College Name) */}
-      <div className="relative overflow-hidden bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-        <div className="h-28 bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600" />
-        <div className="px-6 pb-6 pt-0">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-14 mb-4">
-            {/* Avatar & Photo Action */}
-            <div className="flex items-end gap-4">
-              <div className="relative group">
+      {/* 1. Header Profile Hero Card */}
+      <Card className="overflow-hidden border-slate-200">
+        <div className="h-28 sm:h-32 bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 relative" />
+        <div className="px-6 pb-6 pt-0 relative">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              {/* Interactive Avatar Container with Hover Overlay */}
+              <div className="-mt-12 sm:-mt-14 relative group shrink-0 z-10">
                 <Avatar
                   src={student?.profileImageUrl || student?.avatar}
                   name={student?.name || "Student"}
                   size="2xl"
                   variant="rounded"
-                  className="w-24 h-24 sm:w-28 sm:h-28 border-4 border-white shadow-md bg-white rounded-2xl"
+                  className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-white shadow-md rounded-2xl sm:rounded-3xl"
                 />
+
+                {/* Upload Overlay / Trigger */}
                 <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingImage}
-                  className="absolute bottom-1 right-1 p-2 rounded-xl bg-slate-900/80 hover:bg-slate-900 text-white backdrop-blur-md shadow-lg transition-transform hover:scale-105 cursor-pointer"
-                  title="Upload / Change Profile Photo"
+                  className={cn(
+                    "absolute inset-0 rounded-2xl sm:rounded-3xl bg-slate-900/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity border-4 border-white",
+                    uploadingImage && "opacity-100"
+                  )}
+                  title="Upload profile photo"
                 >
-                  <Camera className="w-3.5 h-3.5" />
+                  {uploadingImage ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Camera className="w-5 h-5 mb-0.5" />
+                      <span className="text-[10px] font-bold">Change</span>
+                    </>
+                  )}
                 </button>
+
+                {/* Remove button badge if photo is uploaded */}
+                {(student?.profileImageUrl || student?.avatar) && !uploadingImage && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteImage}
+                    className="absolute -top-1 -right-1 p-1 bg-rose-600 text-white rounded-full shadow-md hover:bg-rose-700 transition-colors cursor-pointer border-2 border-white z-20"
+                    title="Remove photo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
               </div>
 
-              <div className="space-y-1 mb-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                    {student?.name || "Student Candidate"}
-                  </h1>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <ShieldCheck className="w-3 h-3" /> Verified Candidate
-                  </span>
+              <div className="pt-1 sm:pt-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-black text-slate-900">{student?.name || "Candidate"}</h1>
+                  <Badge variant="success" size="sm">
+                    Verified Candidate
+                  </Badge>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 font-medium">
-                  <span className="flex items-center gap-1">
-                    <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
-                    {student?.degree || "B.Tech"} • {student?.branch || "Computer Science"}
-                  </span>
-                  <span className="text-slate-300">•</span>
-                  <span className="font-mono text-indigo-600 font-semibold">
-                    Class of {student?.graduationYear || student?.batch || "2028"}
-                  </span>
-                  {student?.cgpa > 0 && (
-                    <>
-                      <span className="text-slate-300">•</span>
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 font-mono font-bold text-slate-700">
-                        CGPA: {Number(student.cgpa).toFixed(2)}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <Mail className="w-3 h-3 text-slate-400" />
-                  <span>{student?.email}</span>
-                  {student?.phone && (
-                    <>
-                      <span className="text-slate-300">•</span>
-                      <Phone className="w-3 h-3 text-slate-400" />
-                      <span>{student.phone}</span>
-                    </>
-                  )}
-                </div>
+                <p className="text-xs font-semibold text-slate-500 mt-1">
+                  {specializationDisplay} • Class of {student?.graduationYear || student?.batch || "2028"}
+                </p>
               </div>
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
-              {student?.profileImageUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDeleteImage}
-                  disabled={uploadingImage}
-                  className="text-slate-500 hover:text-rose-600 hover:border-rose-200 text-xs"
-                >
-                  <Trash2 className="w-3 h-3 mr-1" /> Remove Photo
-                </Button>
-              )}
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                size="sm"
+                size="xs"
+                icon={Edit2}
                 onClick={() => setEditProfileModalOpen(true)}
-                className="text-xs"
+                className="bg-white hover:bg-slate-50 border-slate-200 shadow-xs"
               >
-                <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit Profile
+                Edit Profile
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                size="xs"
+                icon={Lock}
                 onClick={() => setChangePasswordModalOpen(true)}
-                className="text-xs"
+                className="bg-white hover:bg-slate-50 border-slate-200 shadow-xs"
               >
-                <Lock className="w-3.5 h-3.5 mr-1" /> Password
+                Password
               </Button>
             </div>
           </div>
 
-          {/* Target Career Roles Badges */}
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-slate-400" /> Target Roles:
+          {/* Quick Contact & Verification Badges */}
+          <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5 font-medium">
+              <Mail className="w-3.5 h-3.5 text-slate-400" /> {student?.email}
             </span>
-            {(student?.targetRoles || ["Software Development Engineer (SDE-1)"]).map((role, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50/80 text-indigo-700 border border-indigo-100"
-              >
-                {role}
+            {student?.phone && (
+              <span className="flex items-center gap-1.5 font-medium text-slate-600">
+                <Phone className="w-3.5 h-3.5 text-slate-400" /> {student.phone}
               </span>
-            ))}
+            )}
+            <span className="flex items-center gap-1.5 font-semibold text-indigo-700">
+              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" /> CGPA: {student?.cgpa > 0 ? Number(student.cgpa).toFixed(2) : "Not Set"}
+            </span>
+            <span className="flex items-center gap-1.5 font-medium text-slate-600">
+              <Briefcase className="w-3.5 h-3.5 text-slate-400" /> Target Roles: {(student?.targetRoles && student.targetRoles.length > 0) ? student.targetRoles.join(", ") : (student?.targetRole || "Software Development Engineer (SDE-1)")}
+            </span>
           </div>
 
-          {/* Portfolio Completeness Bar */}
+          {/* Portfolio Strength Bar */}
           <div className="mt-4 pt-3 border-t border-slate-100">
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="font-semibold text-slate-700 flex items-center gap-1.5">
@@ -938,654 +942,777 @@ export function StudentProfilePage() {
             )}
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* 2. Public Career Profile Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-6 shadow-sm border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div className="space-y-1.5 max-w-xl">
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-base font-bold tracking-tight">Public Career Portfolio URL</h2>
-            {publicProfileConfig.enabled ? (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                LIVE & PUBLIC
-              </span>
+      {/* 2. 2-Column Grid: Skills Management & Connected Handles */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Verified Technical Skills Card */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-bold text-slate-900 text-base">Verified Technical Skills</h3>
+              <p className="text-xs text-slate-500">Skills are verified from the 30-domain technical catalogue</p>
+            </div>
+            {!isEditingSkills ? (
+              <Button
+                variant="outline"
+                size="xs"
+                icon={Edit2}
+                onClick={() => setIsEditingSkills(true)}
+              >
+                Edit Skills
+              </Button>
             ) : (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-slate-300 border border-slate-600">
-                PRIVATE
-              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => {
+                    setSkillsList(student?.skills || []);
+                    setIsEditingSkills(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="xs"
+                  icon={Check}
+                  disabled={savingSkills}
+                  onClick={handleSaveSkills}
+                >
+                  {savingSkills ? "Saving..." : "Save"}
+                </Button>
+              </div>
             )}
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Share your verified skills, GitHub projects, and competitive coding stats directly with tech recruiters and hiring partners.
-          </p>
-          {publicProfileConfig.username ? (
-            <div className="pt-1 flex items-center gap-2 font-mono text-xs text-indigo-300 bg-black/30 px-3 py-1.5 rounded-xl border border-white/10 max-w-fit">
-              <span>{window.location.origin}/u/{publicProfileConfig.username}</span>
-            </div>
-          ) : (
-            <p className="text-[11px] text-amber-300 font-medium">
-              * Set a custom username to activate your shareable profile link.
-            </p>
-          )}
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {publicProfileConfig.username && (
-            <button
-              onClick={handleCopyPublicLink}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition-colors cursor-pointer"
-            >
-              {copiedPublicUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              {copiedPublicUrl ? "Copied!" : "Copy Link"}
-            </button>
-          )}
-          {publicProfileConfig.username && publicProfileConfig.enabled && (
-            <a
-              href={`/u/${publicProfileConfig.username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition-colors"
-            >
-              <ExternalLink className="w-3.5 h-3.5" /> Preview
-            </a>
-          )}
-          <button
-            onClick={handleOpenPublicProfileModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold shadow-md transition-colors cursor-pointer"
-          >
-            Configure Privacy & Bio
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Main Grid: Skills (Left) + Placement Resume Hub & Handles (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Technical Skills Catalogue */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Verified Technical Skills Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
-                  <Layers className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Verified Technical Skills</h3>
-                  <p className="text-xs text-slate-500">
-                    Standardized taxonomy spanning 30 engineering & analytical domains
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {isEditingSkills ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSkillsList(student?.skills || []);
-                        setIsEditingSkills(false);
-                      }}
-                      className="text-xs"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={handleSaveSkills}
-                      disabled={savingSkills}
-                      className="text-xs"
-                    >
-                      {savingSkills ? "Saving..." : "Save Skills"}
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditingSkills(true)}
-                    className="text-xs"
-                  >
-                    <Edit2 className="w-3 h-3 mr-1" /> Edit Skills
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Skill Selector Component */}
-            {isEditingSkills ? (
+          {isEditingSkills ? (
+            <div className="space-y-4">
               <SkillSelector
                 selectedSkills={skillsList}
                 onChange={setSkillsList}
                 maxSkills={50}
-                placeholder="Search skills by name, framework, acronym (e.g. React, Spring Boot, PyTorch, SQL)..."
+                placeholder="Search catalogue by name, alias or select category (e.g. React, Python, Cloud)..."
+                helperText="Select verified technical skills from the 30-domain catalogue."
               />
-            ) : (
-              <div>
-                {skillsList && skillsList.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {skillsList.map((skillName, idx) => {
-                      const match = findCatalogueSkill(skillName);
-                      const name = match ? match.name : skillName;
-                      const category = match ? match.category.split("&")[0].trim() : "Custom";
-                      return (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/90 text-xs font-semibold text-slate-800 shadow-2xs transition-colors"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                          <span>{name}</span>
-                          <span className="text-[10px] text-slate-400 font-normal">
-                            • {category}
-                          </span>
-                        </span>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl">
-                    <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="text-xs font-medium text-slate-500">
-                      No technical skills added yet.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditingSkills(true)}
-                      className="mt-3 text-xs"
-                    >
-                      + Add Verified Skills
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Featured GitHub Projects Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-slate-100 text-slate-800">
-                  <FolderGit2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Featured Showcase Projects</h3>
-                  <p className="text-xs text-slate-500">
-                    Up to 3 top repositories displayed on your public candidate portfolio
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {student?.projects && student.projects.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSyncProjects}
-                    disabled={syncingProjects}
-                    className="text-xs"
-                    title="Refresh star counts and descriptions from GitHub"
-                  >
-                    <RefreshCw className={cn("w-3 h-3 mr-1", syncingProjects && "animate-spin")} />
-                    {syncingProjects ? "Syncing..." : "Sync Live"}
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenProjectsModal}
-                  className="text-xs"
-                >
-                  <Edit2 className="w-3 h-3 mr-1" /> Select Projects
-                </Button>
-              </div>
             </div>
-
-            {/* Projects List */}
-            {student?.projects && student.projects.length > 0 ? (
-              <div className="space-y-3">
-                {student.projects.map((proj, idx) => (
-                  <div
-                    key={proj.repoId || idx}
-                    className="p-4 rounded-2xl border border-slate-200/80 hover:border-indigo-200 bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
-                          #{idx + 1}
+          ) : (
+            skillsList.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {skillsList.map((skill, index) => {
+                  const catalogueMatch = findCatalogueSkill(skill);
+                  const canonicalName = catalogueMatch ? catalogueMatch.name : skill;
+                  return (
+                    <span
+                      key={index}
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200/80 flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      {canonicalName}
+                      {catalogueMatch && (
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          • {catalogueMatch.category.split("&")[0].trim()}
                         </span>
-                        <a
-                          href={proj.htmlUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-bold text-xs sm:text-sm text-slate-900 hover:text-indigo-600 transition-colors truncate flex items-center gap-1"
-                        >
-                          {proj.name}
-                          <ExternalLink className="w-3 h-3 text-slate-400 inline shrink-0" />
-                        </a>
-                        {proj.primaryLanguage && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white border border-slate-200 text-slate-700">
-                            {proj.primaryLanguage}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 line-clamp-2">
-                        {proj.description || "No repository description provided."}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs font-mono font-medium text-slate-500 shrink-0">
-                      <span className="flex items-center gap-1" title="Stars">
-                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                        {proj.stars || 0}
-                      </span>
-                      <span className="flex items-center gap-1" title="Forks">
-                        <GitFork className="w-3.5 h-3.5 text-slate-400" />
-                        {proj.forks || 0}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             ) : (
-              <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl">
-                <FolderGit2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-xs font-medium text-slate-500">
-                  {student?.github
-                    ? "No featured projects selected yet."
-                    : "Connect your GitHub profile handle to import showcase repositories."}
-                </p>
+              <div className="p-6 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-xs text-slate-500">
+                No verified technical skills added yet. Click "Edit Skills" to choose from the predefined skill catalogue.
+              </div>
+            )
+          )}
+        </Card>
+
+        {/* Connected Accounts Card */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-bold text-slate-900 text-base">Connected Accounts</h3>
+              <p className="text-xs text-slate-500">Developer and professional profiles connected to your account</p>
+            </div>
+            {!isEditingHandles ? (
+              <Button
+                variant="outline"
+                size="xs"
+                icon={Edit2}
+                onClick={() => setIsEditingHandles(true)}
+              >
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenProjectsModal}
-                  className="mt-3 text-xs"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => {
+                    setGithubHandle(student?.github || "");
+                    setLinkedinUrl(student?.linkedin || "");
+                    setIsEditingHandles(false);
+                  }}
                 >
-                  {student?.github ? "+ Choose 3 Showcase Projects" : "Connect GitHub First"}
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="xs"
+                  icon={Check}
+                  disabled={savingHandles}
+                  onClick={handleSaveHandles}
+                >
+                  {savingHandles ? "Saving..." : "Save"}
                 </Button>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Right Column: Handles + Competitive Coding + Placement Resume */}
-        <div className="space-y-6">
-          {/* Social & Professional Handles Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <Globe className="w-4 h-4 text-indigo-600" /> Developer Handles
-              </h3>
+          <div className="space-y-3">
+            {/* GitHub Profile Box */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <GithubIcon className="w-4 h-4 text-indigo-600" /> GitHub Profile
+                </span>
+                <Badge variant={student?.github ? "success" : "neutral"} size="sm">
+                  {student?.github ? "Linked" : "Not Linked"}
+                </Badge>
+              </div>
+
               {isEditingHandles ? (
-                <div className="flex gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setGithubHandle(student?.github || "");
-                      setLinkedinUrl(student?.linkedin || "");
-                      setIsEditingHandles(false);
-                    }}
-                    className="text-xs"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleSaveHandles}
-                    disabled={savingHandles}
-                    className="text-xs"
-                  >
-                    {savingHandles ? "Saving..." : "Save"}
-                  </Button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsEditingHandles(true)}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
-                >
-                  Edit
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              {/* GitHub */}
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <GithubIcon className="w-3.5 h-3.5" /> GitHub
-                  </span>
-                  {student?.github && (
-                    <a
-                      href={`https://github.com/${student.github}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] text-indigo-600 hover:underline flex items-center gap-0.5"
-                    >
-                      Visit <ExternalLink className="w-2.5 h-2.5" />
-                    </a>
-                  )}
-                </div>
-                {isEditingHandles ? (
+                <div className="mt-3">
                   <input
                     type="text"
+                    placeholder="GitHub username (e.g. torvalds)..."
                     value={githubHandle}
                     onChange={(e) => setGithubHandle(e.target.value)}
-                    placeholder="e.g. torvalds or https://github.com/torvalds"
-                    className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white"
                   />
-                ) : (
-                  <p className="text-xs font-mono text-slate-600 truncate">
-                    {student?.github ? `@${student.github}` : "Not linked yet"}
-                  </p>
-                )}
-              </div>
-
-              {/* LinkedIn */}
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <LinkedinIcon className="w-3.5 h-3.5 text-blue-600" /> LinkedIn
-                  </span>
-                  {student?.linkedin && (
-                    <a
-                      href={student.linkedin.startsWith("http") ? student.linkedin : `https://${student.linkedin}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] text-indigo-600 hover:underline flex items-center gap-0.5"
-                    >
-                      Visit <ExternalLink className="w-2.5 h-2.5" />
-                    </a>
+                </div>
+              ) : (
+                <div className="mt-2 text-xs text-slate-600 flex items-center justify-between">
+                  {student?.github ? (
+                    <>
+                      <span className="font-semibold text-slate-900">@{student.github}</span>
+                      <a
+                        href={`https://github.com/${student.github}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold"
+                      >
+                        View Profile <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </>
+                  ) : (
+                    <span className="text-slate-400">No GitHub handle linked yet</span>
                   )}
                 </div>
-                {isEditingHandles ? (
+              )}
+            </div>
+
+            {/* LinkedIn Profile Box */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <LinkedinIcon className="w-4 h-4 text-blue-600" /> LinkedIn Profile
+                </span>
+                <Badge variant={student?.linkedin ? "success" : "neutral"} size="sm">
+                  {student?.linkedin ? "Linked" : "Not Linked"}
+                </Badge>
+              </div>
+
+              {isEditingHandles ? (
+                <div className="mt-3">
                   <input
                     type="text"
+                    placeholder="LinkedIn profile URL or username..."
                     value={linkedinUrl}
                     onChange={(e) => setLinkedinUrl(e.target.value)}
-                    placeholder="e.g. linkedin.com/in/username"
-                    className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white"
                   />
-                ) : (
-                  <p className="text-xs text-slate-600 truncate">
-                    {student?.linkedin || "Not linked yet"}
-                  </p>
+                </div>
+              ) : (
+                <div className="mt-2 text-xs text-slate-600 flex items-center justify-between">
+                  {student?.linkedin ? (
+                    <>
+                      <span className="font-semibold text-slate-900 truncate max-w-[200px]">
+                        {student.linkedin}
+                      </span>
+                      <a
+                        href={student.linkedin.startsWith("http") ? student.linkedin : `https://${student.linkedin}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold shrink-0"
+                      >
+                        View Profile <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </>
+                  ) : (
+                    <span className="text-slate-400">No LinkedIn profile linked yet</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* 3. Public Career Profile Management Card */}
+      <Card>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <Globe className="w-5 h-5 text-indigo-600" /> Public Career Profile
+              </h3>
+              <Badge
+                variant={publicProfileConfig.enabled ? "success" : "neutral"}
+                size="sm"
+              >
+                {publicProfileConfig.enabled ? "Publicly Accessible" : "Disabled / Private"}
+              </Badge>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Create a shareable, recruiter-facing portfolio link to showcase your verified skills, projects, and resume
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="xs"
+              icon={Edit2}
+              onClick={handleOpenPublicProfileModal}
+            >
+              Configure Profile
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold text-slate-700 block">Your Shareable Public Link:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <code className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-mono text-indigo-700 font-semibold select-all">
+                  {publicProfileConfig.username 
+                    ? `${window.location.origin}/u/${publicProfileConfig.username}`
+                    : `${window.location.origin}/u/<your-username>`
+                  }
+                </code>
+                {publicProfileConfig.username && (
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    icon={copiedPublicUrl ? Check : Copy}
+                    onClick={handleCopyPublicLink}
+                    className="text-slate-600 hover:text-indigo-600"
+                  >
+                    {copiedPublicUrl ? "Copied" : "Copy Link"}
+                  </Button>
+                )}
+                {publicProfileConfig.enabled && publicProfileConfig.username && (
+                  <a
+                    href={`/u/${publicProfileConfig.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition-colors"
+                  >
+                    <span>View Public Page</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Competitive Coding Profiles Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <Code className="w-4 h-4 text-indigo-600" /> Competitive Coding
-              </h3>
-              <span className="text-[11px] text-slate-400 font-medium">LeetCode & Codeforces</span>
-            </div>
-
-            <div className="space-y-3">
-              {/* LeetCode Card */}
-              {leetcodeProfile ? (
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-md bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center">
-                        LC
-                      </span>
-                      <div>
-                        <a
-                          href={leetcodeProfile.profileUrl || `https://leetcode.com/u/${leetcodeProfile.username}/`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-bold text-xs text-slate-900 hover:text-indigo-600 flex items-center gap-1"
-                        >
-                          {leetcodeProfile.username}
-                          <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
-                        </a>
-                        <p className="text-[10px] text-slate-400">
-                          Synced {formatTimeAgo(leetcodeProfile.lastSyncedAt)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleToggleCodingProfileVisibility("LEETCODE", leetcodeProfile.showOnPublicProfile)}
-                        className="p-1 text-slate-400 hover:text-slate-600"
-                        title={leetcodeProfile.showOnPublicProfile !== false ? "Visible on public profile" : "Hidden from public profile"}
-                      >
-                        {leetcodeProfile.showOnPublicProfile !== false ? <Eye className="w-3.5 h-3.5 text-indigo-600" /> : <EyeOff className="w-3.5 h-3.5" />}
-                      </button>
-                      <button
-                        onClick={() => handleSyncCodingProfile("LEETCODE")}
-                        disabled={syncingPlatform === "LEETCODE"}
-                        className="p-1 text-slate-400 hover:text-slate-600"
-                        title="Sync live stats"
-                      >
-                        <RefreshCw className={cn("w-3.5 h-3.5", syncingPlatform === "LEETCODE" && "animate-spin")} />
-                      </button>
-                      <button
-                        onClick={() => handleDisconnectCodingProfile("LEETCODE")}
-                        className="p-1 text-slate-400 hover:text-rose-600"
-                        title="Disconnect"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* LeetCode Stats Breakdown */}
-                  {leetcodeProfile.stats ? (
-                    <div className="space-y-2 pt-1 border-t border-slate-200/60">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-700">Problems Solved</span>
-                        <span className="font-mono font-bold text-slate-900">
-                          {leetcodeProfile.stats.totalSolved || 0}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-1.5 text-center font-mono text-[10px]">
-                        <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-100">
-                          <p className="text-[9px] text-emerald-600 font-sans uppercase">Easy</p>
-                          <p className="font-bold">{leetcodeProfile.stats.easySolved || 0}</p>
-                        </div>
-                        <div className="p-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-100">
-                          <p className="text-[9px] text-amber-600 font-sans uppercase">Medium</p>
-                          <p className="font-bold">{leetcodeProfile.stats.mediumSolved || 0}</p>
-                        </div>
-                        <div className="p-1.5 rounded-lg bg-rose-50 text-rose-800 border border-rose-100">
-                          <p className="text-[9px] text-rose-600 font-sans uppercase">Hard</p>
-                          <p className="font-bold">{leetcodeProfile.stats.hardSolved || 0}</p>
-                        </div>
-                      </div>
-                      {leetcodeProfile.stats.ranking && (
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                          <span>Global Ranking</span>
-                          <span className="font-mono font-semibold text-slate-700">
-                            #{Number(leetcodeProfile.stats.ranking).toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleOpenConnectCodingModal("LEETCODE")}
-                  className="w-full p-3 rounded-2xl border border-dashed border-slate-200 hover:border-amber-400 bg-amber-50/30 hover:bg-amber-50/60 text-xs font-semibold text-amber-900 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 text-amber-600" /> Connect LeetCode Profile
-                </button>
-              )}
-
-              {/* Codeforces Card */}
-              {codeforcesProfile ? (
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-md bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center">
-                        CF
-                      </span>
-                      <div>
-                        <a
-                          href={codeforcesProfile.profileUrl || `https://codeforces.com/profile/${codeforcesProfile.username}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-bold text-xs text-slate-900 hover:text-indigo-600 flex items-center gap-1"
-                        >
-                          {codeforcesProfile.username}
-                          <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
-                        </a>
-                        <p className="text-[10px] text-slate-400">
-                          Synced {formatTimeAgo(codeforcesProfile.lastSyncedAt)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleToggleCodingProfileVisibility("CODEFORCES", codeforcesProfile.showOnPublicProfile)}
-                        className="p-1 text-slate-400 hover:text-slate-600"
-                        title={codeforcesProfile.showOnPublicProfile !== false ? "Visible on public profile" : "Hidden from public profile"}
-                      >
-                        {codeforcesProfile.showOnPublicProfile !== false ? <Eye className="w-3.5 h-3.5 text-indigo-600" /> : <EyeOff className="w-3.5 h-3.5" />}
-                      </button>
-                      <button
-                        onClick={() => handleSyncCodingProfile("CODEFORCES")}
-                        disabled={syncingPlatform === "CODEFORCES"}
-                        className="p-1 text-slate-400 hover:text-slate-600"
-                        title="Sync live stats"
-                      >
-                        <RefreshCw className={cn("w-3.5 h-3.5", syncingPlatform === "CODEFORCES" && "animate-spin")} />
-                      </button>
-                      <button
-                        onClick={() => handleDisconnectCodingProfile("CODEFORCES")}
-                        className="p-1 text-slate-400 hover:text-rose-600"
-                        title="Disconnect"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {codeforcesProfile.stats ? (
-                    <div className="space-y-1.5 pt-1 border-t border-slate-200/60 font-mono text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-sans text-xs">Rating</span>
-                        <span className="font-bold text-indigo-600">
-                          {codeforcesProfile.stats.rating || 0}{" "}
-                          <span className="text-[10px] text-slate-400 font-normal">
-                            (max: {codeforcesProfile.stats.maxRating || 0})
-                          </span>
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-sans text-xs">Rank</span>
-                        <span className="font-semibold text-slate-700 capitalize">
-                          {codeforcesProfile.stats.rank || "Unrated"}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleOpenConnectCodingModal("CODEFORCES")}
-                  className="w-full p-3 rounded-2xl border border-dashed border-slate-200 hover:border-blue-400 bg-blue-50/30 hover:bg-blue-50/60 text-xs font-semibold text-blue-900 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 text-blue-600" /> Connect Codeforces Profile
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Placement Resume Hub Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-indigo-600" /> Placement Resume Hub
-              </h3>
-              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                ATS Engine
+            {/* Visibility Settings Summary */}
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-600">
+              <span className="font-semibold text-slate-700">Visibility:</span>
+              <span className={`px-2 py-0.5 rounded-md border ${publicProfileConfig.showSkills !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                Skills: {publicProfileConfig.showSkills !== false ? 'On' : 'Off'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-md border ${publicProfileConfig.showProjects !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                Projects: {publicProfileConfig.showProjects !== false ? 'On' : 'Off'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-md border ${publicProfileConfig.showResume ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                Resume: {publicProfileConfig.showResume ? 'On' : 'Off'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-md border ${publicProfileConfig.showGithub !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                GitHub: {publicProfileConfig.showGithub !== false ? 'On' : 'Off'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-md border ${publicProfileConfig.showLinkedIn !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                LinkedIn: {publicProfileConfig.showLinkedIn !== false ? 'On' : 'Off'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-md border ${publicProfileConfig.showCodingProfiles !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                Coding: {publicProfileConfig.showCodingProfiles !== false ? 'On' : 'Off'}
               </span>
             </div>
+          </div>
+          {!publicProfileConfig.enabled && (
+            <p className="text-[11px] text-amber-700 mt-2.5 flex items-center gap-1 font-medium">
+              <Lock className="w-3 h-3" /> Profile is currently disabled. External visitors will receive a 404 response until you enable it.
+            </p>
+          )}
+        </div>
+      </Card>
 
-            {student?.resumeUrl ? (
-              <div className="space-y-3">
-                <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-white text-indigo-600 shadow-2xs">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">Resume.pdf</p>
-                      <p className="text-[10px] text-slate-500">Verified & ATS Ready</p>
-                    </div>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full">
-                    <CheckCircle className="w-3 h-3" /> Active
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (student.resumeUrl.startsWith("data:")) {
-                        const win = window.open();
-                        win.document.write(`<iframe src="${student.resumeUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                      } else {
-                        window.open(student.resumeUrl, "_blank");
-                      }
-                    }}
-                    className="text-xs"
-                  >
-                    <ExternalLink className="w-3 h-3 mr-1" /> View PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => resumeFileInputRef.current?.click()}
-                    disabled={uploadingResume}
-                    className="text-xs"
-                  >
-                    <Upload className="w-3 h-3 mr-1" /> Replace
-                  </Button>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDeleteResume}
-                  className="w-full text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-100"
-                >
-                  <Trash2 className="w-3 h-3 mr-1" /> Delete Resume
-                </Button>
-              </div>
-            ) : (
-              <div
-                onClick={() => resumeFileInputRef.current?.click()}
-                className="p-6 border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl text-center space-y-2 cursor-pointer transition-colors bg-slate-50/50 hover:bg-indigo-50/30"
+      {/* 4. Featured GitHub Projects Section */}
+      <Card>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <FolderGit2 className="w-5 h-5 text-indigo-600" /> Featured GitHub Projects
+              </h3>
+              <Badge variant={student?.projects && student.projects.length > 0 ? "primary" : "neutral"} size="sm">
+                {student?.projects?.length || 0} / 3 Selected
+              </Badge>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500">
+              <span>Showcase your top 3 public repositories to tech recruiters and hiring managers</span>
+              {latestProjectsSyncedAt && (
+                <span className="inline-flex items-center gap-1 font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                  <RefreshCw className="w-3 h-3 text-slate-400" />
+                  Last synced: {formatTimeAgo(latestProjectsSyncedAt)}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {student?.projects && student.projects.length > 0 && (
+              <Button
+                variant="outline"
+                size="xs"
+                icon={RefreshCw}
+                onClick={handleSyncProjects}
+                disabled={syncingProjects}
+                className={syncingProjects ? "opacity-75 cursor-not-allowed" : ""}
               >
-                <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
-                  <Upload className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800">
-                    {uploadingResume ? "Uploading & Analyzing..." : "Click to upload candidate resume"}
-                  </p>
-                  <p className="text-[11px] text-slate-400">PDF documents only (max 8MB)</p>
-                </div>
-              </div>
+                {syncingProjects ? (
+                  <span className="flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                    Syncing...
+                  </span>
+                ) : (
+                  "Sync GitHub Projects"
+                )}
+              </Button>
+            )}
+            {student?.github ? (
+              <Button
+                variant="outline"
+                size="xs"
+                icon={Edit2}
+                onClick={handleOpenProjectsModal}
+              >
+                {student?.projects && student.projects.length > 0 ? "Manage Projects" : "Select Projects"}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="xs"
+                icon={GitBranch}
+                onClick={() => setIsEditingHandles(true)}
+              >
+                Connect GitHub First
+              </Button>
             )}
           </div>
         </div>
-      </div>
+
+        {!student?.github ? (
+          <div className="p-8 text-center rounded-2xl bg-slate-50/70 border border-dashed border-slate-200">
+            <GitBranch className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-700">GitHub Profile Not Linked</p>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto mb-4">
+              Connect your GitHub account handle above to automatically fetch and showcase your best public repositories.
+            </p>
+            <Button
+              variant="primary"
+              size="xs"
+              icon={Plus}
+              onClick={() => setIsEditingHandles(true)}
+            >
+              Add GitHub Handle
+            </Button>
+          </div>
+        ) : !student?.projects || student.projects.length === 0 ? (
+          <div className="p-8 text-center rounded-2xl bg-indigo-50/30 border border-dashed border-indigo-200/70">
+            <FolderGit2 className="w-8 h-8 text-indigo-500 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-800">No Featured Projects Selected Yet</p>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto mb-4">
+              Select up to 3 of your best public repositories from <span className="font-semibold text-indigo-600">@{student.github}</span> to highlight on your placement portfolio.
+            </p>
+            <Button
+              variant="primary"
+              size="xs"
+              icon={Plus}
+              onClick={handleOpenProjectsModal}
+            >
+              Select Featured Projects
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {student.projects.map((proj, idx) => (
+              <div
+                key={proj.repoId || idx}
+                className="relative flex flex-col justify-between p-4 rounded-xl border border-slate-200/80 bg-white hover:border-indigo-300 hover:shadow-sm transition-all group"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px]">
+                        #{idx + 1}
+                      </span>
+                      <h4 className="font-bold text-slate-900 text-sm truncate" title={proj.name}>
+                        {proj.name}
+                      </h4>
+                    </div>
+                    <a
+                      href={proj.htmlUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-colors shrink-0"
+                      title="View on GitHub"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+
+                  <p className="text-xs text-slate-600 line-clamp-2 mb-3 min-h-[32px]">
+                    {proj.description || "No description provided for this repository."}
+                  </p>
+
+                  {proj.topics && proj.topics.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {proj.topics.slice(0, 3).map((topic, tIdx) => (
+                        <span
+                          key={tIdx}
+                          className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-medium text-slate-600"
+                        >
+                          #{topic}
+                        </span>
+                      ))}
+                      {proj.topics.length > 3 && (
+                        <span className="text-[10px] text-slate-400 self-center">
+                          +{proj.topics.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 text-xs text-slate-500 mt-2">
+                  <div className="flex items-center gap-1.5">
+                    {proj.primaryLanguage && (
+                      <span className="flex items-center gap-1 font-medium text-slate-700 text-[11px]">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />
+                        {proj.primaryLanguage}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px]">
+                    <span className="flex items-center gap-1" title="Stars">
+                      <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                      {proj.stars || 0}
+                    </span>
+                    <span className="flex items-center gap-1" title="Forks">
+                      <GitFork className="w-3 h-3 text-slate-400" />
+                      {proj.forks || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* 5. Coding & Competitive Programming Profiles Section */}
+      <Card>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-indigo-600" /> Coding & Competitive Programming Profiles
+              </h3>
+              <Badge variant={codingProfiles.length > 0 ? "primary" : "neutral"} size="sm">
+                {codingProfiles.length} Connected
+              </Badge>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Connect your LeetCode and Codeforces profiles to showcase problem-solving metrics and contest ratings
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {['LEETCODE', 'CODEFORCES'].map((platformKey) => {
+            const isLeetCode = platformKey === 'LEETCODE';
+            const connected = codingProfiles.find(p => p.platform === platformKey);
+            const isSyncing = syncingPlatform === platformKey;
+            const stats = connected?.stats || {};
+
+            return (
+              <div
+                key={platformKey}
+                className="p-5 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex flex-col justify-between shadow-xs"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl border ${
+                        isLeetCode 
+                          ? 'bg-amber-50 text-amber-600 border-amber-200' 
+                          : 'bg-blue-50 text-blue-600 border-blue-200'
+                      }`}>
+                        <Code className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-slate-900 text-sm">
+                            {isLeetCode ? 'LeetCode' : 'Codeforces'}
+                          </h4>
+                          <Badge variant={connected ? "success" : "neutral"} size="xs">
+                            {connected ? "Connected" : "Not Linked"}
+                          </Badge>
+                        </div>
+                        {connected ? (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-xs font-mono text-indigo-600 font-semibold">@{connected.username}</span>
+                            {connected.profileUrl && (
+                              <a
+                                href={connected.profileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-slate-400 hover:text-indigo-600 transition-colors"
+                                title="Open Profile"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">Public statistics & ratings</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {connected && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          icon={RefreshCw}
+                          onClick={() => handleSyncCodingProfile(platformKey)}
+                          disabled={isSyncing}
+                          title="Sync Now"
+                          className={isSyncing ? "animate-spin text-indigo-600" : "text-slate-500 hover:text-indigo-600"}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          icon={Trash2}
+                          onClick={() => handleDisconnectCodingProfile(platformKey)}
+                          title="Disconnect"
+                          className="text-slate-400 hover:text-rose-600"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {connected ? (
+                    <div className="space-y-3 mt-4">
+                      {isLeetCode ? (
+                        <>
+                          {/* LeetCode Stats Grid */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                              <span className="text-[10px] text-slate-500 font-medium block">Problems Solved</span>
+                              <span className="font-extrabold text-slate-900 text-base">
+                                {stats.totalSolved ?? stats.problemsSolved ?? 0}
+                              </span>
+                            </div>
+                            {(stats.ranking || stats.globalRank) ? (
+                              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                                <span className="text-[10px] text-slate-500 font-medium block">Global Rank</span>
+                                <span className="font-bold text-slate-900 text-sm">
+                                  #{Number(stats.ranking || stats.globalRank).toLocaleString()}
+                                </span>
+                              </div>
+                            ) : null}
+                            {stats.currentRating ? (
+                              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                                <span className="text-[10px] text-slate-500 font-medium block">Contest Rating</span>
+                                <span className="font-extrabold text-indigo-600 text-base">{stats.currentRating}</span>
+                              </div>
+                            ) : null}
+                            {stats.rankingTier && (
+                              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                                <span className="text-[10px] text-slate-500 font-medium block">Badge Tier</span>
+                                <span className="font-bold text-amber-700 text-sm">{stats.rankingTier}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Difficulty Breakdown for LeetCode */}
+                          <div className="flex items-center gap-1.5 pt-1 text-[11px]">
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium border border-emerald-100">
+                              Easy: {stats.easySolved ?? stats.difficultyBreakdown?.easy ?? 0}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-medium border border-amber-100">
+                              Medium: {stats.mediumSolved ?? stats.difficultyBreakdown?.medium ?? 0}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 font-medium border border-rose-100">
+                              Hard: {stats.hardSolved ?? stats.difficultyBreakdown?.hard ?? 0}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        /* Codeforces Stats Grid */
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-medium block">Current Rating</span>
+                            <span className="font-extrabold text-indigo-600 text-base">
+                              {stats.rating || stats.currentRating || 0}
+                            </span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-medium block">Max Rating</span>
+                            <span className="font-bold text-slate-700 text-sm">{stats.maxRating || 0}</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] text-slate-500 font-medium block">Current Rank</span>
+                            <span className="font-bold text-blue-700 text-sm capitalize">{stats.rank || "Unrated"}</span>
+                          </div>
+                          {stats.maxRank && (
+                            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                              <span className="text-[10px] text-slate-500 font-medium block">Max Rank</span>
+                              <span className="font-bold text-slate-700 text-sm capitalize">{stats.maxRank}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Sync notice / Last synced */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                        <span>
+                          {connected.lastSyncedAt ? `Synced ${formatTimeAgo(connected.lastSyncedAt)}` : 'Recently connected'}
+                        </span>
+                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={connected.showOnPublicProfile !== false}
+                            onChange={() => handleToggleCodingProfileVisibility(platformKey, connected.showOnPublicProfile !== false)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          <span className="text-slate-600 font-medium">Show on Public Profile</span>
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-xs text-slate-500">Not connected to your profile</span>
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        icon={Plus}
+                        onClick={() => handleOpenConnectCodingModal(platformKey)}
+                      >
+                        Connect {isLeetCode ? 'LeetCode' : 'Codeforces'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* 6. Placement Resume Hub Card */}
+      <Card>
+        <CardHeader
+          title="Placement Resume"
+          subtitle="Upload your verified PDF resume for one-click job applications and recruiter reviews"
+          action={
+            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              ATS Engine Verified
+            </span>
+          }
+        />
+
+        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 text-sm">
+                {student?.resumeUrl ? (student.resumeUrl.split("/").pop().replace(/^[\d-]+_/, "") || "Resume.pdf") : "No Resume Uploaded"}
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {student?.resumeUrl ? "Stored on Cloudinary CDN • Ready for recruiter reviews" : "Upload PDF format (Max 8MB)"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {student?.resumeUrl ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  icon={ExternalLink}
+                  onClick={() => {
+                    if (student.resumeUrl.startsWith("data:")) {
+                      const win = window.open();
+                      win.document.write(`<iframe src="${student.resumeUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                    } else {
+                      window.open(student.resumeUrl, "_blank");
+                    }
+                  }}
+                  className="text-xs"
+                >
+                  View Resume
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  icon={Upload}
+                  onClick={() => resumeFileInputRef.current?.click()}
+                  disabled={uploadingResume}
+                  className="text-xs"
+                >
+                  Replace PDF Resume
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  icon={Trash2}
+                  onClick={handleDeleteResume}
+                  className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-100"
+                >
+                  Remove Resume
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="primary"
+                size="xs"
+                icon={Upload}
+                onClick={() => resumeFileInputRef.current?.click()}
+                disabled={uploadingResume}
+              >
+                {uploadingResume ? "Uploading..." : "Upload PDF Resume"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+
 
       {/* MODAL 1: Edit Profile (No Roll No, No College Name) */}
       <Modal

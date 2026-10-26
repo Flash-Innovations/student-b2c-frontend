@@ -148,7 +148,9 @@ export function PublicProfilePage() {
                 </div>
                 <p className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
                   <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
-                  {profile.degree || "B.Tech"} • {profile.branch || "Engineering"}
+                  {profile.branch && profile.degree && profile.branch.toLowerCase() !== profile.degree.toLowerCase()
+                    ? `${profile.degree} • ${profile.branch}`
+                    : (profile.branch || profile.degree || "Engineering Candidate")}
                   {profile.graduationYear && (
                     <span className="text-indigo-600 font-mono font-semibold ml-1">
                       (Class of {profile.graduationYear})
