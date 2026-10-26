@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Users2
+  Users2,
+  User
 } from "lucide-react";
 import { Avatar } from "../common/Avatar";
 import { useAuth } from "../../context/AuthContext";
@@ -33,6 +34,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/interview", label: "AI Mock Interview", icon: Mic },
     { to: "/resume", label: "ATS Resume Optimizer", icon: FileText },
     { to: "/outcomes", label: "Verified Outcomes", icon: Award },
+    { to: "/profile", label: "Candidate Profile", icon: User },
     { to: "/pricing", label: "Pricing & Plans", icon: Crown }
   ];
 
@@ -162,10 +164,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
         {/* Student User Footer */}
         <div className="p-3 border-t border-slate-100 bg-slate-50/50">
           <div
+            onClick={() => navigate("/profile")}
             className={cn(
-              "flex items-center gap-3 p-2 rounded-xl transition-all",
+              "flex items-center gap-3 p-2 rounded-xl transition-all cursor-pointer",
               !isCollapsed && "hover:bg-white"
             )}
+            title="View candidate profile"
           >
             <Avatar
               src={user?.avatar || user?.profileImageUrl}

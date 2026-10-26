@@ -116,6 +116,14 @@ export function TopNavbar({ onMenuClick }) {
 
               <div className="py-1">
                 <Link
+                  to="/profile"
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  Candidate Profile
+                </Link>
+                <Link
                   to="/dashboard"
                   onClick={() => setProfileOpen(false)}
                   className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 font-medium"

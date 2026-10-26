@@ -69,12 +69,37 @@ async function b2cRequest(endpoint, options = {}) {
 }
 
 export const b2cApi = {
-  // Auth
+  // Auth & Student Portfolio
   register: (userData) => b2cRequest('/api/b2c/auth/register', { method: 'POST', body: userData }),
   login: (credentials) => b2cRequest('/api/b2c/auth/login', { method: 'POST', body: credentials }),
   getProfile: () => b2cRequest('/api/b2c/auth/me', { method: 'GET' }),
   updateProfile: (profileData) => b2cRequest('/api/b2c/auth/profile', { method: 'PUT', body: profileData }),
   changePassword: (data) => b2cRequest('/api/b2c/auth/change-password', { method: 'POST', body: data }),
+  uploadProfileImage: (formDataOrBody) => b2cRequest('/api/b2c/auth/profile-image', { method: 'POST', body: formDataOrBody }),
+  deleteProfileImage: () => b2cRequest('/api/b2c/auth/profile-image', { method: 'DELETE' }),
+
+  // Public Career Profile
+  getPublicProfileConfig: () => b2cRequest('/api/b2c/auth/public-profile', { method: 'GET' }),
+  updatePublicProfileConfig: (data) => b2cRequest('/api/b2c/auth/public-profile', { method: 'PUT', body: data }),
+  getPublicStudentProfile: (username) => b2cRequest(`/api/b2c/auth/public/${encodeURIComponent(username)}`, { method: 'GET' }),
+
+  // Featured GitHub Projects
+  fetchGithubRepositories: (username) => b2cRequest(`/api/b2c/auth/github/repos${username ? `?username=${encodeURIComponent(username)}` : ''}`, { method: 'GET' }),
+  getProjects: () => b2cRequest('/api/b2c/auth/projects', { method: 'GET' }),
+  saveProjects: (data) => b2cRequest('/api/b2c/auth/projects', { method: 'PUT', body: data }),
+  syncProjects: () => b2cRequest('/api/b2c/auth/projects/sync', { method: 'POST' }),
+
+  // Competitive Coding Profiles
+  getCodingProfiles: () => b2cRequest('/api/b2c/auth/coding-profiles', { method: 'GET' }),
+  connectCodingProfile: (data) => b2cRequest('/api/b2c/auth/coding-profiles', { method: 'POST', body: data }),
+  syncCodingProfile: (platform) => b2cRequest(`/api/b2c/auth/coding-profiles/${encodeURIComponent(platform)}/sync`, { method: 'POST' }),
+  updateCodingProfileVisibility: (platform, showOnPublicProfile) => b2cRequest(`/api/b2c/auth/coding-profiles/${encodeURIComponent(platform)}/visibility`, { method: 'PATCH', body: { showOnPublicProfile } }),
+  disconnectCodingProfile: (platform) => b2cRequest(`/api/b2c/auth/coding-profiles/${encodeURIComponent(platform)}`, { method: 'DELETE' }),
+
+  // Placement Resume Hub
+  uploadResume: (formDataOrBody) => b2cRequest('/api/b2c/auth/resume', { method: 'POST', body: formDataOrBody }),
+  confirmResumeSkills: (confirmedSkills) => b2cRequest('/api/b2c/auth/resume/confirm-skills', { method: 'POST', body: { confirmedSkills } }),
+  deleteResume: () => b2cRequest('/api/b2c/auth/resume', { method: 'DELETE' }),
 
   // Subscriptions & Razorpay
   getPlans: () => b2cRequest('/api/b2c/subscriptions/plans', { method: 'GET' }),

@@ -30,6 +30,10 @@ import { ContestWorkspacePage } from "./pages/ContestWorkspacePage";
 import { ContestResultPage } from "./pages/ContestResultPage";
 import { ContestLeaderboardPage } from "./pages/ContestLeaderboardPage";
 
+// Student Career Profile Pages
+import { StudentProfilePage } from "./pages/StudentProfilePage";
+import { PublicProfilePage } from "./pages/PublicProfilePage";
+
 function RootEntry() {
   const { isAuthenticated, loading } = useAuth();
   if (loading) {
@@ -105,10 +109,17 @@ export function App() {
           <Route path="/outcomes" element={<PlacementOutcomesPage />} />
           <Route path="/pricing" element={<PricingPage />} />
 
+          {/* Student Career Profile */}
+          <Route path="/profile" element={<StudentProfilePage />} />
+
           {/* Group Discussion Arena */}
           <Route path="/gd" element={<GdLobbyPage />} />
           <Route path="/gd/:roomId" element={<GdRoomPage />} />
         </Route>
+
+        {/* Public Shareable Candidate Career Portfolios */}
+        <Route path="/u/:username" element={<PublicProfilePage />} />
+        <Route path="/profile/public/:username" element={<PublicProfilePage />} />
 
         {/* Catch-all Fallback */}
         <Route path="*" element={<Navigate to="/login" replace />} />
