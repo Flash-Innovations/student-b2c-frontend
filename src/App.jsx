@@ -9,7 +9,6 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { PricingPage } from "./pages/PricingPage";
-import { RazorpayCheckoutDemoPage } from "./pages/RazorpayCheckoutDemoPage";
 
 // Authenticated Student Pages
 import { DashboardPage } from "./pages/DashboardPage";
@@ -60,7 +59,6 @@ export function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/onboarding" element={<Navigate to="/register" replace />} />
-        <Route path="/checkout" element={<RazorpayCheckoutDemoPage />} />
 
         {/* Dedicated Fullscreen Distraction-Free Contest Workspace */}
         <Route
