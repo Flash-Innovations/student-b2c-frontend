@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { practiceApi } from "../services/practiceApi";
-import { StatCard } from "../components/common/StatCard";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { PlanBadge } from "../components/common/Badge";
@@ -103,57 +102,6 @@ export function DashboardPage() {
 
         {/* Decorative background shape */}
         <div className="absolute right-0 top-0 -bottom-10 w-96 bg-gradient-to-l from-indigo-500/20 to-transparent pointer-events-none" />
-      </div>
-
-      {/* Main Metric Cards - Dynamically adjusted for Technical vs Non-Technical students */}
-      <div className={`grid grid-cols-2 md:grid-cols-3 ${isTechnical ? "xl:grid-cols-6" : "xl:grid-cols-5"} gap-4 sm:gap-5`}>
-        <StatCard
-          title="Readiness Score"
-          value={`${readinessScore}/100`}
-          icon={TrendingUp}
-          iconBg="bg-indigo-50 text-indigo-600"
-        />
-        <StatCard
-          title="Placement Probability"
-          value={`${Math.min(95, Math.round(readinessScore * 0.95))}%`}
-          icon={Target}
-          iconBg="bg-emerald-50 text-emerald-600"
-        />
-        {isTechnical ? (
-          <StatCard
-            title="Technical Score"
-            value={`${Math.min(92, Math.round(readinessScore * 0.9))}/100`}
-            icon={Code}
-            iconBg="bg-blue-50 text-blue-600"
-          />
-        ) : (
-          <StatCard
-            title="Aptitude Score"
-            value={`${Math.min(94, Math.round(readinessScore * 0.92))}/100`}
-            icon={BrainCircuit}
-            iconBg="bg-blue-50 text-blue-600"
-          />
-        )}
-        <StatCard
-          title="Mock Minutes"
-          value={`${totalMockMinutes} mins`}
-          icon={Mic}
-          iconBg="bg-purple-50 text-purple-600"
-        />
-        <StatCard
-          title="MCQ Attempts"
-          value={isPaid ? `${mcqCount} (Unlimited)` : `${mcqCount}/${mcqLimit}`}
-          icon={BrainCircuit}
-          iconBg="bg-amber-50 text-amber-600"
-        />
-        {isTechnical && (
-          <StatCard
-            title="DSA Solved"
-            value={isPaid ? `${dsaCount} (Unlimited)` : `${dsaCount}/${dsaLimit}`}
-            icon={Terminal}
-            iconBg="bg-rose-50 text-rose-600"
-          />
-        )}
       </div>
 
       {/* Two Column Grid: Quota Status & Quick Prep Hub */}
