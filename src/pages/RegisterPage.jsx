@@ -84,6 +84,8 @@ const OTHER_ROLES = [
   "General Associate / Trainee"
 ];
 
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
 export function RegisterPage() {
   const { register } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -147,8 +149,18 @@ export function RegisterPage() {
       return;
     }
 
+    if (!EMAIL_REGEX.test(formData.email.trim())) {
+      setErrorMsg("Please enter a valid email address.");
+      return;
+    }
+
     if (formData.password.length < 6) {
       setErrorMsg("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (formData.password.length > 128) {
+      setErrorMsg("Password cannot exceed 128 characters.");
       return;
     }
 

@@ -20,6 +20,8 @@ import { useToast } from "../context/ToastContext";
 import { b2cApi } from "../services/b2cApi";
 import { Button } from "../components/common/Button";
 
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
 export function LoginPage() {
   const { login, setSession } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -53,6 +55,11 @@ export function LoginPage() {
     e.preventDefault();
     if (!email.trim() || !password) {
       setErrorMsg("Email and password are required.");
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setErrorMsg("Please enter a valid email address.");
       return;
     }
 
@@ -94,8 +101,8 @@ export function LoginPage() {
   const handleRequestResetCode = async (e) => {
     e.preventDefault();
     const cleanEmail = forgotEmail.trim();
-    if (!cleanEmail) {
-      setForgotError("Please enter your registered student email address.");
+    if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail)) {
+      setForgotError("Please enter a valid student email address.");
       return;
     }
 
