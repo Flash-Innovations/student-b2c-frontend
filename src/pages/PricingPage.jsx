@@ -38,21 +38,23 @@ export function PricingPage() {
       setProcessingPlan(tier);
 
       const orderData = await b2cApi.createOrder({
+        orderType: 'PLAN',
         planTier: tier,
         billingCycle
       });
 
-      if (!orderData || !orderData.orderId) {
+      if (!orderData || (!orderData.orderId && !orderData.order_id)) {
         throw new Error("Unable to create order with Razorpay.");
       }
 
       openRazorpayCheckout({
-        orderId: orderData.orderId,
+        orderId: orderData.orderId || orderData.order_id,
         amountInPaise: orderData.amount || orderData.amountInPaise,
         amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
         currency: orderData.currency || "INR",
         name: "Flash Platform",
         description: `${tier} Subscription (${billingCycle})`,
+        keyId: orderData.keyId || orderData.key_id,
         user: {
           name: user?.name,
           email: user?.email,
@@ -99,17 +101,18 @@ export function PricingPage() {
         contestId: itemDetails?.contestId
       });
 
-      if (!orderData || !orderData.orderId) {
+      if (!orderData || (!orderData.orderId && !orderData.order_id)) {
         throw new Error("Unable to create order for add-on.");
       }
 
       openRazorpayCheckout({
-        orderId: orderData.orderId,
+        orderId: orderData.orderId || orderData.order_id,
         amountInPaise: orderData.amount || orderData.amountInPaise,
         amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
         currency: "INR",
         name: "Flash Platform",
         description: itemDetails.title,
+        keyId: orderData.keyId || orderData.key_id,
         user: {
           name: user?.name,
           email: user?.email
