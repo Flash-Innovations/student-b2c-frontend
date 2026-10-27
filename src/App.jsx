@@ -18,7 +18,6 @@ import { CodingArenaPage } from "./pages/CodingArenaPage";
 import { CodingQuestionListPage } from "./pages/CodingQuestionListPage";
 import { MockInterviewPage } from "./pages/MockInterviewPage";
 import { ResumeOptimizerPage } from "./pages/ResumeOptimizerPage";
-import { PlacementOutcomesPage } from "./pages/PlacementOutcomesPage";
 
 // Group Discussion Arena Pages
 import { GdLobbyPage } from "./pages/GdLobbyPage";
@@ -108,7 +107,6 @@ export function App() {
 
           <Route path="/interview" element={<MockInterviewPage />} />
           <Route path="/resume" element={<ResumeOptimizerPage />} />
-          <Route path="/outcomes" element={<PlacementOutcomesPage />} />
           <Route path="/pricing" element={<PricingPage />} />
 
           {/* Student Career Profile */}

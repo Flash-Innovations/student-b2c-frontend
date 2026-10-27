@@ -32,7 +32,6 @@ export function Navbar() {
     { name: 'Coding Arena', path: '/coding', icon: Code2 },
     { name: 'AI Mock Interview', path: '/interview', icon: Sparkles },
     { name: 'Resume ATS', path: '/resume', icon: FileCheck2 },
-    { name: 'Outcomes', path: '/outcomes', icon: Award },
     { name: 'Pricing', path: '/pricing', icon: Crown }
   ];
 

@@ -327,25 +327,6 @@ export function DashboardPage() {
               </div>
             </div>
           </Card>
-
-          {/* Placement Verified Offer Promo */}
-          <Card className="p-6 bg-gradient-to-br from-indigo-50/80 via-white to-white border-indigo-100">
-            <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs uppercase tracking-wider mb-2">
-              <Award className="w-4 h-4" />
-              Verified Telemetry
-            </div>
-            <h4 className="font-bold text-slate-900 text-sm">
-              Got an Internship or PPO?
-            </h4>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed mb-4">
-              Log your verified offer to boost your student readiness index to 90+ and contribute to college NIRF placement data.
-            </p>
-            <Link to="/outcomes">
-              <Button variant="outline" size="sm" className="w-full">
-                Log Offer / PPO
-              </Button>
-            </Link>
-          </Card>
         </div>
 
       </div>
