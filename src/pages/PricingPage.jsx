@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Zap,
   Sparkles,
-  ShieldCheck,
   ArrowRight,
   Info,
   Clock,
@@ -147,15 +146,6 @@ export function PricingPage() {
       
       {/* Header & Title */}
       <div className="text-center max-w-3xl mx-auto space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Razorpay Standard Web Checkout Enabled</span>
-          <span className="text-slate-300">•</span>
-          <Link to="/checkout" className="underline hover:text-indigo-900 inline-flex items-center gap-0.5">
-            Open Test Simulator <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
           Invest in Your Placement Readiness
         </h1>
