@@ -7,6 +7,7 @@ import { useAuth } from "./context/AuthContext";
 // Auth Pages
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { PricingPage } from "./pages/PricingPage";
 import { RazorpayCheckoutDemoPage } from "./pages/RazorpayCheckoutDemoPage";
 
@@ -57,6 +58,7 @@ export function App() {
         <Route path="/" element={<RootEntry />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/onboarding" element={<Navigate to="/register" replace />} />
         <Route path="/checkout" element={<RazorpayCheckoutDemoPage />} />
 

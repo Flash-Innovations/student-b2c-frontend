@@ -73,6 +73,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const setSession = async (authToken, authUser) => {
+    if (authToken) {
+      setAuthToken(authToken);
+      setTokenState(authToken);
+      if (authUser) setUser(authUser);
+      await fetchProfile();
+    }
+  };
+
   // Compute whether student is technical or non-technical (e.g. BBA, MBA)
   const isTechnical = React.useMemo(() => {
     if (!user) return true;
@@ -115,6 +124,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateToken,
+    setSession,
     refreshProfile: fetchProfile,
     refreshSubscription: fetchProfile
   };

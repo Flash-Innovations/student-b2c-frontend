@@ -72,6 +72,9 @@ export const b2cApi = {
   // Auth & Student Portfolio
   register: (userData) => b2cRequest('/api/b2c/auth/register', { method: 'POST', body: userData }),
   login: (credentials) => b2cRequest('/api/b2c/auth/login', { method: 'POST', body: credentials }),
+  forgotPassword: (data) => b2cRequest('/api/b2c/auth/forgot-password', { method: 'POST', body: data }),
+  verifyResetCode: (data) => b2cRequest('/api/b2c/auth/verify-reset-code', { method: 'POST', body: data }),
+  resetPassword: (data) => b2cRequest('/api/b2c/auth/reset-password', { method: 'POST', body: data }),
   getProfile: () => b2cRequest('/api/b2c/auth/me', { method: 'GET' }),
   updateProfile: (profileData) => b2cRequest('/api/b2c/auth/profile', { method: 'PUT', body: profileData }),
   changePassword: (data) => b2cRequest('/api/b2c/auth/change-password', { method: 'POST', body: data }),
