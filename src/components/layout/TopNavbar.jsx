@@ -35,7 +35,7 @@ export function TopNavbar({ onMenuClick }) {
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4">
-      {/* Left items: Mobile hamburger & Brand */}
+      {/* Left items: Mobile hamburger */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
@@ -44,24 +44,6 @@ export function TopNavbar({ onMenuClick }) {
         >
           <Menu className="w-5 h-5" />
         </button>
-
-        {/* Brand logo */}
-        <div
-          onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-2 cursor-pointer select-none shrink-0"
-          title="FLASH Student Arena"
-        >
-          <img
-            src="/branding/flash-logo-compact.png"
-            alt="FLASH"
-            className="h-8 w-8 object-contain sm:hidden"
-          />
-          <img
-            src="/branding/flash-logo-horizontal.png"
-            alt="FLASH"
-            className="h-7 w-auto max-w-[140px] sm:max-w-[160px] object-contain hidden sm:block"
-          />
-        </div>
       </div>
 
       {/* Right items: Plan Badge, Profile */}
