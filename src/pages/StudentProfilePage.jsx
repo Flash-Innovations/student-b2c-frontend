@@ -49,6 +49,8 @@ import { useToast } from "../context/ToastContext";
 import { b2cApi } from "../services/b2cApi";
 import { findCatalogueSkill, getCanonicalSkillName } from "../data/skillCatalogue";
 import { cn } from "../utils/cn";
+import { validatePasswordStrength } from "../utils/passwordPolicy";
+import { PasswordRequirements } from "../components/common/PasswordRequirements";
 
 function LinkedinIcon(props) {
   return (
@@ -385,8 +387,9 @@ export function StudentProfilePage() {
       showError("Current password is required.");
       return;
     }
-    if (passwordForm.newPassword.length < 6) {
-      showError("New password must be at least 6 characters long.");
+    const passwordError = validatePasswordStrength(passwordForm.newPassword);
+    if (passwordError) {
+      showError(passwordError);
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -1908,8 +1911,10 @@ export function StudentProfilePage() {
               <input
                 type={showNewPassword ? "text" : "password"}
                 required
-                minLength={6}
+                minLength={8}
+                maxLength={16}
                 value={passwordForm.newPassword}
+                placeholder="8-16 chars, 1 upper, 1 lower, 1 digit, 1 special"
                 onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                 className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 focus:border-indigo-500 pr-9"
               />
@@ -1921,6 +1926,7 @@ export function StudentProfilePage() {
                 {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
+            <PasswordRequirements password={passwordForm.newPassword} />
           </div>
 
           <div>

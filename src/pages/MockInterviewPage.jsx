@@ -129,13 +129,44 @@ export function MockInterviewPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pastSessions, setPastSessions] = useState([]);
 
-  // Animated audio wave simulation
+  // Animated audio wave levels (microphone analysis or AI speech)
   const [waveAmplitudes, setWaveAmplitudes] = useState([14, 28, 42, 20, 32, 48, 22, 16, 38, 26, 44, 18]);
 
   const timerRef = useRef(null);
   const conversationEndRef = useRef(null);
+  const wsRef = useRef(null);
+  const micStreamRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const animFrameRef = useRef(null);
 
   const totalMockMinutes = (subscription?.includedMinutesRemaining || 0) + (subscription?.purchasedMinutesBalance || 0);
+
+  // Helper to audibly vocalize Sarah's response using browser speech synthesis
+  const speakAiResponse = (text) => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window && !isSpeakerMuted) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.05;
+        const voices = window.speechSynthesis.getVoices();
+        const englishVoice = voices.find(
+          (v) => v.lang.startsWith("en") && (v.name.includes("Female") || v.name.includes("Natural") || v.name.includes("Google"))
+        ) || voices.find((v) => v.lang.startsWith("en"));
+        if (englishVoice) utterance.voice = englishVoice;
+
+        utterance.onstart = () => setCurrentAiStatus("speaking");
+        utterance.onend = () => setCurrentAiStatus("listening");
+        utterance.onerror = () => setCurrentAiStatus("listening");
+
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn("Speech synthesis error:", e);
+      }
+    }
+  };
 
   useEffect(() => {
     async function loadPastHistory() {
@@ -167,20 +198,38 @@ export function MockInterviewPage() {
     };
   }, [isSessionActive]);
 
-  // Wave simulation
+  // Audio wave frequency sampling
   useEffect(() => {
     let animInterval = null;
-    if (isSessionActive && currentAiStatus !== "idle") {
-      animInterval = setInterval(() => {
-        setWaveAmplitudes((prev) =>
-          prev.map(() => Math.floor(Math.random() * (currentAiStatus === "speaking" ? 50 : 25) + 10))
-        );
-      }, 150);
+    if (isSessionActive) {
+      // If analyser is active, update from actual mic frequency data
+      if (analyserRef.current && !isMicMuted) {
+        const bufferLength = analyserRef.current.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const sampleWave = () => {
+          if (!isSessionActive || isMicMuted) return;
+          analyserRef.current.getByteFrequencyData(dataArray);
+          const sample = Array.from(dataArray.slice(0, 12)).map((v) =>
+            Math.max(10, Math.min(55, Math.round(v / 4)))
+          );
+          setWaveAmplitudes(sample);
+          animFrameRef.current = requestAnimationFrame(sampleWave);
+        };
+        sampleWave();
+      } else {
+        // Fallback simulation when speaking or mic muted
+        animInterval = setInterval(() => {
+          setWaveAmplitudes((prev) =>
+            prev.map(() => Math.floor(Math.random() * (currentAiStatus === "speaking" ? 50 : 20) + 10))
+          );
+        }, 150);
+      }
     }
     return () => {
       if (animInterval) clearInterval(animInterval);
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [isSessionActive, currentAiStatus]);
+  }, [isSessionActive, currentAiStatus, isMicMuted]);
 
   useEffect(() => {
     if (conversationEndRef.current) {
@@ -188,12 +237,13 @@ export function MockInterviewPage() {
     }
   }, [conversation]);
 
-  const handleStartInterview = (track = selectedTrack) => {
+  const handleStartInterview = async (track = selectedTrack) => {
     if (totalMockMinutes <= 0) {
       setShowUpgradeModal(true);
       return;
     }
 
+    const sessionId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     setSelectedTrack(track);
     setElapsedSeconds(0);
     setConversation([]);
@@ -202,17 +252,95 @@ export function MockInterviewPage() {
     setActiveTab("live");
     setCurrentAiStatus("speaking");
 
+    // Initialize microphone and Web Audio analyser
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+      }
+    } catch (err) {
+      console.warn("Microphone not available for live audio stream:", err);
+    }
+
+    // Initialize Web Speech Recognition for real-time candidate voice capture
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRec) {
+      try {
+        const rec = new SpeechRec();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = "en-US";
+        rec.onresult = (e) => {
+          let fullTranscript = "";
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            fullTranscript += e.results[i][0].transcript;
+          }
+          if (fullTranscript.trim()) {
+            setUserInputDraft(fullTranscript);
+          }
+        };
+        rec.onerror = (e) => console.warn("Speech recognition error:", e);
+        rec.start();
+        recognitionRef.current = rec;
+      } catch (recErr) {
+        console.warn("Speech recognition initialization failed:", recErr);
+      }
+    }
+
+    // Connect Live WebSocket to AI service
+    try {
+      const ws = aiApi.createLiveWebSocket(sessionId);
+      wsRef.current = ws;
+      ws.onopen = () => {
+        ws.send(JSON.stringify({
+          type: "session_init",
+          trackTitle: track.title,
+          role: track.role,
+          candidateName: user?.name || "Candidate"
+        }));
+      };
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "question" || msg.type === "ai_response") {
+            const aiText = msg.text || msg.message;
+            setConversation((prev) => [
+              ...prev,
+              {
+                sender: "ai",
+                name: "Sarah (Principal AI Interviewer)",
+                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                text: aiText
+              }
+            ]);
+            speakAiResponse(aiText);
+          }
+        } catch (_) {}
+      };
+    } catch (wsErr) {
+      console.warn("Live WebSocket connection skipped, running in client resilient mode:", wsErr);
+    }
+
+    // Opening prompt delivery
+    const openingPrompt = `Hello ${user?.name ? user.name.split(" ")[0] : "Candidate"}! Welcome to your ${track.title} mock interview. We are targeting the role of ${track.role}. Let's begin: Can you walk me through a challenging problem you solved recently and why you selected your specific approach?`;
     setTimeout(() => {
       setConversation([
         {
           sender: "ai",
           name: "Sarah (Principal AI Interviewer)",
           time: "Just now",
-          text: `Hello ${user?.name ? user.name.split(" ")[0] : "Candidate"}! Welcome to your ${track.title} mock interview. We are targeting the role of ${track.role}. Let's begin: Can you walk me through a challenging technical problem you solved recently and why you selected your specific technical approach?`
+          text: openingPrompt
         }
       ]);
-      setCurrentAiStatus("listening");
-    }, 1200);
+      speakAiResponse(openingPrompt);
+    }, 1000);
   };
 
   const handleSendMessage = () => {
@@ -230,35 +358,62 @@ export function MockInterviewPage() {
     setUserInputDraft("");
     setCurrentAiStatus("evaluating");
 
-    setTimeout(() => {
-      let aiReply = "";
-      if (userText.length < 25) {
-        aiReply = `Could you elaborate on that in more detail? Walk me through the trade-offs, constraints, and how this directly impacts system reliability.`;
-      } else if (selectedTrack.id === "tech-fullstack") {
-        aiReply = `Understood. When implementing this architecture, how would you address concurrency hazards, cache consistency, and horizontal scaling across multiple application nodes?`;
-      } else if (selectedTrack.id === "tech-dsa") {
-        aiReply = `Good algorithmic thought. What are the corner cases (such as overflow or empty inputs), and what is the exact asymptotic time and space complexity of your approach?`;
-      } else {
-        aiReply = `Thank you for sharing that experience. What were the measurable outcomes or key metrics from that situation, and what would you improve if facing it again?`;
-      }
-
-      setConversation((prev) => [
-        ...prev,
-        {
-          sender: "ai",
-          name: "Sarah (Principal AI Interviewer)",
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          text: aiReply
+    // Stream over WebSocket if active
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "candidate_answer", text: userText }));
+    } else {
+      // Intelligent fallback probe
+      setTimeout(() => {
+        let aiReply = "";
+        if (userText.length < 25) {
+          aiReply = `Could you elaborate on that in more detail? Walk me through the trade-offs, constraints, and how this directly impacts system reliability.`;
+        } else if (selectedTrack.id === "tech-fullstack") {
+          aiReply = `Understood. When implementing this architecture, how would you address concurrency hazards, cache consistency, and horizontal scaling across multiple application nodes?`;
+        } else if (selectedTrack.id === "tech-dsa") {
+          aiReply = `Good algorithmic thought. What are the corner cases (such as overflow or empty inputs), and what is the exact asymptotic time and space complexity of your approach?`;
+        } else {
+          aiReply = `Thank you for sharing that experience. What were the measurable outcomes or key metrics from that situation, and what would you improve if facing it again?`;
         }
-      ]);
-      setCurrentAiStatus("listening");
-    }, 1200);
+
+        setConversation((prev) => [
+          ...prev,
+          {
+            sender: "ai",
+            name: "Sarah (Principal AI Interviewer)",
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            text: aiReply
+          }
+        ]);
+        speakAiResponse(aiReply);
+      }, 1200);
+    }
   };
 
   const handleEndInterview = async () => {
     if (!isSessionActive) return;
     setIsSessionActive(false);
     setCurrentAiStatus("idle");
+
+    // Stop speech synthesis & recognition
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (_) {}
+      recognitionRef.current = null;
+    }
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach((track) => track.stop());
+      micStreamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      try { audioContextRef.current.close(); } catch (_) {}
+      audioContextRef.current = null;
+    }
+    if (wsRef.current) {
+      try { wsRef.current.close(); } catch (_) {}
+      wsRef.current = null;
+    }
 
     const minutesUsed = Math.max(1, Math.ceil(elapsedSeconds / 60));
 
@@ -664,6 +819,18 @@ export function MockInterviewPage() {
                   title={isMicMuted ? "Unmute Mic" : "Mute Mic"}
                 >
                   {isMicMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 animate-pulse" />}
+                </button>
+
+                <button
+                  onClick={() => setIsSpeakerMuted(!isSpeakerMuted)}
+                  className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                    isSpeakerMuted
+                      ? "bg-amber-50 border-amber-200 text-amber-600"
+                      : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"
+                  }`}
+                  title={isSpeakerMuted ? "Unmute AI Voice" : "Mute AI Voice"}
+                >
+                  {isSpeakerMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </button>
 
                 <input

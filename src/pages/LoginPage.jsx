@@ -19,6 +19,8 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { b2cApi } from "../services/b2cApi";
 import { Button } from "../components/common/Button";
+import { validatePasswordStrength } from "../utils/passwordPolicy";
+import { PasswordRequirements } from "../components/common/PasswordRequirements";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
@@ -135,13 +137,9 @@ export function LoginPage() {
       return;
     }
 
-    if (!forgotNewPassword) {
-      setForgotError("Please enter a new password.");
-      return;
-    }
-
-    if (forgotNewPassword.length < 6) {
-      setForgotError("Password must be at least 6 characters long.");
+    const passwordError = validatePasswordStrength(forgotNewPassword);
+    if (passwordError) {
+      setForgotError(passwordError);
       return;
     }
 
@@ -448,7 +446,7 @@ export function LoginPage() {
                           setForgotNewPassword(e.target.value);
                           setForgotError("");
                         }}
-                        placeholder="At least 6 characters"
+                        placeholder="8-16 characters (upper, lower, num, special)"
                         className="w-full pl-9 pr-10 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all text-slate-900 placeholder:text-slate-400"
                       />
                       <button
@@ -459,6 +457,7 @@ export function LoginPage() {
                         {showForgotNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    <PasswordRequirements password={forgotNewPassword} />
                   </div>
 
                   {/* Confirm New Password */}

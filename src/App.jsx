@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { useAuth } from "./context/AuthContext";
+import { OfflineBanner } from "./components/common/OfflineBanner";
 
 // Auth Pages
 import { LoginPage } from "./pages/LoginPage";
@@ -51,6 +52,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+      <OfflineBanner />
       <Routes>
         {/* Default Route: Always opens Login page first for unauthenticated users */}
         <Route path="/" element={<RootEntry />} />

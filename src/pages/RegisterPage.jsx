@@ -15,6 +15,8 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Button } from "../components/common/Button";
+import { validatePasswordStrength } from "../utils/passwordPolicy";
+import { PasswordRequirements } from "../components/common/PasswordRequirements";
 
 const POPULAR_COLLEGES_SUGGESTIONS = [
   "Indian Institute of Technology (IIT)",
@@ -154,13 +156,9 @@ export function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setErrorMsg("Password must be at least 6 characters.");
-      return;
-    }
-
-    if (formData.password.length > 128) {
-      setErrorMsg("Password cannot exceed 128 characters.");
+    const passwordError = validatePasswordStrength(formData.password);
+    if (passwordError) {
+      setErrorMsg(passwordError);
       return;
     }
 
@@ -271,7 +269,7 @@ export function RegisterPage() {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="At least 6 characters"
+                  placeholder="8-16 characters (upper, lower, num, special)"
                   className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400"
                 />
                 <button
@@ -282,6 +280,7 @@ export function RegisterPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <PasswordRequirements password={formData.password} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

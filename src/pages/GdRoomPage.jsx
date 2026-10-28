@@ -30,6 +30,14 @@ import { useScreenContext } from "../context/ScreenContext";
 import { b2cApi } from "../services/b2cApi";
 import { Button } from "../components/common/Button";
 import { Avatar } from "../components/common/Avatar";
+import { RemoteVideoTile } from "../components/common/RemoteVideoTile";
+
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" }
+  ]
+};
 
 export function GdRoomPage() {
   const { roomId } = useParams();
@@ -42,6 +50,10 @@ export function GdRoomPage() {
   const [loading, setLoading] = useState(true);
   const [remainingSeconds, setRemainingSeconds] = useState(900);
   const [isSessionEnded, setIsSessionEnded] = useState(false);
+
+  // WebRTC remote stream map: { [userId]: MediaStream }
+  const [remoteStreams, setRemoteStreams] = useState({});
+  const peerConnectionsRef = useRef(new Map());
 
   // Media states
   const [isAudioMuted, setIsAudioMuted] = useState(false);
@@ -119,6 +131,42 @@ export function GdRoomPage() {
 
     initRoomAndMedia();
 
+    const myId = String(user?.id || user?.userId || "");
+
+    const getOrCreatePeer = (peerId) => {
+      const pid = String(peerId);
+      if (peerConnectionsRef.current.has(pid)) {
+        return peerConnectionsRef.current.get(pid);
+      }
+
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+
+      // Attach local tracks if ready
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => {
+          pc.addTrack(track, localStreamRef.current);
+        });
+      }
+
+      pc.ontrack = (event) => {
+        if (event.streams && event.streams[0]) {
+          setRemoteStreams((prev) => ({ ...prev, [pid]: event.streams[0] }));
+        }
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          b2cApi.sendGdSignal(roomId, {
+            targetUserId: pid,
+            signal: { type: "candidate", candidate: event.candidate }
+          }).catch(() => {});
+        }
+      };
+
+      peerConnectionsRef.current.set(pid, pc);
+      return pc;
+    };
+
     // Periodic synchronization poll (every 3s)
     const pollInterval = setInterval(async () => {
       try {
@@ -130,6 +178,72 @@ export function GdRoomPage() {
             setRemainingSeconds(res.remainingSeconds);
             if (res.remainingSeconds <= 0) {
               setIsSessionEnded(true);
+            }
+          }
+
+          // Negotiate WebRTC mesh connections
+          if (myId) {
+            const peers = (res.room.participants || []).filter(
+              (p) => String(p.userId) !== myId
+            );
+
+            for (const peer of peers) {
+              const pid = String(peer.userId);
+              const isInitiator = myId > pid;
+              if (!peerConnectionsRef.current.has(pid) && isInitiator) {
+                const pc = getOrCreatePeer(pid);
+                try {
+                  const offer = await pc.createOffer();
+                  await pc.setLocalDescription(offer);
+                  await b2cApi.sendGdSignal(roomId, {
+                    targetUserId: pid,
+                    signal: { type: "offer", sdp: pc.localDescription }
+                  });
+                } catch (e) {
+                  console.warn("Failed creating WebRTC offer for peer", pid, e);
+                }
+              }
+            }
+          }
+        }
+
+        // Drain incoming WebRTC signals
+        if (myId) {
+          const sigRes = await b2cApi.getGdSignals(roomId).catch(() => null);
+          const incoming = sigRes?.signals || [];
+          for (const item of incoming) {
+            const senderId = String(item.senderId);
+            const { signal } = item;
+            if (!signal) continue;
+
+            const pc = getOrCreatePeer(senderId);
+
+            if (signal.type === "offer" && signal.sdp) {
+              try {
+                await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                await b2cApi.sendGdSignal(roomId, {
+                  targetUserId: senderId,
+                  signal: { type: "answer", sdp: pc.localDescription }
+                });
+              } catch (err) {
+                console.warn("Error handling WebRTC offer from", senderId, err);
+              }
+            } else if (signal.type === "answer" && signal.sdp) {
+              try {
+                if (pc.signalingState !== "stable") {
+                  await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                }
+              } catch (err) {
+                console.warn("Error setting remote answer from", senderId, err);
+              }
+            } else if (signal.type === "candidate" && signal.candidate) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+              } catch (err) {
+                console.warn("Error adding ICE candidate from", senderId, err);
+              }
             }
           }
         }
@@ -153,6 +267,11 @@ export function GdRoomPage() {
       isMounted = false;
       clearInterval(pollInterval);
       clearInterval(timerInterval);
+      // Clean up WebRTC peer connections
+      peerConnectionsRef.current.forEach((pc) => {
+        try { pc.close(); } catch (_) {}
+      });
+      peerConnectionsRef.current.clear();
       // Clean up media tracks
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -161,7 +280,7 @@ export function GdRoomPage() {
         screenStreamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [roomId]);
+  }, [roomId, user]);
 
   // Keep local video element synced with localStream
   useEffect(() => {
@@ -459,8 +578,25 @@ export function GdRoomPage() {
                         muted
                         className="w-full h-full object-cover rounded-xl"
                       />
+                    ) : !isMe && remoteStreams[p.userId] && !isVideoOff ? (
+                      <RemoteVideoTile
+                        stream={remoteStreams[p.userId]}
+                        isVideoOff={isVideoOff}
+                      />
                     ) : (
                       <div className="flex flex-col items-center justify-center space-y-2">
+                        {/* Audio playback for remote peer in voice/avatar mode */}
+                        {!isMe && remoteStreams[p.userId] && (
+                          <audio
+                            autoPlay
+                            playsInline
+                            ref={(el) => {
+                              if (el && remoteStreams[p.userId] && el.srcObject !== remoteStreams[p.userId]) {
+                                el.srcObject = remoteStreams[p.userId];
+                              }
+                            }}
+                          />
+                        )}
                         <div
                           className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-2xl font-black text-white shadow-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 ${
                             !isAudioOff ? "ring-4 ring-emerald-400/60 ring-offset-2 ring-offset-slate-900 animate-pulse" : ""

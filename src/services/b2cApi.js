@@ -139,10 +139,12 @@ export const b2cApi = {
   leaveGdRoom: (roomId) => b2cRequest(`/api/b2c/gd/${roomId}/leave`, { method: 'POST' }),
   sendGdChat: (roomId, text) => b2cRequest(`/api/b2c/gd/${roomId}/chat`, { method: 'POST', body: { text } }),
   updateParticipantState: (roomId, state) => b2cRequest(`/api/b2c/gd/${roomId}/state`, { method: 'POST', body: state }),
+  sendGdSignal: (roomId, data) => b2cRequest(`/api/b2c/gd/${roomId}/signal`, { method: 'POST', body: data }),
+  getGdSignals: (roomId) => b2cRequest(`/api/b2c/gd/${roomId}/signals`, { method: 'GET' }),
   // Contests
   getContests: () => b2cRequest('/api/b2c/contests', { method: 'GET' }),
   getContestById: (id) => b2cRequest(`/api/b2c/contests/${id}`, { method: 'GET' }),
 
   // Health
-  getHealth: () => b2cRequest('/api/health', { method: 'GET' })
+  getHealth: () => b2cRequest('/api/b2c/gateway/health', { method: 'GET' })
 };

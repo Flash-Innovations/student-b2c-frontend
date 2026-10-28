@@ -5,6 +5,14 @@
       "destination": "https://student-b2c-backend.onrender.com/api/b2c/$1"
     },
     {
+      "source": "/api/health",
+      "destination": "https://student-b2c-backend.onrender.com/api/health"
+    },
+    {
+      "source": "/health",
+      "destination": "https://student-b2c-backend.onrender.com/health"
+    },
+    {
       "source": "/practice-api/(.*)",
       "destination": "https://sips-practice-service.onrender.com/$1"
     },

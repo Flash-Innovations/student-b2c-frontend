@@ -31,6 +31,7 @@ import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
 import { MathRenderer } from "../components/common/MathRenderer";
+import { OutputDiffViewer } from "../components/common/OutputDiffViewer";
 
 const STARTER_CODES = {
   cpp: `// C++ (GCC) Solution
@@ -743,10 +744,13 @@ export function CodingArenaPage() {
                             </div>
 
                             {!tr.isHidden && (
-                              <div className="space-y-0.5 text-[11px] text-slate-700">
-                                <div><strong>Input:</strong> <span className="break-all whitespace-pre-wrap">{tr.input}</span></div>
-                                <div><strong>Expected:</strong> <span className="text-emerald-700 break-all whitespace-pre-wrap">{tr.expected}</span></div>
-                                <div><strong>Output:</strong> <span className={tr.passed ? "text-emerald-700 break-all whitespace-pre-wrap" : "text-rose-700 break-all whitespace-pre-wrap"}>{tr.actual}</span></div>
+                              <div className="space-y-1.5 text-[11px] text-slate-700">
+                                <div><strong>Input:</strong> <span className="font-mono text-indigo-700 bg-white/60 px-1 py-0.5 rounded break-all whitespace-pre-wrap">{tr.input || "(empty)"}</span></div>
+                                <OutputDiffViewer
+                                  expected={tr.expected}
+                                  actual={tr.actual}
+                                  passed={tr.passed}
+                                />
                               </div>
                             )}
 

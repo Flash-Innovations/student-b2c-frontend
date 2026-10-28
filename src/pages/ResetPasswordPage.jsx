@@ -16,6 +16,8 @@ import { b2cApi } from "../services/b2cApi";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Button } from "../components/common/Button";
+import { validatePasswordStrength } from "../utils/passwordPolicy";
+import { PasswordRequirements } from "../components/common/PasswordRequirements";
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -51,13 +53,9 @@ export function ResetPasswordPage() {
       return;
     }
 
-    if (!newPassword) {
-      setErrorMsg("Please enter a new password.");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setErrorMsg("Password must be at least 6 characters long.");
+    const passwordError = validatePasswordStrength(newPassword);
+    if (passwordError) {
+      setErrorMsg(passwordError);
       return;
     }
 
@@ -217,7 +215,7 @@ export function ResetPasswordPage() {
                       setNewPassword(e.target.value);
                       setErrorMsg("");
                     }}
-                    placeholder="At least 6 characters"
+                    placeholder="8-16 characters (upper, lower, num, special)"
                     className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all text-slate-900 placeholder:text-slate-400"
                   />
                   <button
@@ -228,6 +226,7 @@ export function ResetPasswordPage() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <PasswordRequirements password={newPassword} />
               </div>
 
               {/* Confirm Password */}
