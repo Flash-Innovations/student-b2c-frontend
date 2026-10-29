@@ -221,21 +221,6 @@ export function McqSessionPage() {
 
   const currentQ = questions[currentIndex] || null;
 
-  // Sync active MCQ question with AI Coach Assistant
-  useEffect(() => {
-    if (!currentQ) return;
-    setScreenContext({
-      contextType: "PRACTICE_MCQ",
-      data: {
-        questionTitle: currentQ.question,
-        category: topicName,
-        options: currentQ.options,
-        studentAnswer: selectedAnswers[currentIndex] !== undefined ? currentQ.options[selectedAnswers[currentIndex]] : null,
-        correctOption: showExplanation ? verifications[currentIndex]?.correctAnswer : null
-      }
-    });
-  }, [currentIndex, currentQ, topicName, selectedAnswers, showExplanation, verifications, setScreenContext]);
-
   const handleSelectOption = async (optionIdx) => {
     if (sessionCompleted || !currentQ) return;
     setSelectedAnswers((prev) => ({
