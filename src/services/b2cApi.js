@@ -112,6 +112,7 @@ export const b2cApi = {
   getPlans: () => b2cRequest('/api/b2c/subscriptions/plans', { method: 'GET' }),
   createOrder: (orderPayload) => b2cRequest('/api/b2c/subscriptions/create-order', { method: 'POST', body: orderPayload }),
   verifyPayment: (paymentData) => b2cRequest('/api/b2c/subscriptions/verify-payment', { method: 'POST', body: paymentData }),
+  cancelAutoPay: () => b2cRequest('/api/b2c/subscriptions/cancel-autopay', { method: 'POST' }),
   getMySubscription: () => b2cRequest('/api/b2c/subscriptions/my-subscription', { method: 'GET' }),
   getTransactions: () => b2cRequest('/api/b2c/subscriptions/transactions', { method: 'GET' }),
 

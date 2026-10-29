@@ -56,6 +56,8 @@ export const loadRazorpaySdk = () => {
  */
 export const openRazorpayCheckout = async ({
   orderId,
+  subscriptionId,
+  subscription_id,
   amountInPaise,
   amount,
   currency = 'INR',
@@ -85,15 +87,13 @@ export const openRazorpayCheckout = async ({
   }
 
   const razorpayKey = keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
+  const activeSubId = subscriptionId || subscription_id;
 
   return new Promise((resolve, reject) => {
     const options = {
       key: razorpayKey,
-      amount: computedPaise,
-      currency: currency || 'INR',
       name: name || 'Flash Student Platform',
       description: description || 'Payment Checkout',
-      order_id: orderId,
       prefill: {
         name: user.name || '',
         email: user.email || '',
@@ -103,10 +103,12 @@ export const openRazorpayCheckout = async ({
         color: '#6366f1' // Indigo brand theme
       },
       handler: function (response) {
-        // Step 2 & 3: On success, receive razorpay_payment_id, razorpay_order_id, razorpay_signature
+        // Step 2 & 3: On success, receive payment_id, subscription_id / order_id, signature
         const result = {
           razorpay_order_id: response.razorpay_order_id || orderId,
           order_id: response.razorpay_order_id || orderId,
+          razorpay_subscription_id: response.razorpay_subscription_id || activeSubId,
+          subscription_id: response.razorpay_subscription_id || activeSubId,
           razorpay_payment_id: response.razorpay_payment_id,
           payment_id: response.razorpay_payment_id,
           razorpay_signature: response.razorpay_signature,
@@ -125,6 +127,15 @@ export const openRazorpayCheckout = async ({
         }
       }
     };
+
+    // AutoPay Recurring Subscription takes subscription_id; one-time orders take order_id & amount
+    if (activeSubId) {
+      options.subscription_id = activeSubId;
+    } else if (orderId) {
+      options.order_id = orderId;
+      options.amount = computedPaise;
+      options.currency = currency || 'INR';
+    }
 
     try {
       const rzp = new window.Razorpay(options);
