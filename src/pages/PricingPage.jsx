@@ -420,40 +420,6 @@ export function PricingPage() {
 
       </div>
 
-      {/* AutoPay FAQ & Guarantees */}
-      <div className="max-w-4xl mx-auto mt-12 bg-slate-50 border border-slate-200 rounded-2xl p-6 text-xs text-slate-600 space-y-4">
-        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-indigo-600" />
-          How Flash AutoPay Works (RBI e-Mandate Compliant)
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <strong className="text-slate-800">1. Seamless Recurring Setup:</strong>
-            <p className="text-slate-500 mt-0.5">
-              Set up your subscription via UPI AutoPay (Google Pay, PhonePe, Paytm) or Debit/Credit Card. The first transaction requires standard 2FA (UPI PIN/OTP).
-            </p>
-          </div>
-          <div>
-            <strong className="text-slate-800">2. All-Inclusive Flat Rates:</strong>
-            <p className="text-slate-500 mt-0.5">
-              Flat ₹99/mo or ₹199/mo with 18% GST already included. No hidden convenience fees or checkout surprises.
-            </p>
-          </div>
-          <div>
-            <strong className="text-slate-800">3. 1-Year Mandate Limit:</strong>
-            <p className="text-slate-500 mt-0.5">
-              Mandates are capped at 12 monthly cycles or 1 annual cycle for complete control and student peace of mind.
-            </p>
-          </div>
-          <div>
-            <strong className="text-slate-800">4. Cancel Anytime with Zero Penalties:</strong>
-            <p className="text-slate-500 mt-0.5">
-              Cancel with 1 click right from this page. Recurring debits stop immediately, while your paid access continues until your current period expires.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* AutoPay Cancellation Confirmation Modal */}
       {cancelModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
