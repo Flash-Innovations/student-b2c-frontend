@@ -50,7 +50,7 @@ export function PricingPage() {
         amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
         currency: orderData.currency || "INR",
         name: "Flash Platform",
-        description: `${tier} Subscription (${billingCycle})`,
+        description: `${tier} Subscription (${billingCycle}, All-Inclusive)`,
         keyId: orderData.keyId || orderData.key_id,
         user: {
           name: user?.name,
@@ -203,11 +203,11 @@ export function PricingPage() {
                   {billingCycle === "MONTHLY" ? "₹99" : "₹999"}
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
-                  {billingCycle === "MONTHLY" ? "/ month + GST" : "/ year + GST"}
+                  {billingCycle === "MONTHLY" ? "/ month (incl. all taxes)" : "/ year (incl. all taxes)"}
                 </span>
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
-                {billingCycle === "MONTHLY" ? "₹116.82 incl. 18% GST" : "₹1,178.82 incl. 18% GST (~₹83/mo)"}
+                {billingCycle === "MONTHLY" ? "Flat ₹99 • Zero extra taxes at checkout" : "Flat ₹999 (~₹83/mo) • Zero extra taxes at checkout"}
               </div>
             </div>
 
@@ -277,11 +277,11 @@ export function PricingPage() {
                   {billingCycle === "MONTHLY" ? "₹199" : "₹1,999"}
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
-                  {billingCycle === "MONTHLY" ? "/ month + GST" : "/ year + GST"}
+                  {billingCycle === "MONTHLY" ? "/ month (incl. all taxes)" : "/ year (incl. all taxes)"}
                 </span>
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
-                {billingCycle === "MONTHLY" ? "₹234.82 incl. 18% GST" : "₹2,358.82 incl. 18% GST (~₹166/mo)"}
+                {billingCycle === "MONTHLY" ? "Flat ₹199 • Zero extra taxes at checkout" : "Flat ₹1,999 (~₹166/mo) • Zero extra taxes at checkout"}
               </div>
             </div>
 

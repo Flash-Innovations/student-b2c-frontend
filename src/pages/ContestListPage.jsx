@@ -64,7 +64,7 @@ export function ContestListPage() {
         amount: orderData.totalAmountWithGst,
         currency: "INR",
         name: "Flash Platform",
-        description: `Entry: ${contest.title}`,
+        description: `Entry: ${contest.title} (All-Inclusive)`,
         user: {
           name: user?.name,
           email: user?.email
@@ -765,7 +765,7 @@ export function ContestListPage() {
                             }}
                           >
                             <CreditCard className="w-3 h-3 mr-1" />
-                            Pay to Join (₹{price})
+                            Pay to Join (₹{price} all-incl.)
                           </Button>
                         );
                       })()}

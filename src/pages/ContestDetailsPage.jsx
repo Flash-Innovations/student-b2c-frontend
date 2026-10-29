@@ -135,7 +135,7 @@ export function ContestDetailsPage() {
         amount: orderData.totalAmountWithGst,
         currency: "INR",
         name: "Flash Contest Ticket",
-        description: `Access Pass: ${contest?.title}`,
+        description: `Entry: ${contest?.title} (All-Inclusive)`,
         user: {
           name: user?.name,
           email: user?.email
@@ -372,8 +372,8 @@ export function ContestDetailsPage() {
                 <p className="text-xs text-amber-800 mt-0.5">
                   {isPremiumContest
                     ? planTier === "BASIC"
-                      ? "Basic plan students get a 50% discount: Pay ₹50 to join this assessment."
-                      : "Pay ₹100 to join this assessment, or upgrade to Premium for free access."
+                      ? "Basic plan students get a 50% discount: Pay ₹50 (all-inclusive) to join this assessment."
+                      : "Pay ₹100 (all-inclusive) to join this assessment, or upgrade to Premium for free access."
                     : "Included free with Basic or Premium plan, or pay ₹50 to join."}
                 </p>
               </div>
@@ -387,7 +387,7 @@ export function ContestDetailsPage() {
                 onClick={handleBuyPass}
                 className="bg-amber-600 hover:bg-amber-700 text-white"
               >
-                Pay to Join ({isPremiumContest ? (planTier === "BASIC" ? "₹50" : "₹100") : "₹50"})
+                Pay to Join ({isPremiumContest ? (planTier === "BASIC" ? "₹50" : "₹100") : "₹50"} all-incl.)
               </Button>
               <Button
                 variant="outline"

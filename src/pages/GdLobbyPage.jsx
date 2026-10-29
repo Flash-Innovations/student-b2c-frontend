@@ -214,7 +214,7 @@ export function GdLobbyPage() {
         amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
         currency: "INR",
         name: "Flash Executive Platform",
-        description: "GD Session Power-Up Pass (₹30 + 18% GST)",
+        description: "GD Session Power-Up Pass (₹30 all-inclusive)",
         user: {
           name: user?.name,
           email: user?.email,
@@ -338,7 +338,7 @@ export function GdLobbyPage() {
               className="border-indigo-400/40 text-indigo-200 hover:bg-indigo-900/40 flex items-center justify-center gap-2 text-xs"
             >
               <Zap className="w-3.5 h-3.5 text-amber-400" />
-              Get ₹30 Power-Up Pass
+              Get ₹30 Power-Up Pass (all-incl.)
             </Button>
           </div>
         </div>
@@ -450,7 +450,7 @@ export function GdLobbyPage() {
               loading={purchasingPowerUp}
               className="text-xs font-semibold text-indigo-700 border-indigo-300 hover:bg-indigo-50"
             >
-              Buy Power-Up (₹30)
+              Buy Power-Up (₹30 all-incl.)
             </Button>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">

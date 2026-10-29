@@ -148,7 +148,7 @@ export function MockInterviewPage() {
         amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
         currency: "INR",
         name: "Flash Platform",
-        description: "1-Hour Mock Minutes Pack (+60 Mins)",
+        description: "1-Hour Mock Minutes Pack (+60 Mins, All-Inclusive)",
         keyId: orderData.keyId || orderData.key_id,
         user: {
           name: user?.name,
@@ -555,7 +555,7 @@ export function MockInterviewPage() {
             loading={buyingMinutes}
             onClick={handleBuyMinutesPack}
           >
-            {totalMockMinutes > 0 ? "Add Mins (+60m for ₹20)" : "Buy 60 Mins (₹20)"}
+            {totalMockMinutes > 0 ? "Add Mins (+60m for ₹20)" : "Buy 60 Mins (₹20 all-incl.)"}
           </Button>
         </div>
       </div>
@@ -1067,12 +1067,12 @@ export function MockInterviewPage() {
               <div className="font-bold text-sm">1-Hour Mock Minutes Pack</div>
               <div>60 mins of conversational Gemini Live audio</div>
             </div>
-            <div className="text-lg font-black font-mono">₹20</div>
+            <div className="text-right"><div className="text-lg font-black font-mono">₹20</div><div className="text-[10px] text-emerald-600 font-semibold">All-Inclusive</div></div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setShowUpgradeModal(false)}>Cancel</Button>
             <Button size="sm" loading={buyingMinutes} onClick={handleBuyMinutesPack}>
-              Buy 60 Minutes (₹20 + GST) <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              Buy 60 Minutes (₹20 all-incl.) <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Button>
           </div>
         </div>
