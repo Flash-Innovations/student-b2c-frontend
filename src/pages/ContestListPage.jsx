@@ -14,6 +14,7 @@ import {
   Binary,
   Layers,
   Crown,
+  CreditCard,
   CheckCircle2,
   Lock,
   History,
@@ -29,15 +30,71 @@ import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
 import { practiceApi } from "../services/practiceApi";
 import { b2cApi } from "../services/b2cApi";
+import { openRazorpayCheckout } from "../services/razorpayClient";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 
 export function ContestListPage() {
   const navigate = useNavigate();
-  const { user, subscription, planTier } = useAuth();
-  const { showError } = useToast();
+  const { user, subscription, planTier, refreshSubscription } = useAuth();
+  const { showError, showSuccess } = useToast();
 
   const [contests, setContests] = useState([]);
+  const [payingContestId, setPayingContestId] = useState(null);
+
+  const handlePayToJoinContest = async (contest) => {
+    const contestId = contest.id || contest._id;
+    try {
+      setPayingContestId(contestId);
+      const isPremium = (contest.tierRequired || contest.tierRequirement || "").toUpperCase() === "PREMIUM";
+      const addonType = isPremium ? "CONTEST_PREMIUM_PASS" : "CONTEST_REGULAR_PASS";
+
+      const orderData = await b2cApi.createOrder({
+        orderType: addonType,
+        addonType,
+        contestId
+      });
+
+      if (!orderData || !orderData.orderId) {
+        throw new Error("Unable to create entry order.");
+      }
+
+      openRazorpayCheckout({
+        orderId: orderData.orderId,
+        amount: orderData.totalAmountWithGst,
+        currency: "INR",
+        name: "Flash Platform",
+        description: `Entry: ${contest.title}`,
+        user: {
+          name: user?.name,
+          email: user?.email
+        },
+        onSuccess: async (paymentResponse) => {
+          try {
+            await b2cApi.verifyPayment({
+              razorpay_order_id: paymentResponse.razorpay_order_id,
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_signature: paymentResponse.razorpay_signature,
+              transactionId: orderData.transactionId
+            });
+            showSuccess(`Payment received! You are enrolled in ${contest.title}.`);
+            if (refreshSubscription) await refreshSubscription();
+            await fetchContests();
+          } catch (err) {
+            showError("Payment verification failed. Please contact support.");
+          }
+        },
+        onFailure: (err) => {
+          showError(err.message || "Payment cancelled.");
+        }
+      });
+    } catch (err) {
+      showError(err.message || "Failed to initiate payment.");
+    } finally {
+      setPayingContestId(null);
+    }
+  };
+
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -693,12 +750,25 @@ export function ContestListPage() {
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Access Ready
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-amber-600 font-semibold">
-                          <Lock className="w-3.5 h-3.5" />
-                          Pass Required
-                        </span>
-                      )}
+                      ) : (() => {
+                        const isPremiumContest = (contest.tierRequired || contest.tierRequirement || "").toUpperCase() === "PREMIUM";
+                        const price = isPremiumContest ? (planTier === "BASIC" ? 50 : 100) : 50;
+                        return (
+                          <Button
+                            size="xs"
+                            variant="primary"
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                            loading={payingContestId === (contest.id || contest._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePayToJoinContest(contest);
+                            }}
+                          >
+                            <CreditCard className="w-3 h-3 mr-1" />
+                            Pay to Join (₹{price})
+                          </Button>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex items-center gap-1 text-xs font-bold text-indigo-600 group-hover:text-indigo-700">

@@ -28,6 +28,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { aiApi } from "../services/aiApi";
 import { b2cApi } from "../services/b2cApi";
+import { openRazorpayCheckout } from "../services/razorpayClient";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
@@ -62,7 +63,7 @@ const TECHNICAL_INTERVIEW_TRACKS = [
     title: "HR & Behavioral Competency",
     category: "Behavioral",
     role: "STAR Method & Culture Fit",
-    topics: ["Conflict Resolution", "Ownership", "Handling Failure", "Career Vision 2028"],
+    topics: ["Conflict Resolution", "Ownership", "Handling Failure", "Long-Term Career Vision"],
     difficulty: "All Levels"
   }
 ];
@@ -127,6 +128,56 @@ export function MockInterviewPage() {
   const [userInputDraft, setUserInputDraft] = useState("");
   const [scorecard, setScorecard] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [buyingMinutes, setBuyingMinutes] = useState(false);
+
+  const handleBuyMinutesPack = async () => {
+    try {
+      setBuyingMinutes(true);
+      const orderData = await b2cApi.createOrder({
+        orderType: "MOCK_MINUTES",
+        quantity: 1
+      });
+
+      if (!orderData || (!orderData.orderId && !orderData.order_id)) {
+        throw new Error("Unable to create order for mock interview minutes.");
+      }
+
+      openRazorpayCheckout({
+        orderId: orderData.orderId || orderData.order_id,
+        amountInPaise: orderData.amount || orderData.amountInPaise,
+        amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
+        currency: "INR",
+        name: "Flash Platform",
+        description: "1-Hour Mock Minutes Pack (+60 Mins)",
+        keyId: orderData.keyId || orderData.key_id,
+        user: {
+          name: user?.name,
+          email: user?.email
+        },
+        onSuccess: async (paymentResponse) => {
+          try {
+            await b2cApi.verifyPayment({
+              razorpay_order_id: paymentResponse.razorpay_order_id,
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_signature: paymentResponse.razorpay_signature
+            });
+            showSuccess("Payment successful! 60 Mock Interview Minutes added to your balance.");
+            setShowUpgradeModal(false);
+            if (refreshSubscription) await refreshSubscription();
+          } catch (err) {
+            showError("Payment verification failed. Please contact support.");
+          }
+        },
+        onFailure: (err) => {
+          showError(err.message || "Payment cancelled.");
+        }
+      });
+    } catch (err) {
+      showError(err.message || "Failed to initiate payment.");
+    } finally {
+      setBuyingMinutes(false);
+    }
+  };
   const [pastSessions, setPastSessions] = useState([]);
 
   // Animated audio wave levels (microphone analysis or AI speech)
@@ -498,11 +549,14 @@ export function MockInterviewPage() {
               <span className="text-xs text-slate-400 font-normal">mins remaining</span>
             </div>
           </div>
-          <Link to="/pricing">
-            <Button size="xs" variant={totalMockMinutes > 0 ? "outline" : "primary"}>
-              {totalMockMinutes > 0 ? "Add Mins (₹20)" : "Unlock Minutes"}
-            </Button>
-          </Link>
+          <Button
+            size="xs"
+            variant={totalMockMinutes > 0 ? "outline" : "primary"}
+            loading={buyingMinutes}
+            onClick={handleBuyMinutesPack}
+          >
+            {totalMockMinutes > 0 ? "Add Mins (+60m for ₹20)" : "Buy 60 Mins (₹20)"}
+          </Button>
         </div>
       </div>
 
@@ -1017,9 +1071,9 @@ export function MockInterviewPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setShowUpgradeModal(false)}>Cancel</Button>
-            <Link to="/pricing">
-              <Button size="sm">View Plans & Add-ons <ArrowRight className="w-3.5 h-3.5 ml-1" /></Button>
-            </Link>
+            <Button size="sm" loading={buyingMinutes} onClick={handleBuyMinutesPack}>
+              Buy 60 Minutes (₹20 + GST) <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
           </div>
         </div>
       </Modal>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Users2,
   Video,
@@ -59,7 +59,7 @@ const CASE_TOPICS = [
 
 export function GdLobbyPage() {
   const navigate = useNavigate();
-  const { user, planTier, refreshSubscription } = useAuth();
+  const { user, planTier, refreshSubscription, isTechnical } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
 
   const [status, setStatus] = useState(null);
@@ -261,6 +261,40 @@ export function GdLobbyPage() {
 
   const categories = ["ALL", "Business Strategy", "Marketing Strategy", "FinTech & Economics", "HR & Leadership"];
 
+  if (isTechnical) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 space-y-6 animate-in fade-in duration-300">
+        <Card className="p-8 sm:p-12 text-center border-indigo-100 bg-gradient-to-b from-indigo-50/40 via-white to-white shadow-sm">
+          <div className="w-16 h-16 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-5 shadow-xs">
+            <Users2 className="w-8 h-8" />
+          </div>
+
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Group Discussion is for Management Students
+          </h2>
+
+          <p className="mt-3 text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
+            The Group Discussion Arena is exclusively tailored for <strong>Management, MBA, and BBA</strong> recruitment rounds.
+            As an engineering / technical candidate, your placement pipeline focuses on <strong>Coding Arenas, Assessments, and Technical Interviews</strong>.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-8 max-w-md mx-auto">
+            <Link to="/coding" className="w-full sm:w-auto">
+              <Button variant="primary" className="w-full sm:w-auto font-semibold">
+                Go to Coding Arena <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            </Link>
+            <Link to="/interview" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto font-semibold">
+                AI Mock Technical Interview
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
@@ -409,13 +443,15 @@ export function GdLobbyPage() {
               </span>
               <span className="text-xs text-indigo-500 font-medium">sessions</span>
             </div>
-            <button
+            <Button
+              size="xs"
+              variant="outline"
               onClick={handleBuyPowerUp}
-              disabled={purchasingPowerUp}
-              className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+              loading={purchasingPowerUp}
+              className="text-xs font-semibold text-indigo-700 border-indigo-300 hover:bg-indigo-50"
             >
-              + ₹30 Pass
-            </button>
+              Buy Power-Up (₹30)
+            </Button>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
             Never expires • Use anytime beyond daily quota

@@ -104,7 +104,7 @@ export function RegisterPage() {
     collegeName: "",
     course: COURSES[0].label,
     branch: COURSES[0].label,
-    graduationYear: 2028,
+    graduationYear: new Date().getFullYear() + 1,
     targetRole: TECHNICAL_ROLES[0]
   });
 
@@ -340,7 +340,7 @@ export function RegisterPage() {
                 >
                   {GRADUATION_BATCHES.map((year) => (
                     <option key={year} value={year}>
-                      Class of {year} {year === 2028 ? "(2028 Batch)" : ""}
+                      Class of {year}
                     </option>
                   ))}
                 </select>

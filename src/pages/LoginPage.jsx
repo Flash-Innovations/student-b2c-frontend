@@ -218,7 +218,7 @@ export function LoginPage() {
             <div className="flex items-start gap-2 p-2.5 bg-indigo-50/70 rounded-xl border border-indigo-100/80 text-xs text-indigo-900 leading-snug">
               <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
               <span>
-                Enter your registered student email or create a new <strong>Batch 2028</strong> account.
+                Enter your registered student email or create a new <strong>Student</strong> account.
               </span>
             </div>
 
@@ -299,7 +299,7 @@ export function LoginPage() {
               to={redirectTarget !== "/dashboard" ? `/register?redirect=${encodeURIComponent(redirectTarget)}` : "/register"}
               className="font-bold text-indigo-600 hover:text-indigo-700"
             >
-              Register (Batch 2028 Free)
+              Create an Account
             </Link>
           </div>
         </div>

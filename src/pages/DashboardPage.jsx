@@ -74,7 +74,7 @@ export function DashboardPage() {
             </h1>
             <p className="text-sm sm:text-base text-indigo-200 max-w-xl">
               {user?.collegeName ? `${user.collegeName} • ` : ""}
-              {user?.degree || user?.branch || "B.Tech"} • Batch of {user?.graduationYear || "2028"}
+              {user?.degree || user?.branch || "Student"}{user?.graduationYear ? ` • Class of ${user.graduationYear}` : ""}
               {user?.targetRoles?.[0] || user?.targetRole ? ` • Target: ${user.targetRoles?.[0] || user.targetRole}` : ""}
             </p>
           </div>

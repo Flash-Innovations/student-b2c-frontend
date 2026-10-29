@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { useScreenContext } from "../context/ScreenContext";
 import { b2cApi } from "../services/b2cApi";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
@@ -24,7 +23,6 @@ import { Button } from "../components/common/Button";
 export function ResumeOptimizerPage() {
   const { user, updateUser, isTechnical } = useAuth();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
-  const { setScreenContext, openAssistantWithQuery } = useScreenContext();
 
   const [activeTab, setActiveTab] = useState("upload"); // 'upload' | 'text' | 'results'
   const [resumeText, setResumeText] = useState("");
@@ -32,19 +30,7 @@ export function ResumeOptimizerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
 
-  // Sync Resume ATS scan status with AI Assistant
-  React.useEffect(() => {
-    setScreenContext({
-      contextType: "RESUME_OPTIMIZER",
-      data: {
-        atsScore: analysisResult?.atsScore || 0,
-        detectedSkills: analysisResult?.detectedSkills || [],
-        missingKeywords: analysisResult?.missingKeywords || [],
-        hasScanRun: !!analysisResult
-      }
-    });
-  }, [analysisResult, setScreenContext]);
-
+  
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -333,15 +319,6 @@ export function ResumeOptimizerPage() {
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
             <span className="text-xs text-slate-500">Edit your resume and rescan to reach 90%+ compatibility.</span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
-                onClick={() => openAssistantWithQuery(`My ATS score is ${analysisResult?.atsScore}%. Rewrite 2 bullet points from my resume using the Google X-Y-Z formula (Accomplished [X] as measured by [Y], by doing [Z]) with quantifiable metrics.`, "REWRITE")}
-              >
-                <Sparkles className="w-3.5 h-3.5 mr-1 text-indigo-600" />
-                Rewrite with AI Coach
-              </Button>
               <Button variant="outline" size="sm" onClick={() => setActiveTab("text")}>Edit in Text Area</Button>
               <Link to="/practice">
                 <Button size="sm">Practice Weak Areas in Hub <ArrowRight className="w-3.5 h-3.5 ml-1" /></Button>

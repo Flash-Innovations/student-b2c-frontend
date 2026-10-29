@@ -172,16 +172,24 @@ export function PublicProfilePage() {
                   <GithubIcon className="w-3.5 h-3.5" /> GitHub
                 </a>
               )}
-              {profile.linkedin && (
-                <a
-                  href={profile.linkedin.startsWith("http") ? profile.linkedin : `https://${profile.linkedin}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors"
-                >
-                  <LinkedinIcon className="w-3.5 h-3.5" /> LinkedIn
-                </a>
-              )}
+              {profile.linkedin && (() => {
+                const cleanLinkedin = String(profile.linkedin)
+                  .replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "")
+                  .replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "")
+                  .replace(/^@+/, "")
+                  .replace(/\/+$/, "")
+                  .trim();
+                return (
+                  <a
+                    href={`https://linkedin.com/in/${cleanLinkedin}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors"
+                  >
+                    <LinkedinIcon className="w-3.5 h-3.5" /> LinkedIn
+                  </a>
+                );
+              })()}
               {profile.resumeUrl && (
                 <a
                   href={profile.resumeUrl}
@@ -311,14 +319,31 @@ export function PublicProfilePage() {
                         <>
                           <div className="flex items-center justify-between">
                             <span className="text-slate-500 font-sans text-xs">Problems Solved</span>
-                            <span className="font-bold text-slate-900">{cp.stats.totalSolved || 0}</span>
+                            <span className="font-bold text-slate-900">{cp.stats.problemsSolved ?? cp.stats.totalSolved ?? 0}</span>
                           </div>
-                          {cp.stats.ranking && (
+                          {(cp.stats.globalRank || cp.stats.ranking) && (
                             <div className="flex items-center justify-between text-[11px] text-slate-500">
                               <span>Global Rank</span>
-                              <span className="font-semibold text-slate-700">#{Number(cp.stats.ranking).toLocaleString()}</span>
+                              <span className="font-semibold text-slate-700">#{Number(cp.stats.globalRank || cp.stats.ranking).toLocaleString()}</span>
                             </div>
                           )}
+                          {(cp.stats.currentRating || cp.stats.rating) && (
+                            <div className="flex items-center justify-between text-[11px] text-slate-500">
+                              <span>Contest Rating</span>
+                              <span className="font-bold text-indigo-600">{cp.stats.currentRating || cp.stats.rating}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5 pt-1 text-[11px] font-sans">
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium border border-emerald-100">
+                              Easy: {cp.stats.easySolved ?? cp.stats.difficultyBreakdown?.easy ?? 0}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-medium border border-amber-100">
+                              Medium: {cp.stats.mediumSolved ?? cp.stats.difficultyBreakdown?.medium ?? 0}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 font-medium border border-rose-100">
+                              Hard: {cp.stats.hardSolved ?? cp.stats.difficultyBreakdown?.hard ?? 0}
+                            </span>
+                          </div>
                         </>
                       )}
                       {cp.platform === "CODEFORCES" && (

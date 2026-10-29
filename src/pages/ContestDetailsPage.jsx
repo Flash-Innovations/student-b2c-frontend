@@ -149,7 +149,7 @@ export function ContestDetailsPage() {
               transactionId: orderData.transactionId
             });
 
-            showSuccess("Contest Pass unlocked successfully!");
+            showSuccess("Successfully enrolled in contest!");
             await refreshSubscription();
             await fetchContestDetails();
           } catch (verifyErr) {
@@ -367,14 +367,14 @@ export function ContestDetailsPage() {
               <Lock className="w-5 h-5 text-amber-600" />
               <div>
                 <h4 className="text-sm font-bold text-amber-950">
-                  {isPremiumContest ? "Premium Contest Access Required" : "Contest Pass Required"}
+                  {isPremiumContest ? "Paid Premium Assessment Entry" : "Paid Assessment Entry"}
                 </h4>
                 <p className="text-xs text-amber-800 mt-0.5">
                   {isPremiumContest
                     ? planTier === "BASIC"
-                      ? "Basic plan students get a 50% discount: Unlock single entry for ₹50 or upgrade to Premium."
-                      : "Unlock single entry pass for ₹100 or upgrade to Premium for unlimited assessments."
-                    : "Included free with Basic or Premium plan, or unlock a single entry pass for ₹50."}
+                      ? "Basic plan students get a 50% discount: Pay ₹50 to join this assessment."
+                      : "Pay ₹100 to join this assessment, or upgrade to Premium for free access."
+                    : "Included free with Basic or Premium plan, or pay ₹50 to join."}
                 </p>
               </div>
             </div>
@@ -387,7 +387,7 @@ export function ContestDetailsPage() {
                 onClick={handleBuyPass}
                 className="bg-amber-600 hover:bg-amber-700 text-white"
               >
-                Unlock Pass ({isPremiumContest ? (planTier === "BASIC" ? "₹50" : "₹100") : "₹50"})
+                Pay to Join ({isPremiumContest ? (planTier === "BASIC" ? "₹50" : "₹100") : "₹50"})
               </Button>
               <Button
                 variant="outline"

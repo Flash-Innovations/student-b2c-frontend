@@ -15,7 +15,7 @@ import {
   RefreshCw,
   Copy,
   Check,
-  Sparkles,
+
   ArrowLeft,
   Loader2,
   Cpu,
@@ -24,7 +24,6 @@ import {
 import Editor from "@monaco-editor/react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { useScreenContext } from "../context/ScreenContext";
 import { practiceApi } from "../services/practiceApi";
 import { b2cApi } from "../services/b2cApi";
 import { Card } from "../components/common/Card";
@@ -88,8 +87,7 @@ export function CodingArenaPage() {
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
-  const { setScreenContext, openAssistantWithQuery } = useScreenContext();
-
+  
   const [problem, setProblem] = useState(null);
   const [loadingProblem, setLoadingProblem] = useState(true);
   const [language, setLanguage] = useState("cpp");
@@ -221,21 +219,7 @@ export function CodingArenaPage() {
     return () => { isMounted = false; };
   }, [questionId]);
 
-  // Sync active problem & editor code with AI Assistant
-  useEffect(() => {
-    if (!problem) return;
-    setScreenContext({
-      contextType: "CODING_ARENA",
-      data: {
-        problemTitle: problem.title,
-        difficulty: problem.difficulty,
-        language,
-        sourceCode,
-        executionResult
-      }
-    });
-  }, [problem, language, sourceCode, executionResult, setScreenContext]);
-
+  
   // Save drafts when code changes
   const handleCodeChange = (newCode) => {
     const val = newCode || "";
@@ -456,15 +440,7 @@ export function CodingArenaPage() {
             <option value="javascript">JavaScript (Node 12)</option>
           </select>
 
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold cursor-pointer"
-            onClick={() => openAssistantWithQuery(`Give me a progressive hint for ${problem?.title || "this problem"} without revealing the full solution`, "HINT")}
-          >
-            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-indigo-600" /> AI Coach
-          </Button>
-
+          
           <Button
             size="sm"
             variant="outline"

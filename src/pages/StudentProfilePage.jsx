@@ -122,7 +122,7 @@ export function StudentProfilePage() {
     name: "",
     branch: "",
     degree: "",
-    batch: "2028",
+    batch: "",
     cgpa: "",
     phone: "",
     targetRoles: []
@@ -222,14 +222,16 @@ export function StudentProfilePage() {
         setStudent(u);
         setSkillsList(u.skills || []);
         setGithubHandle(u.github || "");
-        setLinkedinUrl(u.linkedin || "");
+        const rawLi = u.linkedin || "";
+        const cleanLi = rawLi.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "").replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+        setLinkedinUrl(cleanLi);
         setCodingProfiles(Array.isArray(u.codingProfiles) ? u.codingProfiles : []);
         setPublicProfileConfig(u.publicProfile || {});
         setProfileForm({
           name: u.name || "",
           branch: u.branch || "",
           degree: u.degree || "B.Tech / B.E.",
-          batch: u.graduationYear || u.batch || "2028",
+          batch: u.graduationYear || u.batch || "",
           cgpa: u.cgpa > 0 ? String(u.cgpa) : "",
           phone: u.phone || "",
           targetRoles: u.targetRoles || ["Software Development Engineer (SDE-1)"]
@@ -437,13 +439,15 @@ export function StudentProfilePage() {
   const handleSaveHandles = async () => {
     setSavingHandles(true);
     try {
-      const cleanGithub = githubHandle.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/^@+/, "").trim();
+      const cleanGithub = githubHandle.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+      const cleanLinkedin = linkedinUrl.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "").replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
       const res = await b2cApi.updateProfile({
         github: cleanGithub,
-        linkedin: linkedinUrl.trim()
+        linkedin: cleanLinkedin
       });
       if (res && res.success) {
-        setStudent(prev => ({ ...prev, github: cleanGithub, linkedin: linkedinUrl.trim() }));
+        setStudent(prev => ({ ...prev, github: cleanGithub, linkedin: cleanLinkedin }));
+        setLinkedinUrl(cleanLinkedin);
         setGithubHandle(cleanGithub);
         setIsEditingHandles(false);
         refreshProfile();
@@ -877,7 +881,7 @@ export function StudentProfilePage() {
                   </Badge>
                 </div>
                 <p className="text-xs font-semibold text-slate-500 mt-1">
-                  {specializationDisplay} • Class of {student?.graduationYear || student?.batch || "2028"}
+                  {specializationDisplay}{student?.graduationYear || student?.batch ? ` • Class of ${student.graduationYear || student.batch}` : ""}
                 </p>
               </div>
             </div>
@@ -1130,7 +1134,7 @@ export function StudentProfilePage() {
                 <div className="mt-3">
                   <input
                     type="text"
-                    placeholder="LinkedIn profile URL or username..."
+                    placeholder="LinkedIn username (e.g. satyanadella)..."
                     value={linkedinUrl}
                     onChange={(e) => setLinkedinUrl(e.target.value)}
                     className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white"
@@ -1138,22 +1142,25 @@ export function StudentProfilePage() {
                 </div>
               ) : (
                 <div className="mt-2 text-xs text-slate-600 flex items-center justify-between">
-                  {student?.linkedin ? (
-                    <>
-                      <span className="font-semibold text-slate-900 truncate max-w-[200px]">
-                        {student.linkedin}
-                      </span>
-                      <a
-                        href={student.linkedin.startsWith("http") ? student.linkedin : `https://${student.linkedin}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold shrink-0"
-                      >
-                        View Profile <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </>
-                  ) : (
-                    <span className="text-slate-400">No LinkedIn profile linked yet</span>
+                  {student?.linkedin ? (() => {
+                    const cleanLi = String(student.linkedin).replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "").replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+                    return (
+                      <>
+                        <span className="font-semibold text-slate-900 truncate max-w-[200px]">
+                          in/{cleanLi}
+                        </span>
+                        <a
+                          href={`https://linkedin.com/in/${cleanLi}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold shrink-0"
+                        >
+                          View Profile <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </>
+                    );
+                  })() : (
+                    <span className="text-slate-400">No LinkedIn username linked yet</span>
                   )}
                 </div>
               )}
@@ -1765,7 +1772,7 @@ export function StudentProfilePage() {
                 type="text"
                 value={profileForm.batch}
                 onChange={(e) => setProfileForm({ ...profileForm, batch: e.target.value })}
-                placeholder="e.g. 2028"
+                placeholder="e.g. 2026"
                 className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
               />
             </div>

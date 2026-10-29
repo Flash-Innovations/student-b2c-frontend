@@ -3,7 +3,6 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopNavbar } from "./TopNavbar";
 import { cn } from "../../utils/cn";
-import { FloatingAIAssistant } from "../assistant/FloatingAIAssistant";
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -31,9 +30,6 @@ export function DashboardLayout() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
-
-        {/* Global Screen-Aware Floating AI Placement Assistant */}
-        <FloatingAIAssistant />
       </div>
     </div>
   );

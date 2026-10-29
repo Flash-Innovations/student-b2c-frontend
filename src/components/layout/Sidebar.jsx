@@ -182,7 +182,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                   {user?.name || "Student Candidate"}
                 </p>
                 <p className="text-[11px] text-slate-400 capitalize truncate">
-                  {user?.graduationYear ? `Batch ${user.graduationYear} • Candidate` : "2028 Cohort"}
+                  {user?.graduationYear ? `Batch ${user.graduationYear} • Candidate` : "Student Candidate"}
                 </p>
               </div>
             )}

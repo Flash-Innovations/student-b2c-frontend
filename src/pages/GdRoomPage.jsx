@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { useScreenContext } from "../context/ScreenContext";
 import { b2cApi } from "../services/b2cApi";
 import { Button } from "../components/common/Button";
 import { Avatar } from "../components/common/Avatar";
@@ -44,8 +43,7 @@ export function GdRoomPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
-  const { setScreenContext, openAssistantWithQuery } = useScreenContext();
-
+  
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [remainingSeconds, setRemainingSeconds] = useState(900);
@@ -289,21 +287,7 @@ export function GdRoomPage() {
     }
   }, [isVideoMuted]);
 
-  // Sync active GD Room with AI Assistant
-  useEffect(() => {
-    if (!room) return;
-    setScreenContext({
-      contextType: "GD_ARENA",
-      data: {
-        topic: room.topic,
-        category: room.category,
-        roomId: room.roomId || roomId,
-        roleplayFramework: "SWOT / 4Ps / PESTLE",
-        participantsCount: (room.participants || []).length
-      }
-    });
-  }, [room, roomId, setScreenContext]);
-
+  
   // Auto-scroll chat to bottom
   useEffect(() => {
     if (chatBottomRef.current) {
@@ -906,15 +890,7 @@ export function GdRoomPage() {
             <MessageSquare className="w-5 h-5" />
           </button>
 
-          {/* AI GD Coach Toggle */}
-          <button
-            onClick={() => openAssistantWithQuery(`Give me a structured opening pitch framework (SWOT/4Ps) for this topic: "${room?.topic || 'Group Discussion'}"`, "FRAMEWORK")}
-            className="p-3 sm:p-3.5 rounded-2xl font-bold transition-all cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/30"
-            title="Open AI GD Coach"
-          >
-            <Sparkles className="w-5 h-5" />
-          </button>
-
+          
           {/* Leave / End Call Button */}
           <button
             onClick={handleLeaveRoom}

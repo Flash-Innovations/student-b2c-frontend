@@ -53,7 +53,7 @@ export function Navbar() {
                 FLASH
               </span>
               <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                2028 Cohort
+                Placement Prep
               </span>
             </div>
           </div>
@@ -121,7 +121,7 @@ export function Navbar() {
                     <div className="px-3 py-2 border-b border-slate-800 mb-1">
                       <p className="font-bold text-white truncate">{user?.name}</p>
                       <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
-                      <p className="text-[10px] text-indigo-400 font-mono mt-0.5">{user?.collegeName || 'Class of 2028'}</p>
+                      <p className="text-[10px] text-indigo-400 font-mono mt-0.5">{user?.collegeName || (user?.graduationYear ? `Class of ${user.graduationYear}` : 'Student Candidate')}</p>
                     </div>
 
                     <Link
@@ -215,7 +215,7 @@ export function Navbar() {
               </Link>
               <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="primary" className="w-full">
-                  Get Started (Batch of 2028)
+                  Get Started Free
                 </Button>
               </Link>
             </div>
