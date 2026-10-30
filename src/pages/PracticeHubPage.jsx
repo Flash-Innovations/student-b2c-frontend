@@ -30,7 +30,7 @@ const PRACTICE_TOPICS = [
     name: "Quantitative Aptitude",
     category: "Aptitude",
     icon: Calculator,
-    color: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 320,
     difficulty: "Medium",
     topics: ["Profit & Loss", "Time & Work", "Percentages", "Permutation & Combination", "Probability"]
@@ -40,7 +40,7 @@ const PRACTICE_TOPICS = [
     name: "Logical Reasoning",
     category: "Aptitude",
     icon: Compass,
-    color: "bg-sky-50 text-sky-600 border-sky-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 280,
     difficulty: "Medium",
     topics: ["Blood Relations", "Direction Sense", "Syllogisms", "Coding-Decoding", "Seating Arrangement"]
@@ -50,7 +50,7 @@ const PRACTICE_TOPICS = [
     name: "Verbal Ability & English",
     category: "Aptitude",
     icon: BookOpen,
-    color: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 240,
     difficulty: "Easy-Medium",
     topics: ["Reading Comprehension", "Error Spotting", "Sentence Correction", "Para Jumbles", "Vocabulary"]
@@ -61,7 +61,7 @@ const PRACTICE_TOPICS = [
     category: "Core CS",
     technicalOnly: true,
     icon: Database,
-    color: "bg-amber-50 text-amber-600 border-amber-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 190,
     difficulty: "Medium-Hard",
     topics: ["SQL Queries", "Normalization (1NF-BCNF)", "Indexing & B-Trees", "ACID Transactions", "Concurreny"]
@@ -72,7 +72,7 @@ const PRACTICE_TOPICS = [
     category: "Core CS",
     technicalOnly: true,
     icon: Cpu,
-    color: "bg-purple-50 text-purple-600 border-purple-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 180,
     difficulty: "Medium",
     topics: ["Process Scheduling", "Deadlocks & Semaphores", "Virtual Memory & Paging", "Threading", "File Systems"]
@@ -83,7 +83,7 @@ const PRACTICE_TOPICS = [
     category: "Core CS",
     technicalOnly: true,
     icon: Network,
-    color: "bg-rose-50 text-rose-600 border-rose-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 160,
     difficulty: "Medium",
     topics: ["OSI & TCP/IP Models", "Routing Protocols", "DNS & HTTP/HTTPS", "Subnetting & CIDR", "Socket Programming"]
@@ -94,7 +94,7 @@ const PRACTICE_TOPICS = [
     category: "Core CS",
     technicalOnly: true,
     icon: Layers,
-    color: "bg-blue-50 text-blue-600 border-blue-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 210,
     difficulty: "Medium",
     topics: ["Inheritance & Polymorphism", "Encapsulation", "SOLID Principles", "Design Patterns", "Abstract Classes"]
@@ -104,7 +104,7 @@ const PRACTICE_TOPICS = [
     name: "Data Interpretation & Analysis",
     category: "Aptitude",
     icon: Layers,
-    color: "bg-amber-50 text-amber-600 border-amber-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 220,
     difficulty: "Medium",
     topics: ["Tables & Bar Charts", "Pie Charts", "Caselets", "Data Sufficiency", "Trend Analysis"]
@@ -115,7 +115,7 @@ const PRACTICE_TOPICS = [
     category: "Management",
     businessOnly: true,
     icon: BookOpen,
-    color: "bg-purple-50 text-purple-600 border-purple-100",
+    color: "bg-slate-100 text-slate-800 border-slate-200",
     questionCount: 190,
     difficulty: "Medium",
     topics: ["Business Strategy", "Financial Terminology", "Marketing Principles", "Organizational Behavior", "Case Analysis"]
@@ -210,18 +210,18 @@ export function PracticeHubPage() {
 
       {/* Coding Arena Quick Launch Card for Technical Students */}
       {isTechnical && (
-        <Card className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white border-slate-800 shadow-md">
+        <Card className="p-5 bg-white text-slate-900 border-slate-200 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-300">
+              <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800">
                 <Terminal className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   Coding Arena & Algorithmic Challenges
                   <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">LeetCode Style</span>
                 </h3>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Practice Data Structures & Algorithms with real-time sandbox execution, test cases, and AI coaching.
                 </p>
               </div>
@@ -229,7 +229,7 @@ export function PracticeHubPage() {
             <Button
               size="sm"
               variant="primary"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white whitespace-nowrap self-start sm:self-auto cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap self-start sm:self-auto cursor-pointer"
               onClick={() => navigate("/coding")}
             >
               Browse Problem Bank <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -247,7 +247,7 @@ export function PracticeHubPage() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 selectedCategory === cat
-                  ? "bg-indigo-600 text-white shadow-xs"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
               }`}
             >

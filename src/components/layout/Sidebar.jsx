@@ -89,7 +89,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                   <span className="text-base font-black tracking-tight text-slate-900 leading-tight">
                     FLASH
                   </span>
-                  <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider font-mono">
+                  <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider font-mono">
                     Student Portal
                   </span>
                 </div>
@@ -130,7 +130,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                   cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group relative",
                     isActive
-                      ? "bg-indigo-50 text-indigo-700 font-semibold"
+                      ? "bg-blue-50 text-blue-700 font-semibold"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   )
                 }
@@ -140,7 +140,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
                     <Icon
                       className={cn(
                         "w-5 h-5 shrink-0 transition-colors",
-                        isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"
+                        isActive ? "text-blue-600" : "text-slate-500 group-hover:text-slate-800"
                       )}
                     />
                     {!isCollapsed && (
@@ -189,7 +189,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
             {!isCollapsed && (
               <button
                 onClick={handleLogout}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 title="Log out"
               >
                 <LogOut className="w-4 h-4" />

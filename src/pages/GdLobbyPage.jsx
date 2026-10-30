@@ -264,8 +264,8 @@ export function GdLobbyPage() {
   if (isTechnical) {
     return (
       <div className="max-w-4xl mx-auto py-8 space-y-6 animate-in fade-in duration-300">
-        <Card className="p-8 sm:p-12 text-center border-indigo-100 bg-gradient-to-b from-indigo-50/40 via-white to-white shadow-sm">
-          <div className="w-16 h-16 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-5 shadow-xs">
+        <Card className="p-8 sm:p-12 text-center border-slate-200 bg-white shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center mx-auto mb-4">
             <Users2 className="w-8 h-8" />
           </div>
 
@@ -299,23 +299,23 @@ export function GdLobbyPage() {
     <div className="space-y-6 animate-in fade-in duration-300">
       
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-indigo-900/40">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="rounded-xl bg-white text-slate-900 p-6 sm:p-8 shadow-xs border border-slate-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">
                 <Users2 className="w-3.5 h-3.5" />
                 Executive Assessment Centre
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live Video & Audio
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               Group Discussion Arena
             </h1>
-            <p className="text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
               Simulated corporate assessment centre discussions for Management, MBA & BBA students.
               Collaborate on real-world case studies with peers under realistic recruiter evaluation conditions.
             </p>
@@ -326,7 +326,7 @@ export function GdLobbyPage() {
               variant="primary"
               onClick={() => setCreateModalOpen(true)}
               disabled={status && !status.canJoinOrCreate && !status.currentActiveGdId}
-              className="bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
+              className="flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Create Discussion
@@ -335,16 +335,13 @@ export function GdLobbyPage() {
               variant="outline"
               onClick={handleBuyPowerUp}
               loading={purchasingPowerUp}
-              className="border-indigo-400/40 text-indigo-200 hover:bg-indigo-900/40 flex items-center justify-center gap-2 text-xs"
+              className="flex items-center justify-center gap-2 text-xs"
             >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <Zap className="w-3.5 h-3.5 text-slate-600" />
               Get ₹30 Power-Up Pass (all-incl.)
             </Button>
           </div>
         </div>
-
-        {/* Ambient background glow */}
-        <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
       </div>
 
       {/* Active Session Alert (Single Concurrency Invariant) */}
@@ -431,24 +428,24 @@ export function GdLobbyPage() {
         </Card>
 
         {/* Power-Up Balance Card */}
-        <Card className="p-4 bg-gradient-to-br from-indigo-50/50 to-white border-indigo-200/80">
+        <Card className="p-4 bg-white border-slate-200">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Power-Up Credits</span>
-            <Zap className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Power-Up Credits</span>
+            <Zap className="w-4 h-4 text-slate-600" />
           </div>
           <div className="flex items-baseline justify-between mt-2">
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-indigo-700 font-mono">
+              <span className="text-2xl font-black text-slate-900 font-mono">
                 {status?.purchasedGdCredits || 0}
               </span>
-              <span className="text-xs text-indigo-500 font-medium">sessions</span>
+              <span className="text-xs text-slate-500 font-medium">sessions</span>
             </div>
             <Button
               size="xs"
               variant="outline"
               onClick={handleBuyPowerUp}
               loading={purchasingPowerUp}
-              className="text-xs font-semibold text-indigo-700 border-indigo-300 hover:bg-indigo-50"
+              className="text-xs font-semibold text-blue-600 border-blue-200 hover:bg-blue-50"
             >
               Buy Power-Up (₹30 all-incl.)
             </Button>

@@ -8,7 +8,7 @@ export function StatCard({
   value,
   subtitle,
   icon: Icon,
-  iconBg = "bg-indigo-50 text-indigo-600",
+  iconBg = "bg-slate-100 text-slate-800",
   trend = null,
   onClick,
   className = ""
@@ -56,7 +56,7 @@ export function StatCard({
                 className={cn(
                   "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-semibold shrink-0",
                   trend.direction === "up" && "bg-emerald-50 text-emerald-700",
-                  trend.direction === "down" && "bg-rose-50 text-rose-700",
+                  trend.direction === "down" && "bg-red-50 text-red-700",
                   trend.direction === "neutral" && "bg-slate-100 text-slate-700"
                 )}
               >

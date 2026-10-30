@@ -44,16 +44,16 @@ export function DailyTrendChart({
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-600">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#5D3BEE] inline-block shadow-xs"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block shadow-xs"></span>
             Accuracy %
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 border-t-2 border-dashed border-[#FFB020] inline-block"></span>
+            <span className="w-3 h-0.5 border-t-2 border-dashed border-purple-600 inline-block"></span>
             Problems Solved
           </span>
         </div>
         {hoveredIdx !== null && (
-          <span className="text-[11px] font-bold text-[#5D3BEE] bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+          <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
             {days[hoveredIdx]}: {accuracy[hoveredIdx]}% Acc • {problems[hoveredIdx]} Solved
           </span>
         )}
@@ -66,9 +66,9 @@ export function DailyTrendChart({
           preserveAspectRatio="none"
         >
           <defs>
-            <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#5D3BEE" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#5D3BEE" stopOpacity="0.0" />
+            <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2563EB" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -101,23 +101,23 @@ export function DailyTrendChart({
           })}
 
           {/* Shaded Area */}
-          <path d={accuracyArea} fill="url(#purpleGradient)" />
+          <path d={accuracyArea} fill="url(#blueGradient)" />
 
-          {/* Accuracy Line */}
+          {/* Accuracy Line (Brand Blue) */}
           <path
             d={accuracyLine}
             fill="none"
-            stroke="#5D3BEE"
-            strokeWidth="3"
+            stroke="#2563EB"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
-          {/* Problems Solved Line */}
+          {/* Problems Solved Line (Orchid) */}
           <path
             d={problemsLine}
             fill="none"
-            stroke="#FFB020"
+            stroke="#9333EA"
             strokeWidth="2"
             strokeDasharray="4 4"
             strokeLinecap="round"
@@ -145,10 +145,10 @@ export function DailyTrendChart({
                     y1={paddingTop}
                     x2={x}
                     y2={paddingTop + chartH}
-                    stroke="#5D3BEE"
+                    stroke="#2563EB"
                     strokeWidth="1"
                     strokeDasharray="2 2"
-                    opacity="0.4"
+                    opacity="0.3"
                   />
                 )}
 
@@ -159,7 +159,7 @@ export function DailyTrendChart({
                   textAnchor="middle"
                   fontSize="9"
                   fontWeight={isHovered ? "bold" : "normal"}
-                  fill={isHovered ? "#5D3BEE" : "#64748B"}
+                  fill={isHovered ? "#2563EB" : "#64748B"}
                   fontFamily="Inter, sans-serif"
                 >
                   {day}
@@ -169,8 +169,8 @@ export function DailyTrendChart({
                 <circle
                   cx={x}
                   cy={yAcc}
-                  r={isHovered ? 5.5 : 4}
-                  fill="#5D3BEE"
+                  r={isHovered ? 5 : 3.5}
+                  fill="#2563EB"
                   stroke="#FFFFFF"
                   strokeWidth="2"
                   className="transition-all duration-150"
@@ -180,8 +180,8 @@ export function DailyTrendChart({
                 <circle
                   cx={x}
                   cy={yProb}
-                  r={isHovered ? 4 : 3}
-                  fill="#FFB020"
+                  r={isHovered ? 4 : 2.5}
+                  fill="#9333EA"
                   stroke="#FFFFFF"
                   strokeWidth="1.5"
                   className="transition-all duration-150"

@@ -826,7 +826,7 @@ export function StudentProfilePage() {
 
       {/* 1. Header Profile Hero Card */}
       <Card className="overflow-hidden border-slate-200">
-        <div className="h-28 sm:h-32 bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 relative" />
+        <div className="h-28 sm:h-32 bg-slate-900 relative" />
         <div className="px-6 pb-6 pt-0 relative">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -948,13 +948,13 @@ export function StudentProfilePage() {
               <span className="font-semibold text-slate-700 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Portfolio Strength
               </span>
-              <span className="font-mono font-bold text-indigo-600">
+              <span className="font-mono font-bold text-blue-600">
                 {profileCompletion.percentage}% Complete
               </span>
             </div>
             <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-emerald-500 transition-all duration-500 rounded-full"
+                className="h-full bg-blue-600 transition-all duration-500 rounded-full"
                 style={{ width: `${profileCompletion.percentage}%` }}
               />
             </div>
@@ -2043,19 +2043,22 @@ export function StudentProfilePage() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleToggleProject(repo.repoId)}
-                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                          className="rounded text-blue-600 focus:ring-blue-500"
                         />
                         <div className="min-w-0">
                           <p className="font-bold truncate">{repo.name}</p>
-                          <p className="text-[11px] text-slate-400 truncate">
-                            {repo.primaryLanguage || "Repo"} • ★ {repo.stars || 0}
+                          <p className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                            <span>{repo.primaryLanguage || "Repo"}</span>
+                            <span>•</span>
+                            <Star className="w-3 h-3 inline-block text-slate-400" />
+                            <span>{repo.stars || 0}</span>
                           </p>
                         </div>
                       </label>
 
                       {isSelected && (
                         <div className="flex items-center gap-1 shrink-0">
-                          <span className="font-mono text-xs font-bold text-indigo-600 px-1.5 py-0.5 rounded bg-indigo-100">
+                          <span className="font-mono text-xs font-bold text-blue-700 px-1.5 py-0.5 rounded bg-blue-50">
                             #{order + 1}
                           </span>
                           <button

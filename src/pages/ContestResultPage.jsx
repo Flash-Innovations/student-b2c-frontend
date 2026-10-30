@@ -167,18 +167,18 @@ export function ContestResultPage() {
       </div>
 
       {/* Main Scorecard Hero Card */}
-      <Card className="p-8 text-center bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white relative overflow-hidden shadow-lg border-0">
+      <Card className="p-8 text-center bg-white border border-slate-200 text-slate-900 relative overflow-hidden shadow-xs">
         <div className="relative z-10 space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center mx-auto text-amber-400 shadow-inner">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-800">
             <Trophy className="w-7 h-7" />
           </div>
 
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-300">
+            <span className="text-xs font-bold uppercase tracking-widest text-blue-600">
               {contestTitle}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1 font-mono">
-              {totalScore} <span className="text-lg font-normal text-indigo-200">/ {totalMarks} Marks</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1 font-mono text-slate-900">
+              {totalScore} <span className="text-lg font-normal text-slate-500">/ {totalMarks} Marks</span>
             </h2>
             <div className="flex items-center justify-center gap-2 mt-2">
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono ${
@@ -188,7 +188,7 @@ export function ContestResultPage() {
               }`}>
                 {percentage}% Score
               </span>
-              <span className="text-xs text-indigo-200">
+              <span className="text-xs text-slate-500">
                 {percentage >= 70 ? "Excellent Performance" : percentage >= 40 ? "Good Performance" : "Keep Practicing"}
               </span>
             </div>
@@ -196,19 +196,19 @@ export function ContestResultPage() {
 
           {/* 6 Key Metrics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-3 max-w-3xl mx-auto">
-            <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-200 block">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                 Total Score
               </span>
-              <span className="text-sm font-bold text-white font-mono mt-0.5 block">
+              <span className="text-sm font-bold text-slate-900 font-mono mt-0.5 block">
                 {totalScore}
               </span>
             </div>
-            <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-200 block">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                 Percentage
               </span>
-              <span className="text-sm font-bold text-white font-mono mt-0.5 block">
+              <span className="text-sm font-bold text-slate-900 font-mono mt-0.5 block">
                 {percentage}%
               </span>
             </div>
@@ -236,11 +236,11 @@ export function ContestResultPage() {
                 {unansweredCount}
               </span>
             </div>
-            <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-200 block">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                 Time Taken
               </span>
-              <span className="text-sm font-bold text-white font-mono mt-0.5 block truncate">
+              <span className="text-sm font-bold text-slate-900 font-mono mt-0.5 block truncate">
                 {timeTakenFormatted}
               </span>
             </div>
@@ -249,15 +249,15 @@ export function ContestResultPage() {
           {/* Sectional Breakdown Chips */}
           <div className="grid grid-cols-3 gap-3 max-w-md mx-auto pt-2">
             <div className="p-2 rounded-lg bg-white/5 border border-white/10 text-center">
-              <span className="text-[10px] font-semibold text-indigo-200 block">Aptitude</span>
+              <span className="text-[10px] font-semibold text-slate-500 block">Aptitude</span>
               <span className="text-xs font-bold text-white font-mono">{aptitudeScore} M</span>
             </div>
             <div className="p-2 rounded-lg bg-white/5 border border-white/10 text-center">
-              <span className="text-[10px] font-semibold text-indigo-200 block">Technical</span>
+              <span className="text-[10px] font-semibold text-slate-500 block">Technical</span>
               <span className="text-xs font-bold text-white font-mono">{technicalScore} M</span>
             </div>
             <div className="p-2 rounded-lg bg-white/5 border border-white/10 text-center">
-              <span className="text-[10px] font-semibold text-indigo-200 block">Coding</span>
+              <span className="text-[10px] font-semibold text-slate-500 block">Coding</span>
               <span className="text-xs font-bold text-white font-mono">{codingScore} M</span>
             </div>
           </div>

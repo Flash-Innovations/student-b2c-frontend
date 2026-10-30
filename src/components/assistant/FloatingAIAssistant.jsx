@@ -262,30 +262,30 @@ export function FloatingAIAssistant() {
     switch (ctx) {
       case "CODING_ARENA":
         return [
-          { label: "💡 Give Intuition Hint", action: "HINT", query: "Give me progressive hints without spoiling the full solution." },
-          { label: "⏱️ Check Time Complexity", action: "BIG_O", query: "What is the time and space complexity of my current approach?" },
-          { label: "🧪 Edge Cases Check", action: "EDGE_CASES", query: "What edge cases might break my code?" }
+          { label: "Give Intuition Hint", action: "HINT", query: "Give me progressive hints without spoiling the full solution." },
+          { label: "Check Time Complexity", action: "BIG_O", query: "What is the time and space complexity of my current approach?" },
+          { label: "Edge Cases Check", action: "EDGE_CASES", query: "What edge cases might break my code?" }
         ];
       case "PRACTICE_MCQ":
         return [
-          { label: "⚡ 30-Sec Elimination Hack", action: "ELIMINATION", query: "How do I eliminate the wrong options quickly?" },
-          { label: "🎯 Why Correct Option Works", action: "EXPLANATION", query: "Explain why the right answer is correct with concept intuition." }
+          { label: "30-Sec Elimination Hack", action: "ELIMINATION", query: "How do I eliminate the wrong options quickly?" },
+          { label: "Why Correct Option Works", action: "EXPLANATION", query: "Explain why the right answer is correct with concept intuition." }
         ];
       case "GD_ARENA":
         return [
-          { label: "📊 Case Analysis Framework", action: "FRAMEWORK", query: "Suggest a structured framework to open and lead this discussion." },
-          { label: "🗣️ Opening Pitch Formula", action: "OPENING", query: "How should I structure my opening 45-second pitch on this topic?" },
-          { label: "⚖️ Devil's Advocate Point", action: "COUNTER", query: "What counter-argument or nuanced trade-off will impress recruiters?" }
+          { label: "Case Analysis Framework", action: "FRAMEWORK", query: "Suggest a structured framework to open and lead this discussion." },
+          { label: "Opening Pitch Formula", action: "OPENING", query: "How should I structure my opening 45-second pitch on this topic?" },
+          { label: "Devil's Advocate Point", action: "COUNTER", query: "What counter-argument or nuanced trade-off will impress recruiters?" }
         ];
       case "RESUME_OPTIMIZER":
         return [
-          { label: "📄 Bullet Improvement Hack", action: "BULLET", query: "How can I rewrite my project bullet points with quantified impact?" },
-          { label: "🎯 Keyword Gap Analysis", action: "KEYWORDS", query: "What top ATS keywords am I missing for my target role?" }
+          { label: "Bullet Improvement Hack", action: "BULLET", query: "How can I rewrite my project bullet points with quantified impact?" },
+          { label: "Keyword Gap Analysis", action: "KEYWORDS", query: "What top ATS keywords am I missing for my target role?" }
         ];
       default:
         return [
-          { label: "✨ Analyze Current Screen", action: "AUTO", query: "Analyze my current screen and give recommendations." },
-          { label: "🏆 Placement Readiness Strategy", action: "STRATEGY", query: "What should I focus on today to prepare for upcoming campus drives?" }
+          { label: "Analyze Current Screen", action: "AUTO", query: "Analyze my current screen and give recommendations." },
+          { label: "Placement Readiness Strategy", action: "STRATEGY", query: "What should I focus on today to prepare for upcoming campus drives?" }
         ];
     }
   };
@@ -628,7 +628,7 @@ export function FloatingAIAssistant() {
               <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 text-amber-900 flex items-start gap-2">
                 <Zap className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-[11px] block">⚡ 30-Second Elimination Hack</span>
+                  <span className="font-bold text-[11px] block">30-Second Elimination Hack</span>
                   <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">{data.eliminationHack}</p>
                 </div>
               </div>

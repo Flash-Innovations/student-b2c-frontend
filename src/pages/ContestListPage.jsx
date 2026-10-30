@@ -646,7 +646,7 @@ export function ContestListPage() {
                   key={contest.id}
                   className={`p-5 flex flex-col justify-between hover:shadow-md transition-all cursor-pointer ${
                     isLive
-                      ? "border-emerald-300 bg-gradient-to-b from-white to-emerald-50/20"
+                      ? "border-emerald-300 bg-white"
                       : "border-slate-200 bg-white"
                   }`}
                   onClick={() => navigate(`/contests/${contest.id}`)}

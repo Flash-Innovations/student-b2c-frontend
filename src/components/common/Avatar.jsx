@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Building2 } from "lucide-react";
 
 export function getInitials(name = "") {
@@ -17,22 +17,7 @@ export function getInitials(name = "") {
 }
 
 function getDeterministicBg(name = "") {
-  const gradients = [
-    "from-indigo-600 to-blue-600 text-white",
-    "from-emerald-600 to-teal-600 text-white",
-    "from-purple-600 to-pink-600 text-white",
-    "from-amber-600 to-orange-600 text-white",
-    "from-cyan-600 to-blue-600 text-white",
-    "from-violet-600 to-purple-600 text-white",
-    "from-rose-600 to-red-600 text-white"
-  ];
-  if (!name) return gradients[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const idx = Math.abs(hash) % gradients.length;
-  return gradients[idx];
+  return "bg-blue-600 text-white";
 }
 
 const SIZE_CLASSES = {
@@ -70,7 +55,7 @@ export function Avatar({
   const sizeClass = SIZE_CLASSES[size] || (typeof size === "string" ? size : "w-10 h-10 text-sm");
   const roundedClass = ROUNDED_CLASSES[variant] || "rounded-full";
   const initials = getInitials(name);
-  const bgGradient = isCollege ? "from-slate-700 to-slate-900 text-amber-400" : getDeterministicBg(name);
+  const bgGradient = isCollege ? "bg-slate-800 text-white" : getDeterministicBg(name);
 
   const hasValidImage = Boolean(src) && !imageError;
 
@@ -88,7 +73,7 @@ export function Avatar({
         />
       ) : (
         <div
-          className={`w-full h-full flex items-center justify-center bg-gradient-to-br shadow-inner ${bgGradient} ${roundedClass}`}
+          className={`w-full h-full flex items-center justify-center ${bgGradient} ${roundedClass}`}
           title={name || (isCollege ? "College" : "User")}
         >
           {isCollege ? (

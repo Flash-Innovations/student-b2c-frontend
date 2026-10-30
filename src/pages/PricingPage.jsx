@@ -160,9 +160,9 @@ export function PricingPage() {
 
       {/* Active Subscription & AutoPay Management Banner (If Student is on Paid Tier) */}
       {planTier !== "FREE" && (
-        <div className="max-w-6xl mx-auto bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/80 border border-indigo-100 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
               <RefreshCw className="w-5 h-5 animate-spin-slow" />
             </div>
             <div>
@@ -173,11 +173,11 @@ export function PricingPage() {
                   ({subscription?.billingCycle || "MONTHLY"})
                 </span>
                 {subscription?.autoPayEnabled ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                     <ShieldCheck className="w-3.5 h-3.5" /> AutoPay Active
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
                     AutoPay Cancelled
                   </span>
                 )}
@@ -197,7 +197,7 @@ export function PricingPage() {
               variant="outline"
               size="sm"
               onClick={() => setCancelModalOpen(true)}
-              className="text-xs text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 shrink-0"
+              className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 shrink-0"
             >
               Cancel AutoPay
             </Button>
@@ -273,7 +273,7 @@ export function PricingPage() {
         <Card className="p-6 flex flex-col justify-between border-slate-200 hover:shadow-md transition-all">
           <div>
             <div className="flex justify-between items-center mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Standard</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Standard</span>
               <Badge variant="primary">Popular</Badge>
             </div>
 
@@ -282,14 +282,14 @@ export function PricingPage() {
 
             <div className="my-6">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-indigo-600 font-mono">
+                <span className="text-4xl font-black text-blue-600 font-mono">
                   {billingCycle === "MONTHLY" ? "₹99" : "₹999"}
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
                   {billingCycle === "MONTHLY" ? "/ month (incl. all taxes)" : "/ year (incl. all taxes)"}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 mt-1 text-[11px] text-indigo-600 font-semibold">
+              <div className="flex items-center gap-1.5 mt-1 text-[11px] text-blue-600 font-semibold">
                 <RefreshCw className="w-3 h-3" />
                 <span>UPI AutoPay & Card e-Mandate • Flat {billingCycle === "MONTHLY" ? "₹99" : "₹999"}</span>
               </div>
@@ -343,16 +343,16 @@ export function PricingPage() {
         </Card>
 
         {/* Tier 3: PREMIUM */}
-        <Card className="p-6 flex flex-col justify-between border-indigo-500 ring-2 ring-indigo-500/20 shadow-md relative bg-gradient-to-b from-indigo-50/30 to-white">
+        <Card className="p-6 flex flex-col justify-between border-blue-600 shadow-sm relative bg-white">
           <div className="absolute -top-3 right-6">
-            <span className="bg-indigo-600 text-white text-[10px] font-semibold tracking-wider uppercase px-2.5 py-0.5 rounded shadow-xs">
+            <span className="bg-blue-600 text-white text-[10px] font-semibold tracking-wider uppercase px-2.5 py-0.5 rounded shadow-xs">
               Recommended
             </span>
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-600">Enterprise Ready</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Enterprise Ready</span>
             </div>
 
             <h3 className="text-xl font-extrabold text-slate-900">Premium Plan</h3>
@@ -360,14 +360,14 @@ export function PricingPage() {
 
             <div className="my-6">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-purple-600 font-mono">
+                <span className="text-4xl font-black text-slate-900 font-mono">
                   {billingCycle === "MONTHLY" ? "₹199" : "₹1,999"}
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
                   {billingCycle === "MONTHLY" ? "/ month (incl. all taxes)" : "/ year (incl. all taxes)"}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 mt-1 text-[11px] text-purple-600 font-semibold">
+              <div className="flex items-center gap-1.5 mt-1 text-[11px] text-purple-700 font-semibold">
                 <RefreshCw className="w-3 h-3" />
                 <span>UPI AutoPay & Card e-Mandate • Flat {billingCycle === "MONTHLY" ? "₹199" : "₹1,999"}</span>
               </div>
@@ -411,7 +411,7 @@ export function PricingPage() {
               variant={planTier === "PREMIUM" ? "outline" : "primary"}
               loading={processingPlan === "PREMIUM"}
               onClick={() => handleSubscribe("PREMIUM")}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"
+              className="w-full"
             >
               {planTier === "PREMIUM" ? "Current Active Plan" : "Enable AutoPay (Premium)"}
             </Button>
@@ -425,7 +425,7 @@ export function PricingPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5 text-rose-600">
+              <div className="flex items-center gap-2.5 text-red-600">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
                 <h3 className="font-bold text-slate-900 text-base">Cancel AutoPay Mandate?</h3>
               </div>
@@ -461,11 +461,10 @@ export function PricingPage() {
                 Keep AutoPay
               </Button>
               <Button
-                variant="primary"
+                variant="danger"
                 size="sm"
                 loading={cancellingAutoPay}
                 onClick={handleCancelAutoPay}
-                className="bg-rose-600 hover:bg-rose-700 text-white shadow-rose-200"
               >
                 Confirm Cancellation
               </Button>

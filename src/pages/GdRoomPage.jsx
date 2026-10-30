@@ -582,7 +582,7 @@ export function GdRoomPage() {
                           />
                         )}
                         <div
-                          className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-2xl font-black text-white shadow-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 ${
+                          className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-2xl font-black text-white bg-blue-600 ${
                             !isAudioOff ? "ring-4 ring-emerald-400/60 ring-offset-2 ring-offset-slate-900 animate-pulse" : ""
                           }`}
                         >
@@ -747,7 +747,7 @@ export function GdRoomPage() {
                     className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
                         {p.name?.charAt(0)?.toUpperCase()}
                       </div>
                       <div className="min-w-0">

@@ -39,8 +39,8 @@ function RootEntry() {
   const { isAuthenticated, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -51,7 +51,7 @@ export function App() {
   const { isTechnical } = useAuth();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900">
       <OfflineBanner />
       <Routes>
         {/* Default Route: Always opens Login page first for unauthenticated users */}
@@ -66,7 +66,7 @@ export function App() {
           path="/contests/:contestId/attempt/:attemptId"
           element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 sm:p-6">
+              <div className="min-h-screen bg-white text-slate-900 font-sans p-4 sm:p-6">
                 <ContestWorkspacePage />
               </div>
             </ProtectedRoute>

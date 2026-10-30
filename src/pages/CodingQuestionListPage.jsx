@@ -158,29 +158,29 @@ export function CodingQuestionListPage() {
     <div className="space-y-6 animate-in fade-in duration-300 pb-16">
       
       {/* Top Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white shadow-md border border-slate-800">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="rounded-xl bg-white p-6 sm:p-8 text-slate-900 shadow-xs border border-slate-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+              <span className="p-2 rounded-xl bg-slate-100 text-slate-800 border border-slate-200">
                 <Terminal className="w-5 h-5" />
               </span>
-              <span className="text-xs font-bold uppercase tracking-widest text-indigo-300 font-mono">
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-600 font-mono">
                 DSA Problem Arena
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               Coding Practice Challenges
             </h1>
-            <p className="text-xs sm:text-sm text-indigo-200 max-w-xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 max-w-xl leading-relaxed">
               Curated campus placement and competitive coding problems in C++, Python, Java, and JavaScript with Judge0 sandbox evaluation.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10">
-              <div className="text-[10px] font-bold uppercase text-indigo-200">DSA Quota</div>
-              <div className="text-sm font-bold text-white font-mono mt-0.5">
+            <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
+              <div className="text-[10px] font-bold uppercase text-slate-500">DSA Quota</div>
+              <div className="text-sm font-bold text-slate-900 font-mono mt-0.5">
                 {isPaid ? "Unlimited" : `${dsaCount} / ${dsaLimit} Solved`}
               </div>
             </div>
@@ -188,7 +188,6 @@ export function CodingQuestionListPage() {
             <Button
               variant="outline"
               size="sm"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
               onClick={() => fetchQuestions({ forceRefresh: true })}
               loading={isRefreshing}
             >
@@ -196,9 +195,6 @@ export function CodingQuestionListPage() {
             </Button>
           </div>
         </div>
-
-        {/* Decorative background glow */}
-        <div className="absolute right-0 top-0 -bottom-10 w-96 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
       </div>
 
       {/* Progress & Category Summary Cards */}
@@ -229,15 +225,15 @@ export function CodingQuestionListPage() {
 
         <Card className="p-4 bg-white border border-slate-200">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-600">Medium</span>
+            <span className="text-xs font-semibold text-purple-700">Medium</span>
             <span className="text-[10px] text-slate-400">{mediumSolved}/{mediumTotal}</span>
           </div>
-          <div className="text-2xl font-black text-amber-600 font-mono mt-1">
+          <div className="text-2xl font-black text-purple-700 font-mono mt-1">
             {mediumTotal}
           </div>
-          <div className="w-full bg-amber-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+          <div className="w-full bg-purple-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
             <div
-              className="bg-amber-500 h-full rounded-full transition-all"
+              className="bg-purple-600 h-full rounded-full transition-all"
               style={{ width: `${mediumTotal > 0 ? (mediumSolved / mediumTotal) * 100 : 0}%` }}
             />
           </div>
@@ -245,15 +241,15 @@ export function CodingQuestionListPage() {
 
         <Card className="p-4 bg-white border border-slate-200">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-600">Hard</span>
+            <span className="text-xs font-semibold text-red-600">Hard</span>
             <span className="text-[10px] text-slate-400">{hardSolved}/{hardTotal}</span>
           </div>
-          <div className="text-2xl font-black text-rose-600 font-mono mt-1">
+          <div className="text-2xl font-black text-red-600 font-mono mt-1">
             {hardTotal}
           </div>
-          <div className="w-full bg-rose-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+          <div className="w-full bg-red-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
             <div
-              className="bg-rose-500 h-full rounded-full transition-all"
+              className="bg-red-600 h-full rounded-full transition-all"
               style={{ width: `${hardTotal > 0 ? (hardSolved / hardTotal) * 100 : 0}%` }}
             />
           </div>
@@ -271,7 +267,7 @@ export function CodingQuestionListPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search problems by title, keywords, or topics..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-600 transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-blue-600 transition-all"
             />
           </div>
 
@@ -284,7 +280,7 @@ export function CodingQuestionListPage() {
                 onClick={() => setSelectedDifficulty(diff)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   selectedDifficulty === diff
-                    ? "bg-indigo-600 text-white shadow-xs"
+                    ? "bg-blue-600 text-white shadow-xs"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
@@ -298,7 +294,7 @@ export function CodingQuestionListPage() {
             <select
               value={selectedSubcategory}
               onChange={(e) => setSelectedSubcategory(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-indigo-600"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-600"
             >
               {subcategories.map((sub) => (
                 <option key={sub} value={sub}>
@@ -312,7 +308,7 @@ export function CodingQuestionListPage() {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-indigo-600"
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-600"
           >
             <option value="ALL">All Status</option>
             <option value="SOLVED">Solved</option>

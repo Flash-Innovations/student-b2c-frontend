@@ -9,7 +9,7 @@ export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-white flex">
       {/* Sidebar navigation */}
       <Sidebar
         isCollapsed={isCollapsed}

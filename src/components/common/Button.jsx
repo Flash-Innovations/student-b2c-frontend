@@ -20,17 +20,19 @@ export function Button({
 
   const variantStyles = {
     primary:
-      "bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 shadow-sm shadow-indigo-200 border border-transparent",
+      "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-xs border border-transparent",
     secondary:
-      "bg-slate-100 text-slate-800 hover:bg-slate-200 active:bg-slate-300 border border-slate-200",
+      "bg-slate-100 text-slate-900 hover:bg-slate-200 active:bg-slate-300 border border-slate-200",
     outline:
-      "bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-xs",
+      "bg-white text-slate-800 hover:bg-slate-50 active:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-xs",
     danger:
-      "bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 shadow-sm shadow-rose-200 border border-transparent",
+      "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-xs border border-transparent",
     ghost:
-      "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent",
+      "bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-transparent",
     emerald:
-      "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 shadow-sm shadow-emerald-200 border border-transparent"
+      "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 shadow-xs border border-transparent",
+    orchid:
+      "bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 shadow-xs border border-transparent"
   };
 
   const sizeStyles = {
