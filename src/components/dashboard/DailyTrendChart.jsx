@@ -2,8 +2,8 @@ import React, { useState } from "react";
 
 export function DailyTrendChart({
   days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-  accuracy = [72, 78, 85, 82, 90, 88, 92],
-  problems = [25, 30, 45, 35, 50, 40, 60]
+  accuracy = [0, 0, 0, 0, 0, 0, 0],
+  problems = [0, 0, 0, 0, 0, 0, 0]
 }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
@@ -18,43 +18,48 @@ export function DailyTrendChart({
   const chartW = width - paddingLeft - paddingRight;
   const chartH = height - paddingTop - paddingBottom;
 
-  // Coordinate scales: Y-axis from 20 to 100
-  const minY = 20;
+  // Coordinate scales: Y-axis from 0 to 100
+  const minY = 0;
   const maxY = 100;
 
-  const getX = (index) => paddingLeft + (index / (days.length - 1)) * chartW;
+  const safeAccuracy = days.map((_, i) => Math.max(0, Math.min(100, accuracy[i] ?? 0)));
+  const safeProblems = days.map((_, i) => Math.max(0, Math.min(100, problems[i] ?? 0)));
+
+  const getX = (index) => paddingLeft + (days.length > 1 ? (index / (days.length - 1)) * chartW : chartW / 2);
   const getY = (val) => paddingTop + chartH - ((val - minY) / (maxY - minY)) * chartH;
 
   // Path generators
-  const accuracyPoints = accuracy.map((val, i) => `${getX(i)},${getY(val)}`);
+  const accuracyPoints = safeAccuracy.map((val, i) => `${getX(i)},${getY(val)}`);
   const accuracyLine = `M ${accuracyPoints.join(" L ")}`;
 
   // Area under accuracy curve
   const accuracyArea = `M ${getX(0)},${paddingTop + chartH} L ${accuracyPoints.join(" L ")} L ${getX(days.length - 1)},${paddingTop + chartH} Z`;
 
   // Problems dashed line
-  const problemsPoints = problems.map((val, i) => `${getX(i)},${getY(val)}`);
+  const problemsPoints = safeProblems.map((val, i) => `${getX(i)},${getY(val)}`);
   const problemsLine = `M ${problemsPoints.join(" L ")}`;
 
   // Y-axis grid ticks
-  const yTicks = [20, 40, 60, 80, 100];
+  const yTicks = [0, 25, 50, 75, 100];
+
+  const hasActivity = safeProblems.some((p) => p > 0) || safeAccuracy.some((a) => a > 0);
 
   return (
     <div className="relative w-full h-full flex flex-col justify-between select-none">
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-600">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block shadow-xs"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block shadow-xs" />
             Accuracy %
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 border-t-2 border-dashed border-purple-600 inline-block"></span>
+            <span className="w-3 h-0.5 border-t-2 border-dashed border-purple-600 inline-block" />
             Problems Solved
           </span>
         </div>
         {hoveredIdx !== null && (
           <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-            {days[hoveredIdx]}: {accuracy[hoveredIdx]}% Acc • {problems[hoveredIdx]} Solved
+            {days[hoveredIdx]}: {safeAccuracy[hoveredIdx]}% Acc • {safeProblems[hoveredIdx]} Solved
           </span>
         )}
       </div>
@@ -82,9 +87,9 @@ export function DailyTrendChart({
                   y1={y}
                   x2={width - paddingRight}
                   y2={y}
-                  stroke="#E2E8F0"
+                  stroke="#F1F5F9"
                   strokeWidth="1"
-                  strokeDasharray={tick === 20 ? "none" : "2 2"}
+                  strokeDasharray={tick === 0 ? "none" : "2 2"}
                 />
                 <text
                   x={paddingLeft - 6}
@@ -108,7 +113,7 @@ export function DailyTrendChart({
             d={accuracyLine}
             fill="none"
             stroke="#2563EB"
-            strokeWidth="2.5"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -118,7 +123,7 @@ export function DailyTrendChart({
             d={problemsLine}
             fill="none"
             stroke="#9333EA"
-            strokeWidth="2"
+            strokeWidth="1.5"
             strokeDasharray="4 4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -127,8 +132,8 @@ export function DailyTrendChart({
           {/* Data Points & X-Axis Labels */}
           {days.map((day, i) => {
             const x = getX(i);
-            const yAcc = getY(accuracy[i]);
-            const yProb = getY(problems[i]);
+            const yAcc = getY(safeAccuracy[i]);
+            const yProb = getY(safeProblems[i]);
             const isHovered = hoveredIdx === i;
 
             return (
@@ -169,7 +174,7 @@ export function DailyTrendChart({
                 <circle
                   cx={x}
                   cy={yAcc}
-                  r={isHovered ? 5 : 3.5}
+                  r={isHovered ? 4.5 : 3}
                   fill="#2563EB"
                   stroke="#FFFFFF"
                   strokeWidth="2"
@@ -199,6 +204,15 @@ export function DailyTrendChart({
             );
           })}
         </svg>
+
+        {/* Empty state notice if no activity */}
+        {!hasActivity && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-[1px] pointer-events-none">
+            <span className="text-[11px] font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-xs">
+              No sessions recorded this week. Solve problems to start your trend!
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
