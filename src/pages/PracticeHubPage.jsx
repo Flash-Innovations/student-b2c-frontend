@@ -293,7 +293,19 @@ export function PracticeHubPage() {
                     <div className={`p-3 rounded-2xl border ${topic.color} shadow-xs`}>
                       <Icon className="w-6 h-6" />
                     </div>
-                    <Badge variant="neutral" size="sm">{topic.category}</Badge>
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const stat = subscription?.subjectStats?.[topic.id.toUpperCase()];
+                        if (stat && stat.attempted > 0) {
+                          return (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {stat.attempted} Attempted • {stat.accuracy}%
+                            </span>
+                          );
+                        }
+                        return <Badge variant="neutral" size="sm">{topic.category}</Badge>;
+                      })()}
+                    </div>
                   </div>
 
                   <h3 className="text-base font-bold text-slate-900 mb-1">

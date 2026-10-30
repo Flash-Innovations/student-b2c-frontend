@@ -105,9 +105,9 @@ export const practiceApi = {
   // Student Practice Hub Questions (PostgreSQL)
   getPracticeQuestions: (params = {}) => {
     const q = new URLSearchParams(params).toString();
-    return practiceRequest(`/practice/questions${q ? `?${q}` : ''}`, { method: 'GET' });
+    return practiceRequest(`/api/practice/questions${q ? `?${q}` : ''}`, { method: 'GET' });
   },
-  verifyPracticeAnswer: (payload) => practiceRequest('/practice/verify', { method: 'POST', body: payload }),
+  verifyPracticeAnswer: (payload) => practiceRequest('/api/practice/verify', { method: 'POST', body: payload }),
 
   // Practice Sessions (MCQs)
   createAttempt: (payload) => practiceRequest('/api/practice/attempts', { method: 'POST', body: payload }),

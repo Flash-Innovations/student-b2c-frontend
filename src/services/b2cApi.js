@@ -123,6 +123,7 @@ export const b2cApi = {
   },
   consumeMockMinutes: (data) => b2cRequest('/api/b2c/entitlements/consume-mock-minutes', { method: 'POST', body: data }),
   recordQuestionAttempt: (data) => b2cRequest('/api/b2c/entitlements/record-attempt', { method: 'POST', body: data }),
+  getSubjectStats: () => b2cRequest('/api/b2c/entitlements/subject-stats', { method: 'GET' }),
 
   // Resume ATS Optimization
   analyzeResume: (formDataOrJson) => b2cRequest('/api/b2c/resume/analyze', { method: 'POST', body: formDataOrJson }),

@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { practiceApi } from "../services/practiceApi";
 import { b2cApi } from "../services/b2cApi";
+import { practicePreloadService } from "../services/practicePreloadService";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 
@@ -55,9 +56,8 @@ export function McqSessionPage() {
   const [sessionStartTime, setSessionStartTime] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load real practice questions from backend
+  // Load real practice questions from backend (Instantly from preloader cache, or via preload service)
   const loadQuestions = async () => {
-    setLoading(true);
     setError(null);
     setSessionCompleted(false);
     setSessionResult(null);
@@ -65,126 +65,53 @@ export function McqSessionPage() {
     setVerifications({});
     setCurrentIndex(0);
     setShowExplanation(false);
-    setTimerSeconds(600);
-    const startMs = Date.now();
-    setSessionStartTime(startMs);
+    setTimerSeconds(600); // 10 minutes strictly
+    setSessionStartTime(Date.now());
 
-    try {
+    // Fix vi: Check preloaded cache for instantaneous 0ms loading
+    const cached = practicePreloadService.consumePreloadedQuestions(topicId);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      setQuestions(cached.slice(0, 10));
+      setLoading(false);
+
+      // Initialize backend practice attempt session in the background
       const topicConfig = TOPIC_TYPE_MAP[topicId] || { type: "MCQ", category: topicId };
       const categoryParam = topicConfig.category || topicId;
+      practiceApi.createAttempt({
+        topic: topicName,
+        category: categoryParam,
+        questionIds: cached.map(q => q.id),
+        questionVersionIds: cached.map(q => q.versionId || q.id)
+      }).then(res => {
+        if (res && (res.attemptId || res.data?.id)) {
+          setAttemptId(res.attemptId || res.data.id);
+        }
+      }).catch(() => {});
+      return;
+    }
 
-      let valid = [];
-      // 1. Try PostgreSQL student practice endpoint first
-      try {
-        const res = await practiceApi.getPracticeQuestions({
-          topic: categoryParam,
+    // Cache miss: perform fetch via preloadSubject
+    setLoading(true);
+    try {
+      const valid = await practicePreloadService.preloadSubject(topicId);
+      const sessionQuestions = (valid && valid.length > 0 ? valid : []).slice(0, 10);
+      setQuestions(sessionQuestions);
+
+      if (sessionQuestions.length > 0) {
+        const topicConfig = TOPIC_TYPE_MAP[topicId] || { type: "MCQ", category: topicId };
+        const categoryParam = topicConfig.category || topicId;
+        practiceApi.createAttempt({
+          topic: topicName,
           category: categoryParam,
-          type: "MCQ",
-          limit: 20
-        });
-
-        const list = (res && (res.questions || res.data)) || [];
-        if (Array.isArray(list) && list.length > 0) {
-          const formatted = list.map((q) => {
-            let options = q.options || q.optionTexts || [];
-            if (typeof options === "string") {
-              try { options = JSON.parse(options); } catch (e) { options = []; }
-            }
-            const optionTexts = (Array.isArray(options) ? options : []).map(opt =>
-              typeof opt === "object" && opt !== null ? (opt.text || opt.value || '') : String(opt)
-            );
-
-            return {
-              id: q.id,
-              versionId: q.versionId || q.questionVersionId || q.id,
-              question: q.statement || q.title || q.latestTitle || "Practice Question",
-              options: optionTexts,
-              formula: q.formula || (q.constraints?.includes('$') ? q.constraints : null),
-              explanation: q.explanation || null
-            };
-          }).filter(q => q.options && q.options.length > 0);
-
-          if (formatted.length > 0) {
-            valid = formatted;
+          questionIds: sessionQuestions.map(q => q.id),
+          questionVersionIds: sessionQuestions.map(q => q.versionId || q.id)
+        }).then(res => {
+          if (res && (res.attemptId || res.data?.id)) {
+            setAttemptId(res.attemptId || res.data.id);
           }
-        }
-      } catch (pgErr) {
-        console.warn("Direct practice questions fetch error, attempting catalog fallback:", pgErr);
-      }
-
-      // 2. Fallback: Query practice platform by topic type & category map
-      if (valid.length === 0) {
-        let res = null;
-        try {
-          res = await practiceApi.getQuestions({
-            type: topicConfig.type || "MCQ",
-            category: categoryParam,
-            limit: 20
-          });
-        } catch (e) {
-          res = await practiceApi.getQuestions({ topic: categoryParam, limit: 20 });
-        }
-
-        let list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : Array.isArray(res?.questions) ? res.questions : [];
-        if (list.length === 0) {
-          const fallbackRes = await practiceApi.getQuestions({ type: "MCQ", limit: 20 });
-          list = Array.isArray(fallbackRes) ? fallbackRes : Array.isArray(fallbackRes?.data) ? fallbackRes.data : Array.isArray(fallbackRes?.questions) ? fallbackRes.questions : [];
-        }
-
-        // Fetch detailed question data if options are not already embedded
-        const detailed = await Promise.all(
-          list.slice(0, 15).map(async (item) => {
-            try {
-              let q = item;
-              if (!q.options || q.options.length === 0) {
-                const qRes = await practiceApi.getQuestionById(item.id);
-                q = qRes?.data || qRes || item;
-              }
-              const v = (q.versions && q.versions[0]) || {};
-
-              let options = q.options || q.optionTexts || v.options || [];
-              if (typeof options === "string") {
-                try { options = JSON.parse(options); } catch (e) { options = []; }
-              }
-
-              const optionTexts = (Array.isArray(options) ? options : []).map(opt =>
-                typeof opt === "object" && opt !== null ? (opt.text || opt.value || '') : String(opt)
-              );
-
-              return {
-                id: q.id,
-                versionId: q.versionId || v.id || q.id,
-                question: q.statement || v.statement || q.title || q.latestTitle || "Practice Question",
-                formula: q.formula || v.metadata?.formula || null,
-                options: optionTexts,
-                explanation: q.explanation || v.explanation || null
-              };
-            } catch (detailErr) {
-              return null;
-            }
-          })
-        );
-
-        valid = detailed.filter(q => q && q.options && q.options.length > 0);
-      }
-
-      setQuestions(valid);
-
-      // Initialize unique backend practice attempt session
-      if (valid.length > 0) {
-        try {
-          const attemptRes = await practiceApi.createAttempt({
-            topic: topicName,
-            category: categoryParam,
-            questionIds: valid.map(q => q.id),
-            questionVersionIds: valid.map(q => q.versionId || q.id)
-          });
-          if (attemptRes && (attemptRes.attemptId || attemptRes.data?.id)) {
-            setAttemptId(attemptRes.attemptId || attemptRes.data.id);
-          }
-        } catch (attErr) {
-          console.warn("Could not register backend practice attempt, proceeding with local session:", attErr);
-        }
+        }).catch(() => {});
+      } else {
+        setError("No practice questions found for this topic right now. Please try another subject.");
       }
     } catch (err) {
       console.error("MCQ Load questions error:", err);
@@ -238,7 +165,7 @@ export function McqSessionPage() {
       }).catch((e) => console.warn("Record practice response warning:", e));
     }
 
-    // Verify against PostgreSQL backend
+    // Verify against backend
     try {
       const selectedText = currentQ.options[optionIdx];
       const res = await practiceApi.verifyPracticeAnswer({
@@ -246,19 +173,17 @@ export function McqSessionPage() {
         selectedOption: selectedText,
         answerIndex: optionIdx
       });
-      if (res && res.success) {
+      if (res && (res.success || res.isCorrect !== undefined)) {
         setVerifications((prev) => ({
           ...prev,
           [currentIndex]: {
-            isCorrect: res.isCorrect,
+            isCorrect: Boolean(res.isCorrect),
             correctAnswer: res.correctAnswer,
             explanation: res.explanation || currentQ.explanation
           }
         }));
       }
-    } catch (err) {
-      console.warn("Verify answer error:", err);
-    }
+    } catch (_) {}
   };
 
   const handleNext = () => {
@@ -292,12 +217,10 @@ export function McqSessionPage() {
         if (submitRes && submitRes.data) {
           finalResult = submitRes.data;
         }
-      } catch (submitErr) {
-        console.warn("Submit attempt API error, falling back to authoritative local evaluation:", submitErr);
-      }
+      } catch (_) {}
     }
 
-    // Authoritative fallback calculation if offline or backend error
+    // Authoritative calculation of scorecard
     if (!finalResult) {
       const attempted = questions.filter((_, idx) => selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null).length;
       const correct = questions.filter((_, idx) => verifications[idx]?.isCorrect === true).length;
@@ -325,16 +248,25 @@ export function McqSessionPage() {
     setSessionCompleted(true);
     setIsSubmitting(false);
 
-    // Only record quota if at least one question was attempted
+    // Fix ii & v: Record exact count of attempted MCQs, correct count, and per-subject telemetry
     if (finalResult.attemptedQuestions > 0) {
       try {
+        const attemptedIds = questions
+          .filter((_, idx) => selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null)
+          .map((q) => q.id);
+
+        practicePreloadService.markAttempted(attemptedIds);
+
         await b2cApi.recordQuestionAttempt({
           questionType: "MCQ",
           count: finalResult.attemptedQuestions,
-          topicId
+          correctCount: finalResult.correctAnswers,
+          subject: topicId,
+          topicId,
+          questionIds: attemptedIds
         });
         await refreshSubscription();
-        showSuccess("MCQ session completed and saved to your placement telemetry!");
+        showSuccess(`Saved ${finalResult.attemptedQuestions} questions to your placement telemetry!`);
       } catch (err) {
         console.warn("Attempt record error:", err);
       }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { b2cApi, getAuthToken, setAuthToken } from '../services/b2cApi';
+import { practicePreloadService } from '../services/practicePreloadService';
 
 const AuthContext = createContext(null);
 
@@ -109,6 +110,13 @@ export const AuthProvider = ({ children }) => {
 
     return true;
   }, [user]);
+
+  // Preload 10 questions per core subject upon login for instant 0ms launch
+  useEffect(() => {
+    if (user && token) {
+      practicePreloadService.preloadAllCoreTopics(isTechnical);
+    }
+  }, [user, token, isTechnical]);
 
   const value = {
     user,
