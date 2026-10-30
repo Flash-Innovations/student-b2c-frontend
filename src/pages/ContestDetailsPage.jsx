@@ -233,7 +233,27 @@ export function ContestDetailsPage() {
   const startFormatted = startDate.toLocaleDateString(undefined, formatOptions);
   const endFormatted = endDate.toLocaleDateString(undefined, formatOptions);
 
-  const secBreakdown = contest.sectionBreakdown || {};
+  const questionsList = Array.isArray(contest.questions) ? contest.questions : [];
+  const totalQuestions = contest.totalQuestions || questionsList.length || 0;
+  const totalMarks = contest.totalMarks || (questionsList.length > 0 ? questionsList.reduce((sum, q) => sum + (Number(q.marks) || 0), 0) : 100);
+
+  const secBreakdown = (contest.sectionBreakdown && (contest.sectionBreakdown.CODING?.count > 0 || contest.sectionBreakdown.APTITUDE?.count > 0 || contest.sectionBreakdown.TECHNICAL?.count > 0))
+    ? contest.sectionBreakdown
+    : questionsList.reduce(
+        (acc, q) => {
+          const sec = (q.section || (q.type === "CODING" ? "CODING" : "APTITUDE")).toUpperCase();
+          if (acc[sec]) {
+            acc[sec].count += 1;
+            acc[sec].marks += Number(q.marks || (sec === "CODING" ? 10 : 2));
+          }
+          return acc;
+        },
+        {
+          CODING: { count: 0, marks: 0 },
+          APTITUDE: { count: 0, marks: 0 },
+          TECHNICAL: { count: 0, marks: 0 }
+        }
+      );
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300 pb-16">
@@ -320,10 +340,10 @@ export function ContestDetailsPage() {
 
           <div className="text-left sm:text-right shrink-0 sm:border-l sm:border-slate-100 sm:pl-6">
             <div className="text-3xl font-black text-slate-900 font-mono">
-              {contest.totalMarks || 100}
+              {totalMarks}
             </div>
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-              Total Marks ({contest.totalQuestions || 0} Questions)
+              Total Marks ({totalQuestions} Questions)
             </div>
           </div>
         </div>
