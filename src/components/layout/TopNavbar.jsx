@@ -118,7 +118,7 @@ export function TopNavbar() {
             </Link>
           </div>
 
-          {/* Center: Command Deck Desktop Navigation */}
+          {/* Center: Command Deck Desktop Navigation (Smooth Inline Expanding Pills) */}
           <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5">
             {navLinks.map((link) => {
               const Icon = link.icon;
@@ -126,19 +126,34 @@ export function TopNavbar() {
                 <NavLink
                   key={link.to}
                   to={link.to}
+                  title={link.label}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all select-none",
+                      "group flex items-center h-9 rounded-xl transition-all duration-300 ease-in-out select-none cursor-pointer",
                       isActive
-                        ? "bg-blue-50 text-blue-700 font-bold border-b-2 border-blue-600"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium"
+                        ? "px-3 bg-blue-50 text-blue-700 font-bold border-b-2 border-blue-600 shadow-xs"
+                        : "px-2.5 hover:px-3 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                     )
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-blue-600" : "text-slate-500")} />
-                      <span>{link.label}</span>
+                      <Icon
+                        className={cn(
+                          "w-4 h-4 shrink-0 transition-colors duration-200",
+                          isActive ? "text-blue-600" : "text-slate-500 group-hover:text-slate-900"
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "overflow-hidden whitespace-nowrap text-xs transition-all duration-300 ease-in-out",
+                          isActive
+                            ? "max-w-40 opacity-100 ml-2 font-bold text-blue-700"
+                            : "max-w-0 opacity-0 group-hover:max-w-40 group-hover:opacity-100 group-hover:ml-2 font-semibold text-slate-800"
+                        )}
+                      >
+                        {link.label}
+                      </span>
                     </>
                   )}
                 </NavLink>
