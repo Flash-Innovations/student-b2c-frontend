@@ -130,6 +130,17 @@ export const FORMAT_DEFINITIONS = [
   }
 ];
 
+export const INTERVIEW_STATES = {
+  INITIALIZING: "INITIALIZING",
+  AI_SPEAKING: "AI_SPEAKING",
+  WAITING_FOR_STUDENT: "WAITING_FOR_STUDENT",
+  RECORDING: "RECORDING",
+  TRANSCRIBING: "TRANSCRIBING",
+  EVALUATING: "EVALUATING",
+  INTERVIEW_COMPLETED: "INTERVIEW_COMPLETED",
+  ERROR: "ERROR"
+};
+
 export const DURATION_OPTIONS = [10, 15, 20, 30];
 
 // Minutes Pricing Tiers: ₹20 = 60 mins (₹1 per 3 mins)
@@ -195,6 +206,14 @@ export function MockInterviewPage() {
   // ==========================================
   const [sessionId, setSessionId] = useState(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
+  const [interviewState, setInterviewState] = useState(INTERVIEW_STATES.INITIALIZING);
+  const interviewStateRef = useRef(INTERVIEW_STATES.INITIALIZING);
+  const accumulatedTranscriptRef = useRef("");
+  const speechSafetyTimerRef = useRef(null);
+
+  useEffect(() => {
+    interviewStateRef.current = interviewState;
+  }, [interviewState]);
   const [aiStatus, setAiStatus] = useState("idle"); // 'connecting' | 'speaking' | 'listening' | 'evaluating' | 'finalizing' | 'completed' | 'idle'
   const [currentQuestion, setCurrentQuestion] = useState({
     text: "",
@@ -298,12 +317,29 @@ export function MockInterviewPage() {
   // ==========================================
   // BROWSER SPEECH SYNTHESIS ENGINE
   // ==========================================
-  const speakAiUtterance = (text) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window) || isSpeakerMuted) return;
+  const speakAiUtterance = (text, onFinished) => {
+    if (speechSafetyTimerRef.current) {
+      clearTimeout(speechSafetyTimerRef.current);
+      speechSafetyTimerRef.current = null;
+    }
+
+    if (typeof window === "undefined" || !("speechSynthesis" in window) || isSpeakerMuted) {
+      setInterviewState(INTERVIEW_STATES.WAITING_FOR_STUDENT);
+      setAiStatus("listening");
+      if (onFinished) onFinished();
+      return;
+    }
 
     try {
       window.speechSynthesis.cancel();
-      const cleanText = text.replace(/[*_#`]/g, "").trim();
+      const cleanText = (text || "").replace(/[*_#`]/g, "").trim();
+      if (!cleanText) {
+        setInterviewState(INTERVIEW_STATES.WAITING_FOR_STUDENT);
+        setAiStatus("listening");
+        if (onFinished) onFinished();
+        return;
+      }
+
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.rate = 1.0;
       utterance.pitch = 1.05;
@@ -314,18 +350,44 @@ export function MockInterviewPage() {
       ) || voices.find((v) => v.lang.startsWith("en"));
       if (naturalVoice) utterance.voice = naturalVoice;
 
-      utterance.onstart = () => setAiStatus("speaking");
-      utterance.onend = () => {
+      setInterviewState(INTERVIEW_STATES.AI_SPEAKING);
+      setAiStatus("speaking");
+
+      const handleSpeechDone = () => {
+        if (speechSafetyTimerRef.current) {
+          clearTimeout(speechSafetyTimerRef.current);
+          speechSafetyTimerRef.current = null;
+        }
+        setInterviewState(INTERVIEW_STATES.WAITING_FOR_STUDENT);
         setAiStatus("listening");
+        if (onFinished) onFinished();
       };
-      utterance.onerror = () => {
-        setAiStatus("listening");
+
+      utterance.onstart = () => {
+        setInterviewState(INTERVIEW_STATES.AI_SPEAKING);
+        setAiStatus("speaking");
       };
+
+      utterance.onend = handleSpeechDone;
+      utterance.onerror = (e) => {
+        console.warn("Speech synthesis notice:", e);
+        handleSpeechDone();
+      };
+
+      const wordsCount = cleanText.split(/\s+/).length;
+      const expectedDurationMs = Math.max(3500, wordsCount * 450 + 2000);
+      speechSafetyTimerRef.current = setTimeout(() => {
+        if (interviewStateRef.current === INTERVIEW_STATES.AI_SPEAKING) {
+          handleSpeechDone();
+        }
+      }, expectedDurationMs);
 
       window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.warn("Speech synthesis error:", err);
+      setInterviewState(INTERVIEW_STATES.WAITING_FOR_STUDENT);
       setAiStatus("listening");
+      if (onFinished) onFinished();
     }
   };
 
@@ -587,7 +649,7 @@ export function MockInterviewPage() {
         rec.onerror = (e) => {
           console.warn("Speech recognition event notice:", e.error);
         };
-        rec.start();
+        // Recognition will start when candidate clicks Start Speaking
         recognitionRef.current = rec;
       } catch (recErr) {
         console.warn("Speech recognition initialization note:", recErr);
@@ -636,7 +698,7 @@ export function MockInterviewPage() {
                 {
                   id: `ai_${Date.now()}_${Math.random()}`,
                   sender: "ai",
-                  name: "Sarah (Principal AI Interviewer)",
+                  name: "Sarah – Principal (Principal AI Placement Interviewer)",
                   text: nextQText,
                   timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
                   isFollowUp: Boolean(data.isFollowUp)
@@ -702,73 +764,226 @@ export function MockInterviewPage() {
   };
 
   // ==========================================
-  // SUBMIT CANDIDATE ANSWER
+  // VOICE-BASED INTERVIEW FLOW HANDLERS (SARAH - PRINCIPAL)
   // ==========================================
-  const handleSubmitAnswer = () => {
-    const textToSend = (candidateDraft || typedAnswer).trim();
-    if (!textToSend || !isSessionActive) return;
+  const handleStartSpeaking = async () => {
+    if (interviewState !== INTERVIEW_STATES.WAITING_FOR_STUDENT) return;
+
+    try {
+      if (!micStreamRef.current) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const audioCtx = new AudioCtx();
+          audioContextRef.current = audioCtx;
+          const source = audioCtx.createMediaStreamSource(stream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 64;
+          source.connect(analyser);
+          analyserRef.current = analyser;
+        }
+      } else {
+        micStreamRef.current.getAudioTracks().forEach((track) => {
+          track.enabled = true;
+        });
+        setIsMicMuted(false);
+      }
+    } catch (err) {
+      console.warn("Microphone access check notice:", err);
+    }
+
+    setCandidateDraft("");
+    accumulatedTranscriptRef.current = "";
+
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRec) {
+      try {
+        if (recognitionRef.current) {
+          try { recognitionRef.current.abort(); } catch (_) {}
+        }
+        const rec = new SpeechRec();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = "en-US";
+
+        rec.onresult = (event) => {
+          let interim = "";
+          let final = "";
+          for (let i = 0; i < event.results.length; i++) {
+            const res = event.results[i];
+            if (res.isFinal) {
+              final += res[0].transcript + " ";
+            } else {
+              interim += res[0].transcript;
+            }
+          }
+          const fullText = (accumulatedTranscriptRef.current + " " + final + interim).trim();
+          if (fullText) {
+            setCandidateDraft(fullText);
+          }
+        };
+
+        rec.onerror = (e) => {
+          console.warn("Speech recognition notice:", e.error);
+        };
+
+        rec.onend = () => {
+          if (interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
+            try { rec.start(); } catch (_) {}
+          }
+        };
+
+        rec.start();
+        recognitionRef.current = rec;
+      } catch (recErr) {
+        console.warn("Speech recognition start failed:", recErr);
+      }
+    }
+
+    setInterviewState(INTERVIEW_STATES.RECORDING);
+    setAiStatus("listening");
+  };
+
+  const handleStopRecording = () => {
+    if (interviewState !== INTERVIEW_STATES.RECORDING) return;
+
+    setInterviewState(INTERVIEW_STATES.TRANSCRIBING);
+
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (_) {}
+    }
+
+    if (micStreamRef.current) {
+      micStreamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+
+    setTimeout(() => {
+      const finalSpeech = (candidateDraft || typedAnswer || "").trim();
+
+      if (!finalSpeech || finalSpeech.length < 2) {
+        showInfo("No response detected. Please try speaking again.");
+        setInterviewState(INTERVIEW_STATES.WAITING_FOR_STUDENT);
+        setAiStatus("listening");
+        return;
+      }
+
+      dispatchStudentAnswer(finalSpeech);
+    }, 350);
+  };
+
+  const handleIncomingTurn = (turnData) => {
+    if (turnData.isFinished || turnData.event === "interview_ready_for_evaluation") {
+      setInterviewState(INTERVIEW_STATES.INTERVIEW_COMPLETED);
+      showInfo("All questions completed. Finalizing evaluation...");
+      handleCompleteSession();
+      return;
+    }
+
+    const nextQText = turnData.questionText || turnData.message;
+    if (nextQText) {
+      setCurrentQuestion({
+        text: nextQText,
+        index: turnData.questionIndex || (currentQuestion.index + 1),
+        total: turnData.totalQuestions || currentQuestion.total,
+        isFollowUp: Boolean(turnData.isFollowUp),
+        trackPhase: turnData.trackPhase || (selectedTrack === "HR" ? "HR" : "TECHNICAL")
+      });
+
+      setConversation((prev) => [
+        ...prev,
+        {
+          id: `ai_${Date.now()}_${Math.random()}`,
+          sender: "ai",
+          name: "Sarah – Principal (Principal AI Placement Interviewer)",
+          text: nextQText,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          isFollowUp: Boolean(turnData.isFollowUp)
+        }
+      ]);
+
+      speakAiUtterance(nextQText);
+    }
+  };
+
+  const handleFallbackLocalTurn = (textToSend) => {
+    setTimeout(() => {
+      const nextIdx = currentQuestion.index + 1;
+      let aiFollowUp = "";
+      let isFollowUp = false;
+
+      if (selectedTrack === "COMBINED" && nextIdx > 2 && currentQuestion.trackPhase === "TECHNICAL") {
+        aiFollowUp = "Excellent technical insights. Now let us transition to the behavioral round: Describe a situation where you had a disagreement with a team member. How did you handle it and what was the outcome?";
+        setCurrentQuestion((prev) => ({ ...prev, trackPhase: "HR" }));
+      } else if (textToSend.length < 45 && !currentQuestion.isFollowUp) {
+        isFollowUp = true;
+        aiFollowUp = "Could you elaborate on that with concrete examples, edge cases, and the specific trade-offs you accounted for?";
+      } else if (selectedSkills.includes("React.js") && nextIdx === 2) {
+        aiFollowUp = "Good point. How do you optimize rendering performance in React when state updates are frequent across nested components?";
+      } else if (selectedSkills.includes("SQL") && nextIdx === 3) {
+        aiFollowUp = "Understood. When writing complex queries, what indexing strategies would you leverage to avoid table scans on high-traffic databases?";
+      } else if (selectedSkills.includes("DBMS") && nextIdx === 4) {
+        aiFollowUp = "Can you explain Database Normalization up to 3NF and BCNF, and when might intentional denormalization be justified in production?";
+      } else {
+        aiFollowUp = "Thank you for that response. How would you test, monitor, and ensure system reliability for this implementation in a production environment?";
+      }
+
+      handleIncomingTurn({
+        questionText: aiFollowUp,
+        questionIndex: nextIdx,
+        isFollowUp,
+        trackPhase: currentQuestion.trackPhase
+      });
+    }, 1200);
+  };
+
+  const dispatchStudentAnswer = async (spokenText) => {
+    if (!spokenText || !isSessionActive) return;
+
+    setInterviewState(INTERVIEW_STATES.EVALUATING);
+    setAiStatus("evaluating");
 
     const userMsg = {
       id: `user_${Date.now()}`,
       sender: "user",
       name: user?.name ? user.name.split(" ")[0] : "You",
-      text: textToSend,
+      text: spokenText,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     };
 
     setConversation((prev) => [...prev, userMsg]);
     setCandidateDraft("");
     setTypedAnswer("");
-    setAiStatus("evaluating");
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
           type: "submit_answer",
-          transcript: textToSend,
+          transcript: spokenText,
           audioChunks: []
         })
       );
     } else {
-      setTimeout(() => {
-        const nextIdx = currentQuestion.index + 1;
-        let aiFollowUp = "";
-
-        if (selectedTrack === "COMBINED" && nextIdx > 2 && currentQuestion.trackPhase === "TECHNICAL") {
-          aiFollowUp = "Excellent technical insights. Now let us transition to the behavioral round: Describe a situation where you had a disagreement with a team member. How did you handle it and what was the outcome?";
-          setCurrentQuestion((prev) => ({ ...prev, trackPhase: "HR" }));
-        } else if (textToSend.length < 35) {
-          aiFollowUp = "Could you elaborate on that with concrete examples, edge cases, and the specific trade-offs you accounted for?";
-        } else if (selectedSkills.includes("React.js") && nextIdx === 2) {
-          aiFollowUp = "Good point. How do you optimize rendering performance in React when state updates are frequent across nested components?";
-        } else if (selectedSkills.includes("SQL") && nextIdx === 3) {
-          aiFollowUp = "Understood. When writing complex queries, what indexing strategies would you leverage to avoid table scans on high-traffic databases?";
+      try {
+        const resp = await aiApi.submitAnswer(sessionId, spokenText);
+        if (resp && resp.success && resp.turn) {
+          handleIncomingTurn(resp.turn);
         } else {
-          aiFollowUp = "Thank you for that response. How would you test, monitor, and ensure system reliability for this implementation in a production environment?";
+          handleFallbackLocalTurn(spokenText);
         }
-
-        setCurrentQuestion((prev) => ({
-          ...prev,
-          text: aiFollowUp,
-          index: nextIdx,
-          isFollowUp: true
-        }));
-
-        setConversation((prev) => [
-          ...prev,
-          {
-            id: `ai_${Date.now()}`,
-            sender: "ai",
-            name: "Sarah (Principal AI Interviewer)",
-            text: aiFollowUp,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            isFollowUp: true
-          }
-        ]);
-
-        speakAiUtterance(aiFollowUp);
-      }, 1600);
+      } catch (err) {
+        console.warn("REST turn evaluation fallback:", err);
+        handleFallbackLocalTurn(spokenText);
+      }
     }
+  };
+
+  const handleSubmitAnswer = () => {
+    const textToSend = (candidateDraft || typedAnswer).trim();
+    if (!textToSend || !isSessionActive) return;
+    dispatchStudentAnswer(textToSend);
   };
 
   // ==========================================
@@ -1540,7 +1755,7 @@ export function MockInterviewPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900 text-base">Sarah</span>
-                    <span className="text-xs text-slate-500">Principal AI Placement Interviewer</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">Principal</span>
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-800">
                       {selectedTrack} Round
                     </span>
@@ -1568,35 +1783,41 @@ export function MockInterviewPage() {
 
                 {/* AI Interviewer Live Status Pill */}
                 <div
-                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 border ${
-                    aiStatus === "speaking"
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 border ${
+                    interviewState === INTERVIEW_STATES.AI_SPEAKING
                       ? "bg-purple-100 text-purple-800 border-purple-300"
-                      : aiStatus === "listening"
-                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                      : aiStatus === "evaluating"
+                      : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                      ? "bg-indigo-100 text-indigo-800 border-indigo-300"
+                      : interviewState === INTERVIEW_STATES.RECORDING
+                      ? "bg-rose-100 text-rose-800 border-rose-300"
+                      : interviewState === INTERVIEW_STATES.EVALUATING || interviewState === INTERVIEW_STATES.TRANSCRIBING
                       ? "bg-amber-100 text-amber-800 border-amber-300"
                       : "bg-slate-100 text-slate-700 border-slate-200"
                   }`}
                 >
                   <span
                     className={`w-2 h-2 rounded-full ${
-                      aiStatus === "speaking"
+                      interviewState === INTERVIEW_STATES.AI_SPEAKING
                         ? "bg-purple-600 animate-ping"
-                        : aiStatus === "listening"
-                        ? "bg-emerald-600 animate-pulse"
-                        : aiStatus === "evaluating"
+                        : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                        ? "bg-indigo-600 animate-pulse"
+                        : interviewState === INTERVIEW_STATES.RECORDING
+                        ? "bg-rose-600 animate-ping"
+                        : interviewState === INTERVIEW_STATES.EVALUATING || interviewState === INTERVIEW_STATES.TRANSCRIBING
                         ? "bg-amber-600 animate-spin"
                         : "bg-slate-400"
                     }`}
                   />
-                  <span className="capitalize">
-                    {aiStatus === "speaking"
+                  <span>
+                    {interviewState === INTERVIEW_STATES.AI_SPEAKING
                       ? "Interviewer Speaking"
-                      : aiStatus === "listening"
+                      : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                      ? "Your Turn to Answer"
+                      : interviewState === INTERVIEW_STATES.RECORDING
                       ? "Listening to You"
-                      : aiStatus === "evaluating"
+                      : interviewState === INTERVIEW_STATES.EVALUATING || interviewState === INTERVIEW_STATES.TRANSCRIBING
                       ? "Analyzing Response..."
-                      : aiStatus}
+                      : "Ready"}
                   </span>
                 </div>
 
@@ -1632,10 +1853,12 @@ export function MockInterviewPage() {
                   <div className="relative mt-2">
                     <div
                       className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
-                        aiStatus === "speaking"
+                        interviewState === INTERVIEW_STATES.AI_SPEAKING
                           ? "bg-gradient-to-tr from-purple-600 to-indigo-600 ring-8 ring-purple-100 text-white scale-105"
-                          : aiStatus === "listening"
-                          ? "bg-slate-900 ring-8 ring-emerald-100 text-white"
+                          : interviewState === INTERVIEW_STATES.RECORDING
+                          ? "bg-rose-900 ring-8 ring-rose-100 text-white"
+                          : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                          ? "bg-purple-900 ring-8 ring-purple-100 text-white"
                           : "bg-slate-800 text-white"
                       }`}
                     >
@@ -1665,10 +1888,12 @@ export function MockInterviewPage() {
                       ))}
                     </div>
                     <p className="text-xs text-slate-400 mt-1">
-                      {aiStatus === "speaking"
-                        ? "Interviewer is speaking the question..."
-                        : aiStatus === "listening"
-                        ? "Speak naturally into your microphone — your voice is being captured."
+                      {interviewState === INTERVIEW_STATES.AI_SPEAKING
+                        ? "Sarah is speaking the question aloud. Listening is active."
+                        : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                        ? "Sarah has finished speaking. Click \"Start Speaking\" when ready to answer."
+                        : interviewState === INTERVIEW_STATES.RECORDING
+                        ? "Listening... Speak your answer. Click \"Stop Recording\" when done."
                         : "Evaluating response with Gemini AI..."}
                     </p>
                   </div>
@@ -1679,7 +1904,7 @@ export function MockInterviewPage() {
                       <span className="uppercase tracking-wider">
                         {currentQuestion.isFollowUp ? "Follow-Up Question" : `Interview Question #${currentQuestion.index}`}
                       </span>
-                      <span className="text-purple-700 font-normal">Sarah • AI Interviewer</span>
+                      <span className="text-purple-700 font-normal">Sarah – Principal • AI Interviewer</span>
                     </div>
                     <p className="text-base sm:text-lg font-semibold text-slate-900 leading-snug">
                       "{currentQuestion.text}"
@@ -1693,19 +1918,27 @@ export function MockInterviewPage() {
                     <div className="flex items-center gap-2">
                       <div
                         className={`w-3 h-3 rounded-full ${
-                          isMicMuted
-                            ? "bg-red-500"
-                            : candidateDraft.trim()
-                            ? "bg-emerald-500 animate-ping"
-                            : "bg-emerald-400"
+                          interviewState === INTERVIEW_STATES.RECORDING
+                            ? "bg-rose-500 animate-ping"
+                            : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                            ? "bg-purple-600 animate-pulse"
+                            : interviewState === INTERVIEW_STATES.AI_SPEAKING
+                            ? "bg-purple-400"
+                            : interviewState === INTERVIEW_STATES.EVALUATING
+                            ? "bg-amber-500 animate-spin"
+                            : "bg-slate-400"
                         }`}
                       />
                       <span className="text-sm font-bold text-slate-900">
-                        {isMicMuted
-                          ? "Microphone Muted"
-                          : candidateDraft.trim()
-                          ? "Candidate Speaking..."
-                          : "Listening for your voice..."}
+                        {interviewState === INTERVIEW_STATES.RECORDING
+                          ? "Listening... Speak your answer."
+                          : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                          ? "Your turn to answer"
+                          : interviewState === INTERVIEW_STATES.AI_SPEAKING
+                          ? "Interviewer is speaking..."
+                          : interviewState === INTERVIEW_STATES.EVALUATING || interviewState === INTERVIEW_STATES.TRANSCRIBING
+                          ? "Evaluating your response..."
+                          : "Interview ready"}
                       </span>
                     </div>
 
@@ -1720,14 +1953,20 @@ export function MockInterviewPage() {
                   </div>
 
                   {/* Realtime Candidate Speech Transcript Banner */}
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 min-h-[80px] text-sm text-slate-800 flex items-start gap-2">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 min-h-[90px] text-sm text-slate-800 flex items-start gap-2.5">
                     <UserIcon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                     <div className="flex-1">
                       {candidateDraft.trim() ? (
-                        <p className="font-medium text-slate-900">{candidateDraft}</p>
+                        <p className="font-medium text-slate-900 leading-relaxed">{candidateDraft}</p>
                       ) : (
                         <p className="text-slate-400 italic">
-                          Your live speech will appear here automatically as you talk...
+                          {interviewState === INTERVIEW_STATES.RECORDING
+                            ? "Listening... Speak your answer. Your speech appears here in real time."
+                            : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                            ? "Click \"Start Speaking\" to begin your answer."
+                            : interviewState === INTERVIEW_STATES.AI_SPEAKING
+                            ? "Sarah is speaking. Please listen carefully..."
+                            : "Your live speech will appear here automatically as you talk..."}
                         </p>
                       )}
                     </div>
@@ -1736,7 +1975,23 @@ export function MockInterviewPage() {
                   {/* Typing input alternative */}
                   {isTypingMode && (
                     <div className="space-y-2 pt-2 border-t border-slate-100">
-                      <label className="block text-xs font-semibold text-slate-700">Type Your Answer</label>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-slate-700">Type Your Answer</label>
+                        <button
+                          onClick={() => {
+                            if (!typedAnswer.trim()) {
+                              showInfo("Please enter your answer text.");
+                              return;
+                            }
+                            dispatchStudentAnswer(typedAnswer.trim());
+                          }}
+                          disabled={interviewState === INTERVIEW_STATES.AI_SPEAKING || interviewState === INTERVIEW_STATES.EVALUATING || !typedAnswer.trim()}
+                          className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Submit Typed Response</span>
+                        </button>
+                      </div>
                       <textarea
                         rows={3}
                         value={typedAnswer}
@@ -1747,28 +2002,40 @@ export function MockInterviewPage() {
                     </div>
                   )}
 
-                  {/* Interaction Controls */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                    <div className="flex items-center gap-2">
+                  {/* THE TWO MAIN BUTTONS FOR THE VOICE INTERVIEW FLOW */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-100">
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Button 1: Start Speaking */}
                       <button
-                        onClick={() => {
-                          if (micStreamRef.current) {
-                            micStreamRef.current.getAudioTracks().forEach((track) => {
-                              track.enabled = isMicMuted;
-                            });
-                          }
-                          setIsMicMuted(!isMicMuted);
-                        }}
-                        className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-colors cursor-pointer ${
-                          isMicMuted
-                            ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                        onClick={handleStartSpeaking}
+                        disabled={interviewState !== INTERVIEW_STATES.WAITING_FOR_STUDENT}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2.5 transition-all shadow-md ${
+                          interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                            ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/25 cursor-pointer ring-4 ring-purple-100 active:scale-98"
+                            : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
                         }`}
                       >
-                        {isMicMuted ? <MicOff className="w-4 h-4 text-red-600" /> : <Mic className="w-4 h-4 text-emerald-600" />}
-                        <span>{isMicMuted ? "Unmute Mic" : "Mute Mic"}</span>
+                        <Mic className={`w-5 h-5 ${interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT ? "animate-bounce" : ""}`} />
+                        <span>Start Speaking</span>
                       </button>
 
+                      {/* Button 2: Stop Recording */}
+                      <button
+                        onClick={handleStopRecording}
+                        disabled={interviewState !== INTERVIEW_STATES.RECORDING}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2.5 transition-all shadow-md ${
+                          interviewState === INTERVIEW_STATES.RECORDING
+                            ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/25 cursor-pointer ring-4 ring-rose-100 animate-pulse active:scale-98"
+                            : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
+                        }`}
+                      >
+                        <Square className="w-4 h-4 fill-current" />
+                        <span>Stop Recording</span>
+                      </button>
+                    </div>
+
+                    {/* Audio mute toggles */}
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
                           if (!isSpeakerMuted && typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -1786,16 +2053,6 @@ export function MockInterviewPage() {
                         <span>{isSpeakerMuted ? "Unmute AI Voice" : "Mute AI Voice"}</span>
                       </button>
                     </div>
-
-                    {/* Finish Answering & Submit */}
-                    <button
-                      onClick={handleSubmitAnswer}
-                      disabled={!candidateDraft.trim() && !typedAnswer.trim()}
-                      className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-all"
-                    >
-                      <Send className="w-4 h-4" />
-                      <span>Submit Answer / Done Speaking</span>
-                    </button>
                   </div>
                 </div>
               </div>

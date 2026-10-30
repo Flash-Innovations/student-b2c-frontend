@@ -54,6 +54,7 @@ export const aiApi = {
   createSession: (sessionData) => aiRequest('/api/interviews/session', { method: 'POST', body: sessionData }),
   getHistory: () => aiRequest('/api/interviews/history', { method: 'GET' }),
   getInterviewById: (id) => aiRequest(`/api/interviews/${id}`, { method: 'GET' }),
+  submitAnswer: (sessionId, transcript) => aiRequest(`/api/interviews/session/${sessionId}/answer`, { method: 'POST', body: { transcript } }),
   finishSession: (sessionId) => aiRequest(`/api/interviews/session/${sessionId}/finish`, { method: 'POST' }),
 
   // Curated SQL & Dev AI Tracks
