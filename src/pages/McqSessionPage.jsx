@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation, Link } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -36,23 +36,35 @@ const TOPIC_TYPE_MAP = {
 export function McqSessionPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
   
   const topicName = searchParams.get("name") || "Quantitative Aptitude";
   const topicId = searchParams.get("topic") || "QUANTITATIVE";
+  const isResultView = searchParams.get("view") === "result";
+
+  // Recover session result if refreshed or navigated to on result view
+  const initialResult = location.state?.result || (() => {
+    try {
+      const stored = sessionStorage.getItem(`flash_last_result_${topicId}`);
+      return stored ? JSON.parse(stored) : null;
+    } catch (_) {
+      return null;
+    }
+  })();
 
   const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isResultView);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [verifications, setVerifications] = useState({});
   const [showExplanation, setShowExplanation] = useState(false);
-  const [sessionCompleted, setSessionCompleted] = useState(false);
+  const [sessionCompleted, setSessionCompleted] = useState(isResultView && Boolean(initialResult));
   const [timerSeconds, setTimerSeconds] = useState(600); // 10 minutes
   const [attemptId, setAttemptId] = useState(null);
-  const [sessionResult, setSessionResult] = useState(null);
+  const [sessionResult, setSessionResult] = useState(initialResult);
   const [sessionStartTime, setSessionStartTime] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -122,8 +134,39 @@ export function McqSessionPage() {
   };
 
   useEffect(() => {
+    if (isResultView) {
+      if (!initialResult) {
+        // No result data to display; return cleanly to Practice Hub
+        navigate("/practice", { replace: true });
+      }
+      return;
+    }
     loadQuestions();
-  }, [topicName, topicId]);
+  }, [topicName, topicId, isResultView]);
+
+  // Handle browser Back button on the Result Screen: take student back to Practice Hub
+  useEffect(() => {
+    if (sessionCompleted || isResultView) {
+      const handlePopState = () => {
+        navigate("/practice", { replace: true });
+      };
+      window.addEventListener("popstate", handlePopState);
+      return () => window.removeEventListener("popstate", handlePopState);
+    }
+  }, [sessionCompleted, isResultView, navigate]);
+
+  // Prevent accidental navigation during active test with unsubmitted answers
+  useEffect(() => {
+    if (!sessionCompleted && !isResultView && questions.length > 0 && Object.keys(selectedAnswers).length > 0) {
+      const handleBeforeUnload = (e) => {
+        e.preventDefault();
+        e.returnValue = "You have an active test session. If you leave, your answers will not be recorded.";
+        return e.returnValue;
+      };
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }
+  }, [sessionCompleted, isResultView, questions.length, selectedAnswers]);
 
   // Quota check
   const mcqCount = subscription?.mcqAttemptedCount || 0;
@@ -248,6 +291,19 @@ export function McqSessionPage() {
     setSessionCompleted(true);
     setIsSubmitting(false);
 
+    try {
+      sessionStorage.setItem(`flash_last_result_${topicId}`, JSON.stringify(finalResult));
+    } catch (_) {}
+
+    // Replace browser history entry so the in-progress questionnaire is eliminated from back/forward history!
+    navigate(
+      `/practice/mcq?topic=${encodeURIComponent(topicId)}&name=${encodeURIComponent(topicName)}&view=result`,
+      {
+        replace: true,
+        state: { completed: true, result: finalResult }
+      }
+    );
+
     // Fix ii & v: Record exact count of attempted MCQs, correct count, and per-subject telemetry
     if (finalResult.attemptedQuestions > 0) {
       try {
@@ -283,6 +339,13 @@ export function McqSessionPage() {
     setTimerSeconds(600);
     setAttemptId(null);
     setSessionStartTime(Date.now());
+    try {
+      sessionStorage.removeItem(`flash_last_result_${topicId}`);
+    } catch (_) {}
+    navigate(
+      `/practice/mcq?topic=${encodeURIComponent(topicId)}&name=${encodeURIComponent(topicName)}`,
+      { replace: true }
+    );
     loadQuestions();
   };
 
@@ -396,18 +459,28 @@ export function McqSessionPage() {
       
       {/* Top Header */}
       <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-        <Link
-          to="/practice"
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+        <button
+          onClick={() => {
+            if (!sessionCompleted && Object.keys(selectedAnswers).length > 0) {
+              if (window.confirm("Are you sure you want to exit this active session? Your answers will not be recorded.")) {
+                navigate("/practice", { replace: true });
+              }
+            } else {
+              navigate("/practice", { replace: true });
+            }
+          }}
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" /> Back to Practice Hub
-        </Link>
+        </button>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-lg font-mono text-xs font-medium text-slate-700">
-            <Clock className="w-3.5 h-3.5 text-slate-500" />
-            {formatTimer(timerSeconds)}
-          </div>
+          {!sessionCompleted && (
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-lg font-mono text-xs font-medium text-slate-700">
+              <Clock className="w-3.5 h-3.5 text-slate-500" />
+              {formatTimer(timerSeconds)}
+            </div>
+          )}
           <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 border border-slate-200/80">
             {topicName}
           </span>
@@ -596,9 +669,12 @@ export function McqSessionPage() {
           </div>
 
           <div className="pt-4 flex justify-center gap-3">
-            <Link to="/practice">
-              <Button variant="outline">Browse Other Topics</Button>
-            </Link>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/practice", { replace: true })}
+            >
+              Browse Other Topics
+            </Button>
             <Button
               variant="primary"
               onClick={handleRetakePractice}
