@@ -108,6 +108,7 @@ export function App() {
           <Route path="/contests/:contestId/leaderboard" element={<ContestLeaderboardPage />} />
 
           <Route path="/interview" element={<MockInterviewPage />} />
+          <Route path="/mock-interview" element={<Navigate to="/interview" replace />} />
           <Route path="/resume" element={<ResumeOptimizerPage />} />
           <Route path="/pricing" element={<PricingPage />} />
 

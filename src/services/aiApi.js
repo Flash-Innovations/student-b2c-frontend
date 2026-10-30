@@ -54,6 +54,7 @@ export const aiApi = {
   createSession: (sessionData) => aiRequest('/api/interviews/session', { method: 'POST', body: sessionData }),
   getHistory: () => aiRequest('/api/interviews/history', { method: 'GET' }),
   getInterviewById: (id) => aiRequest(`/api/interviews/${id}`, { method: 'GET' }),
+  finishSession: (sessionId) => aiRequest(`/api/interviews/session/${sessionId}/finish`, { method: 'POST' }),
 
   // Curated SQL & Dev AI Tracks
   getSqlQuestions: () => aiRequest('/api/practice/ai/sql-questions', { method: 'GET' }),
@@ -64,7 +65,16 @@ export const aiApi = {
   // WebSocket Connection Factory
   createLiveWebSocket: (sessionId) => {
     const token = getAuthToken();
-    const wsUrl = `${AI_WS_URL.replace(/\/+$/, '')}/ws/interview?sessionId=${encodeURIComponent(sessionId)}&token=${encodeURIComponent(token || '')}`;
+    let baseWs = AI_WS_URL;
+    if (typeof window !== 'undefined' && !(typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AI_WS_URL)) {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        baseWs = 'ws://localhost:5055';
+      } else {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        baseWs = `${protocol}//${window.location.host}`;
+      }
+    }
+    const wsUrl = `${baseWs.replace(/\/+$/, '')}/ws/interview?sessionId=${encodeURIComponent(sessionId)}&token=${encodeURIComponent(token || '')}`;
     return new WebSocket(wsUrl);
   }
 };
