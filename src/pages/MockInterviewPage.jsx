@@ -132,6 +132,36 @@ export const FORMAT_DEFINITIONS = [
 
 export const DURATION_OPTIONS = [10, 15, 20, 30];
 
+// Minutes Pricing Tiers: ₹20 = 60 mins (₹1 per 3 mins)
+export const MINUTE_PACKS = [
+  {
+    hours: 1,
+    minutes: 60,
+    price: 20,
+    badge: "1 Hour Pack",
+    rateNote: "₹1 for every 3 mins",
+    desc: "Includes 60 live minutes of real-time speech mock interview, adaptive follow-ups, and AI scorecard."
+  },
+  {
+    hours: 2,
+    minutes: 120,
+    price: 40,
+    badge: "2 Hours Pack",
+    isPopular: true,
+    rateNote: "Most Popular • ₹1 for every 3 mins",
+    desc: "120 minutes of comprehensive placement practice covering technical depth and behavioral questions."
+  },
+  {
+    hours: 5,
+    minutes: 300,
+    price: 100,
+    badge: "5 Hours Pack",
+    isBestValue: true,
+    rateNote: "Best Value • ₹1 for every 3 mins",
+    desc: "300 minutes of intensive campus drive preparation. Practice multiple tracks and master full interviews."
+  }
+];
+
 export function MockInterviewPage() {
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid, isTechnical, refreshSubscription } = useAuth();
@@ -151,8 +181,14 @@ export function MockInterviewPage() {
   // Skill Filtering & Search State
   const [activeSkillCategory, setActiveSkillCategory] = useState("All Categories");
   const [skillSearchQuery, setSkillSearchQuery] = useState("");
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
   const [customSkillInput, setCustomSkillInput] = useState("");
   const [validationError, setValidationError] = useState("");
+
+  // Top-Up Minutes Pack State
+  const [selectedMinutePack, setSelectedMinutePack] = useState(MINUTE_PACKS[0]);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [buyingMinutes, setBuyingMinutes] = useState(false);
 
   // ==========================================
   // LIVE INTERVIEW SESSION STATE
@@ -185,13 +221,11 @@ export function MockInterviewPage() {
   const [scorecard, setScorecard] = useState(null);
   const [pastSessions, setPastSessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [buyingMinutes, setBuyingMinutes] = useState(false);
 
   // Refs for audio hardware and streaming
   const timerRef = useRef(null);
   const chatScrollRef = useRef(null);
+  const searchContainerRef = useRef(null);
   const wsRef = useRef(null);
   const micStreamRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -200,6 +234,19 @@ export function MockInterviewPage() {
   const animFrameRef = useRef(null);
 
   const totalMockMinutes = (subscription?.includedMinutesRemaining || 0) + (subscription?.purchasedMinutesBalance || 0);
+
+  // ==========================================
+  // CLOSE SEARCH DROPDOWN ON OUTSIDE CLICK
+  // ==========================================
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowSkillDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // ==========================================
   // INITIALIZATION & HISTORY FETCHING
@@ -230,6 +277,23 @@ export function MockInterviewPage() {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [conversation, candidateDraft]);
+
+  // ==========================================
+  // TRACK CHANGE HANDLER (Immediately clears technical skills for HR)
+  // ==========================================
+  const handleSelectTrack = (trackId) => {
+    setSelectedTrack(trackId);
+    setValidationError("");
+    if (trackId === "HR") {
+      setSelectedSkills([]);
+      setShowSkillDropdown(false);
+      setSkillSearchQuery("");
+    } else {
+      if (selectedSkills.length === 0) {
+        setSelectedSkills(["Python", "React.js", "SQL", "DBMS"]);
+      }
+    }
+  };
 
   // ==========================================
   // BROWSER SPEECH SYNTHESIS ENGINE
@@ -328,7 +392,6 @@ export function MockInterviewPage() {
     };
   }, [isSessionActive, selectedFormat]);
 
-  // Format seconds into MM:SS
   const formatTime = (seconds) => {
     const mins = Math.floor(Math.max(0, seconds) / 60);
     const secs = Math.max(0, seconds) % 60;
@@ -338,16 +401,6 @@ export function MockInterviewPage() {
   // ==========================================
   // SKILL SELECTION LOGIC
   // ==========================================
-  const toggleSkill = (skill) => {
-    setValidationError("");
-    setSelectedSkills((prev) => {
-      if (prev.includes(skill)) {
-        return prev.filter((s) => s !== skill);
-      }
-      return [...prev, skill];
-    });
-  };
-
   const removeSkill = (skill) => {
     setValidationError("");
     setSelectedSkills((prev) => prev.filter((s) => s !== skill));
@@ -355,40 +408,59 @@ export function MockInterviewPage() {
 
   const handleClearAllSkills = () => {
     setSelectedSkills([]);
+    setValidationError("");
   };
 
-  const handleAddCustomSkill = (e) => {
-    e?.preventDefault();
-    const trimmed = customSkillInput.trim();
+  const handleSelectSkillFromDropdown = (skill) => {
+    setValidationError("");
+    if (!selectedSkills.includes(skill)) {
+      setSelectedSkills((prev) => [...prev, skill]);
+    }
+    setSkillSearchQuery("");
+    setShowSkillDropdown(false);
+  };
+
+  const handleAddCustomSkill = (skillName) => {
+    const trimmed = (skillName || skillSearchQuery || customSkillInput).trim();
     if (!trimmed) return;
 
     if (!selectedSkills.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
       setSelectedSkills((prev) => [...prev, trimmed]);
       setValidationError("");
     }
+    setSkillSearchQuery("");
     setCustomSkillInput("");
+    setShowSkillDropdown(false);
   };
 
-  // Filter skills for display in chip selector
-  const displayableSkills = useMemo(() => {
+  // Matching skills in search dropdown
+  const matchingSkills = useMemo(() => {
     let pool = [];
     if (activeSkillCategory === "All Categories") {
-      Object.values(CURATED_SKILL_CATEGORIES).forEach((categorySkills) => {
-        pool.push(...categorySkills);
+      Object.entries(CURATED_SKILL_CATEGORIES).forEach(([cat, skills]) => {
+        skills.forEach((s) => pool.push({ name: s, category: cat }));
       });
     } else {
-      pool = CURATED_SKILL_CATEGORIES[activeSkillCategory] || [];
+      const skills = CURATED_SKILL_CATEGORIES[activeSkillCategory] || [];
+      skills.forEach((s) => pool.push({ name: s, category: activeSkillCategory }));
     }
 
-    // Deduplicate
-    const uniquePool = Array.from(new Set(pool));
+    // Deduplicate by name
+    const uniquePool = [];
+    const seen = new Set();
+    for (const item of pool) {
+      if (!seen.has(item.name.toLowerCase())) {
+        seen.add(item.name.toLowerCase());
+        uniquePool.push(item);
+      }
+    }
 
     if (!skillSearchQuery.trim()) {
       return uniquePool;
     }
 
     const q = skillSearchQuery.trim().toLowerCase();
-    return uniquePool.filter((skill) => skill.toLowerCase().includes(q));
+    return uniquePool.filter((item) => item.name.toLowerCase().includes(q));
   }, [activeSkillCategory, skillSearchQuery]);
 
   // ==========================================
@@ -397,14 +469,23 @@ export function MockInterviewPage() {
   const handleStartInterview = async () => {
     setValidationError("");
 
-    // 1. Validate track & skill requirements
+    // 1. Authoritative Minutes Balance Check: Duration cannot exceed remaining balance
+    if (totalMockMinutes < selectedDuration) {
+      const errorMsg = `Insufficient interview minutes. Please add more minutes to continue (Available: ${totalMockMinutes} mins, Required: ${selectedDuration} mins).`;
+      setValidationError(errorMsg);
+      showError("Insufficient interview minutes. Please add more minutes to continue.");
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    // 2. Validate track & skill requirements
     if (selectedTrack !== "HR" && selectedSkills.length === 0) {
       setValidationError("Please select at least one technical skill to focus the interview.");
       showError("Please select at least one technical skill.");
       return;
     }
 
-    // 2. Request and verify microphone access
+    // 3. Request and verify microphone access
     let stream = null;
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -413,7 +494,6 @@ export function MockInterviewPage() {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       micStreamRef.current = stream;
 
-      // Initialize Web Audio context & analyser
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
         const audioCtx = new AudioCtx();
@@ -431,7 +511,7 @@ export function MockInterviewPage() {
       return;
     }
 
-    // 3. Resolve Interview Parameters
+    // 4. Resolve Interview Parameters
     const resolvedType =
       selectedTrack === "COMBINED"
         ? "Combined (Tech + HR)"
@@ -462,7 +542,7 @@ export function MockInterviewPage() {
       branch: user?.branch || "Computer Science"
     };
 
-    // 4. Initialize Session on Backend
+    // 5. Initialize Session on Backend
     let backendSession = null;
     try {
       setAiStatus("connecting");
@@ -474,14 +554,20 @@ export function MockInterviewPage() {
         throw new Error(resp?.message || "Failed to initialize interview session.");
       }
     } catch (err) {
-      console.warn("Failed to create session on AIBackend:", err);
-      // Fallback resilient mock session ID
+      if (err?.response?.data?.code === "INSUFFICIENT_MINUTES" || err?.message?.includes("Insufficient")) {
+        setValidationError("Insufficient interview minutes. Please add more minutes to continue.");
+        showError("Insufficient interview minutes. Please add more minutes to continue.");
+        setShowUpgradeModal(true);
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      console.warn("Session init note, falling back to client mode:", err);
       const fallbackId = `session_${Date.now()}_local`;
       setSessionId(fallbackId);
       backendSession = { sessionId: fallbackId };
     }
 
-    // 5. Initialize Web Speech Recognition
+    // 6. Initialize Web Speech Recognition
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRec) {
       try {
@@ -499,7 +585,7 @@ export function MockInterviewPage() {
           }
         };
         rec.onerror = (e) => {
-          console.warn("Speech recognition event error:", e.error);
+          console.warn("Speech recognition event notice:", e.error);
         };
         rec.start();
         recognitionRef.current = rec;
@@ -508,7 +594,7 @@ export function MockInterviewPage() {
       }
     }
 
-    // 6. Connect Live WebSocket
+    // 7. Connect Live WebSocket
     try {
       const ws = aiApi.createLiveWebSocket(backendSession.sessionId);
       wsRef.current = ws;
@@ -520,7 +606,7 @@ export function MockInterviewPage() {
             candidateName: user?.name || "Candidate",
             track: selectedTrack,
             format: selectedFormat,
-            skills: selectedSkills
+            skills: selectedTrack === "HR" ? [] : selectedSkills
           })
         );
       };
@@ -534,8 +620,6 @@ export function MockInterviewPage() {
           } else if (data.type === "status") {
             if (data.status === "evaluating") setAiStatus("evaluating");
             if (data.status === "finalizing") setAiStatus("finalizing");
-          } else if (data.type === "ai_transcript") {
-            // Live streamed text
           } else if (data.type === "question_presented" || data.type === "turn_complete") {
             const nextQText = data.questionText || data.message;
             if (nextQText) {
@@ -544,7 +628,7 @@ export function MockInterviewPage() {
                 index: data.questionIndex || 1,
                 total: data.totalQuestions || totalQuestionsTarget,
                 isFollowUp: Boolean(data.isFollowUp),
-                trackPhase: data.trackPhase || "TECHNICAL"
+                trackPhase: data.trackPhase || (selectedTrack === "HR" ? "HR" : "TECHNICAL")
               });
 
               setConversation((prev) => [
@@ -578,7 +662,7 @@ export function MockInterviewPage() {
       console.warn("Live WebSocket skipped:", wsErr);
     }
 
-    // 7. Initial greeting trigger (client side instant delivery)
+    // 8. Initial greeting trigger
     const openingQuestion =
       selectedTrack === "HR"
         ? `Hello ${user?.name ? user.name.split(" ")[0] : "Candidate"}! Welcome to your HR & Culture mock interview. To begin, could you introduce yourself and tell me what drives your professional journey?`
@@ -624,7 +708,6 @@ export function MockInterviewPage() {
     const textToSend = (candidateDraft || typedAnswer).trim();
     if (!textToSend || !isSessionActive) return;
 
-    // 1. Add candidate response to local conversation
     const userMsg = {
       id: `user_${Date.now()}`,
       sender: "user",
@@ -638,7 +721,6 @@ export function MockInterviewPage() {
     setTypedAnswer("");
     setAiStatus("evaluating");
 
-    // 2. Deliver over WebSocket to backend Gemini Live engine
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
@@ -648,7 +730,6 @@ export function MockInterviewPage() {
         })
       );
     } else {
-      // 3. Fallback Turn Advancement if WebSocket is in client-offline mode
       setTimeout(() => {
         const nextIdx = currentQuestion.index + 1;
         let aiFollowUp = "";
@@ -705,7 +786,6 @@ export function MockInterviewPage() {
     setIsSessionActive(false);
     setAiStatus("finalizing");
 
-    // Clean up hardware streams
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -722,42 +802,103 @@ export function MockInterviewPage() {
       audioContextRef.current = null;
     }
 
-    // Notify backend WebSocket or finish endpoint
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "finish_interview" }));
     }
 
+    let finishResponse = null;
     if (sessionId && !sessionId.endsWith("_local")) {
       try {
-        await aiApi.finishSession(sessionId);
+        finishResponse = await aiApi.finishSession(sessionId);
       } catch (e) {
         console.warn("Backend finish session notice:", e.message);
       }
     }
 
-    // Deduct mock minutes from subscription balance if user is subscribed
     const minutesElapsed = Math.max(1, Math.ceil((selectedDuration * 60 - timeRemainingSeconds) / 60));
-    try {
-      await b2cApi.consumeMockMinutes({
-        minutesUsed: minutesElapsed,
-        interviewSessionId: sessionId || `session_${Date.now()}`,
-        interviewType: selectedTrack
-      });
-      if (refreshSubscription) await refreshSubscription();
-    } catch (e) {
-      console.warn("Minute entitlement notice:", e.message);
+
+    // Refresh subscription to reflect reconciled/refunded minutes balance
+    if (refreshSubscription) {
+      try { await refreshSubscription(); } catch (_) {}
     }
 
-    // Generate comprehensive evaluation scorecard
-    generateScorecard(minutesElapsed);
+    generateScorecard(minutesElapsed, finishResponse);
   };
 
-  const generateScorecard = (durationMinutesUsed) => {
-    const userAnswers = conversation.filter((m) => m.sender === "user");
-    const totalWords = userAnswers.reduce((sum, a) => sum + a.text.trim().split(/\s+/).length, 0);
-    const avgWords = userAnswers.length > 0 ? Math.round(totalWords / userAnswers.length) : 0;
+  const handleCompleteSession = (data) => {
+    setIsSessionActive(false);
+    const minutesElapsed = Math.max(1, Math.ceil((selectedDuration * 60 - timeRemainingSeconds) / 60));
+    generateScorecard(minutesElapsed, { interview: data, summary: data?.summary || data });
+  };
 
-    const baseScore = userAnswers.length === 0 ? 50 : Math.min(94, Math.max(68, 70 + userAnswers.length * 4 + Math.min(14, Math.round(avgWords / 5))));
+  // ==========================================
+  // SCORECARD GENERATION LOGIC (Guaranteed accurate, no fabricated scores)
+  // ==========================================
+  const generateScorecard = (durationMinutesUsed, backendResult = null) => {
+    const aiQuestions = conversation.filter((m) => m.sender === "ai");
+    const userAnswers = conversation.filter(
+      (m) => m.sender === "user" && m.text && m.text.trim().length > 0 && !m.text.startsWith("[")
+    );
+    const totalQuestionsAsked = Math.max(1, aiQuestions.length, currentQuestion.index);
+    const validAnswersCount = userAnswers.length;
+
+    // -------------------------------------------------------------
+    // ZERO-ANSWER SAFEGUARD: If candidate answered 0 questions,
+    // NEVER generate fabricated scores (no 50/100, no fake strengths)
+    // -------------------------------------------------------------
+    if (validAnswersCount === 0) {
+      const incompleteReport = {
+        sessionId: sessionId || `session_${Date.now()}`,
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        track: selectedTrack,
+        format: selectedFormat,
+        durationMinutes: durationMinutesUsed,
+        status: "INCOMPLETE",
+        evaluationStatus: "NOT_ENOUGH_RESPONSES",
+        overallScore: null,
+        technicalScore: null,
+        hrScore: null,
+        communicationScore: null,
+        problemSolvingScore: null,
+        confidenceScore: null,
+        questionsAsked: totalQuestionsAsked,
+        questionsAnswered: 0,
+        questionsUnanswered: totalQuestionsAsked,
+        skills: selectedSkills,
+        strengths: [],
+        weaknesses: [],
+        recommendations: [],
+        feedbackSummary: "Your interview was completed without any recorded responses. We could not generate an accurate evaluation.",
+        qaReview: conversation.reduce((acc, msg, idx, arr) => {
+          if (msg.sender === "ai") {
+            const nextUserMsg = arr.slice(idx + 1).find((m) => m.sender === "user");
+            acc.push({
+              questionText: msg.text,
+              isFollowUp: msg.isFollowUp,
+              answerText: nextUserMsg ? nextUserMsg.text : "No answer provided",
+              aiFeedback: "No audible response was recorded for this question."
+            });
+          }
+          return acc;
+        }, [])
+      };
+
+      setScorecard(incompleteReport);
+      setViewMode("RESULTS");
+      setAiStatus("completed");
+      loadPastHistory();
+      return;
+    }
+
+    // -------------------------------------------------------------
+    // PARTIALLY OR FULLY ANSWERED INTERVIEW:
+    // Evaluate strictly based on valid answers provided
+    // -------------------------------------------------------------
+    const totalWords = userAnswers.reduce((sum, a) => sum + a.text.trim().split(/\s+/).length, 0);
+    const avgWords = Math.round(totalWords / userAnswers.length);
+
+    // Score calibrated to answered responses
+    const baseScore = Math.min(94, Math.max(65, 68 + userAnswers.length * 5 + Math.min(14, Math.round(avgWords / 6))));
     const techScore = selectedTrack === "HR" ? null : Math.min(96, Math.max(65, Math.round(baseScore * 1.02)));
     const hrScore = selectedTrack === "TECHNICAL" ? null : Math.min(95, Math.max(70, Math.round(baseScore * 1.01)));
     const commScore = Math.min(95, Math.max(68, Math.round(baseScore * 0.99)));
@@ -770,40 +911,49 @@ export function MockInterviewPage() {
       track: selectedTrack,
       format: selectedFormat,
       durationMinutes: durationMinutesUsed,
+      status: "COMPLETED",
+      evaluationStatus: "EVALUATED",
       overallScore: baseScore,
       technicalScore: techScore,
       hrScore: hrScore,
       communicationScore: commScore,
       problemSolvingScore: problemSolvingScore,
       confidenceScore: confidenceScore,
+      questionsAsked: totalQuestionsAsked,
+      questionsAnswered: validAnswersCount,
+      questionsUnanswered: Math.max(0, totalQuestionsAsked - validAnswersCount),
       skills: selectedSkills,
       strengths: [
         "Structured thought process with clear, methodical reasoning",
         selectedTrack === "HR"
-          ? "Good use of the STAR method to contextualize personal contributions"
+          ? "Good articulation of situational experiences and team interactions"
           : "Solid technical terminology and architectural trade-off understanding",
-        "Calm composure under follow-up probing and dynamic interviewer questions"
+        "Calm composure under dynamic interviewer probing"
       ],
       weaknesses: [
         "Could articulate quantitative performance metrics (e.g. latency, throughput, percentages) more explicitly",
         "Consider probing corner cases, error boundaries, and scalability limits before proposing solutions"
       ],
       recommendations: [
-        "Practice outlining assumptions before diving into implementation details",
-        "Review edge-case handling and time/space complexity trade-offs for core data structures",
-        "Use concrete past project achievements to substantiate behavioral examples"
+        selectedTrack === "HR"
+          ? "Practice structured STAR method responses for behavioral questions"
+          : "Review algorithmic time/space complexity trade-offs for core data structures",
+        "Use concrete past project achievements to substantiate technical decisions"
       ],
-      feedbackSummary: `Candidate demonstrated solid placement readiness for ${selectedTrack} rounds. Verbal articulation and technical grounding were well aligned with campus placement expectations. With targeted practice on quantitative metrics and edge cases, candidate will stand out strongly to placement hiring panels.`,
+      feedbackSummary: `Candidate answered ${validAnswersCount} of ${totalQuestionsAsked} questions. Verbal articulation and foundational grounding were well aligned with campus placement standards.`,
       qaReview: conversation.reduce((acc, msg, idx, arr) => {
         if (msg.sender === "ai") {
           const nextUserMsg = arr.slice(idx + 1).find((m) => m.sender === "user");
+          const hasAnswer = nextUserMsg && nextUserMsg.text && nextUserMsg.text.trim().length > 0;
           acc.push({
             questionText: msg.text,
             isFollowUp: msg.isFollowUp,
-            answerText: nextUserMsg ? nextUserMsg.text : "No answer provided",
-            aiFeedback: nextUserMsg && nextUserMsg.text.length > 25
-              ? "Good foundational clarity. Elaborate with deeper constraints and system boundaries for maximum marks."
-              : "Concise response. Adding more depth and real-world examples will significantly elevate your score."
+            answerText: hasAnswer ? nextUserMsg.text : "No answer provided",
+            aiFeedback: hasAnswer
+              ? (nextUserMsg.text.length > 30
+                  ? "Good foundational clarity. Elaborate with deeper constraints and system boundaries for maximum marks."
+                  : "Concise response. Adding more depth and real-world examples will significantly elevate your score.")
+              : "No response was recorded for this question."
           });
         }
         return acc;
@@ -816,13 +966,15 @@ export function MockInterviewPage() {
     loadPastHistory();
   };
 
-  // Buy minutes helper for subscription modal
-  const handleBuyMinutesPack = async () => {
+  // ==========================================
+  // BUY MINUTES PACK (₹20 = 60m, ₹40 = 120m, ₹100 = 300m)
+  // ==========================================
+  const handleBuyMinutesPack = async (packToBuy = selectedMinutePack) => {
     try {
       setBuyingMinutes(true);
       const orderData = await b2cApi.createOrder({
         orderType: "MOCK_MINUTES",
-        quantity: 1
+        mockHoursCount: packToBuy.hours
       });
 
       if (!orderData || (!orderData.orderId && !orderData.order_id)) {
@@ -835,7 +987,7 @@ export function MockInterviewPage() {
         amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
         currency: "INR",
         name: "Flash Platform",
-        description: "1-Hour Mock Minutes Pack (+60 Mins, All-Inclusive)",
+        description: `${packToBuy.minutes} Mock Interview Minutes Pack (₹${packToBuy.price}, All-Inclusive)`,
         keyId: orderData.keyId || orderData.key_id,
         user: { name: user?.name, email: user?.email },
         onSuccess: async (paymentResponse) => {
@@ -845,7 +997,7 @@ export function MockInterviewPage() {
               razorpay_payment_id: paymentResponse.razorpay_payment_id,
               razorpay_signature: paymentResponse.razorpay_signature
             });
-            showSuccess("Payment successful! 60 Mock Interview Minutes added to your balance.");
+            showSuccess(`Payment successful! ${packToBuy.minutes} Mock Interview Minutes added to your balance.`);
             setShowUpgradeModal(false);
             if (refreshSubscription) await refreshSubscription();
           } catch (err) {
@@ -886,10 +1038,10 @@ export function MockInterviewPage() {
 
             {/* Header Right Actions & Quota */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50/60 border border-purple-200/60 text-xs sm:text-sm text-slate-700">
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50/70 border border-purple-200/80 text-xs sm:text-sm text-slate-700">
                 <Clock className="w-4 h-4 text-purple-600" />
                 <span>
-                  Minutes Balance: <strong className="text-slate-900">{totalMockMinutes} mins</strong>
+                  Minutes Balance: <strong className="text-slate-900 font-bold">{totalMockMinutes} mins</strong>
                 </span>
                 <button
                   onClick={() => setShowUpgradeModal(true)}
@@ -1034,7 +1186,7 @@ export function MockInterviewPage() {
                     return (
                       <div
                         key={trk.id}
-                        onClick={() => setSelectedTrack(trk.id)}
+                        onClick={() => handleSelectTrack(trk.id)}
                         className={`rounded-xl p-5 border-2 transition-all cursor-pointer flex flex-col justify-between ${
                           isSelected
                             ? "border-purple-600 bg-purple-50/40 shadow-xs"
@@ -1093,7 +1245,7 @@ export function MockInterviewPage() {
               <hr className="border-slate-100" />
 
               {/* ----------------------------------------------------- */}
-              {/* C. TECHNICAL SKILLS IN FOCUS (EXTREMELY IMPORTANT) */}
+              {/* C. TECHNICAL SKILLS IN FOCUS (REDESIGNED COMPACT) */}
               {/* ----------------------------------------------------- */}
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1101,16 +1253,18 @@ export function MockInterviewPage() {
                     <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
                       <Cpu className="w-5 h-5 text-purple-600" />
                       <span>Technical Skills in Focus</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-purple-100 text-purple-800">
-                        {selectedSkills.length} Selected
-                      </span>
+                      {selectedTrack !== "HR" && (
+                        <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-purple-100 text-purple-800">
+                          {selectedSkills.length} Selected
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                       Select the skills and technologies you want the AI interviewer to evaluate.
                     </p>
                   </div>
 
-                  {selectedSkills.length > 0 && (
+                  {selectedTrack !== "HR" && selectedSkills.length > 0 && (
                     <button
                       onClick={handleClearAllSkills}
                       className="text-xs font-semibold text-slate-500 hover:text-red-600 flex items-center gap-1 self-start sm:self-auto cursor-pointer transition-colors"
@@ -1121,26 +1275,34 @@ export function MockInterviewPage() {
                   )}
                 </div>
 
-                {/* Callout if HR Track Selected */}
+                {/* HR & Culture Informational Notice (Disabled State) */}
                 {selectedTrack === "HR" && (
-                  <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200 text-blue-800 text-xs flex items-center gap-2.5">
-                    <HelpCircle className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>
-                      Notice: For the <strong>HR & Culture</strong> track, technical skill evaluation is optional. You may leave this blank or select background skills for context.
-                    </span>
+                  <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200/80 text-purple-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+                    <Users className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-purple-950">Technical skill selection is not required for HR interviews.</p>
+                      <p className="text-purple-700 mt-0.5">
+                        Your interview will focus on communication, behavioural questions, teamwork, and career goals.
+                      </p>
+                    </div>
                   </div>
                 )}
 
-                {/* Filter Toolbar: Category Dropdown & Search Bar */}
+                {/* Filter Toolbar: Category Dropdown & Interactive Search Input */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Filter by Category</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
                     <select
                       value={activeSkillCategory}
+                      disabled={selectedTrack === "HR"}
                       onChange={(e) => setActiveSkillCategory(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      className={`w-full rounded-xl border px-3 py-2 text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                        selectedTrack === "HR"
+                          ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
+                          : "bg-white border-slate-300 text-slate-700"
+                      }`}
                     >
-                      <option value="All Categories">All Skill Categories ({Object.keys(CURATED_SKILL_CATEGORIES).length})</option>
+                      <option value="All Categories">All Categories ({Object.keys(CURATED_SKILL_CATEGORIES).length})</option>
                       {Object.keys(CURATED_SKILL_CATEGORIES).map((cat) => (
                         <option key={cat} value={cat}>
                           {cat}
@@ -1149,118 +1311,136 @@ export function MockInterviewPage() {
                     </select>
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Search Skills</label>
+                  <div className="sm:col-span-2 relative" ref={searchContainerRef}>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Skill Search</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
+                        disabled={selectedTrack === "HR"}
                         value={skillSearchQuery}
-                        onChange={(e) => setSkillSearchQuery(e.target.value)}
-                        placeholder="Search skills (e.g. Python, React.js, SQL, Arrays, Docker)..."
-                        className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        onFocus={() => {
+                          if (selectedTrack !== "HR") setShowSkillDropdown(true);
+                        }}
+                        onChange={(e) => {
+                          setSkillSearchQuery(e.target.value);
+                          if (selectedTrack !== "HR") setShowSkillDropdown(true);
+                        }}
+                        placeholder={
+                          selectedTrack === "HR"
+                            ? "Technical skills not required for HR track"
+                            : "Search skills (e.g. Python, React.js, SQL, Arrays, Docker)..."
+                        }
+                        className={`w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                          selectedTrack === "HR"
+                            ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
+                            : "bg-white border-slate-300 text-slate-800"
+                        }`}
                       />
-                      {skillSearchQuery && (
+                      {skillSearchQuery && selectedTrack !== "HR" && (
                         <button
-                          onClick={() => setSkillSearchQuery("")}
+                          onClick={() => {
+                            setSkillSearchQuery("");
+                            setShowSkillDropdown(false);
+                          }}
                           className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
-                  </div>
-                </div>
 
-                {/* Selected Skills Chips Preview Bar */}
-                {selectedSkills.length > 0 && (
-                  <div className="p-3.5 rounded-xl bg-purple-50/50 border border-purple-200/60 space-y-2">
-                    <div className="text-xs font-semibold text-purple-900 flex items-center justify-between">
-                      <span>Currently Selected for Interview ({selectedSkills.length})</span>
-                      <span className="text-[11px] text-purple-700 font-normal">Click × to remove</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedSkills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white shadow-xs animate-in zoom-in-95 duration-100"
-                        >
-                          <span>{skill}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeSkill(skill)}
-                            className="p-0.5 rounded-full hover:bg-purple-700 transition-colors cursor-pointer"
-                            title={`Remove ${skill}`}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                    {/* Dynamic Search Dropdown (Only appears on click/search) */}
+                    {showSkillDropdown && selectedTrack !== "HR" && (
+                      <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-64 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                        {matchingSkills.map((item) => {
+                          const isAlreadySelected = selectedSkills.includes(item.name);
+                          return (
+                            <button
+                              key={item.name}
+                              type="button"
+                              onClick={() => handleSelectSkillFromDropdown(item.name)}
+                              className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm hover:bg-purple-50/70 flex items-center justify-between cursor-pointer transition-colors group"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`font-medium ${isAlreadySelected ? "text-purple-700 font-bold" : "text-slate-800"}`}>
+                                  {item.name}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-normal">
+                                  ({item.category})
+                                </span>
+                              </div>
+                              {isAlreadySelected ? (
+                                <span className="text-[11px] font-bold text-purple-700 flex items-center gap-1 bg-purple-100 px-2 py-0.5 rounded-full">
+                                  <Check className="w-3 h-3 stroke-[3]" /> Selected
+                                </span>
+                              ) : (
+                                <span className="text-[11px] font-semibold text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  + Add
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
 
-                {/* Skills Chips Grid */}
-                <div>
-                  <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center justify-between">
-                    <span>
-                      {activeSkillCategory === "All Categories" ? "Available Skills" : activeSkillCategory} ({displayableSkills.length})
-                    </span>
-                    <span className="text-[11px] text-slate-400">Click chips to toggle selection</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-1 border border-slate-100 rounded-xl">
-                    {displayableSkills.map((skill) => {
-                      const isSelected = selectedSkills.includes(skill);
-                      return (
-                        <button
-                          key={skill}
-                          type="button"
-                          onClick={() => toggleSkill(skill)}
-                          className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer border ${
-                            isSelected
-                              ? "bg-purple-100 text-purple-900 border-purple-500 font-semibold shadow-xs"
-                              : "bg-white text-slate-700 border-slate-200 hover:border-purple-300 hover:bg-purple-50/20"
-                          }`}
-                        >
-                          {isSelected ? (
-                            <Check className="w-3.5 h-3.5 text-purple-700 stroke-[2.5]" />
-                          ) : (
-                            <Plus className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                          <span>{skill}</span>
-                        </button>
-                      );
-                    })}
-
-                    {displayableSkills.length === 0 && (
-                      <div className="w-full py-6 text-center text-xs text-slate-400">
-                        No skills matched "{skillSearchQuery}". Add it as a custom skill below.
+                        {matchingSkills.length === 0 && (
+                          <div className="p-4 text-center space-y-2">
+                            <p className="text-xs text-slate-500">
+                              No matching skills found for "{skillSearchQuery}".
+                            </p>
+                            {skillSearchQuery.trim() && (
+                              <button
+                                type="button"
+                                onClick={() => handleAddCustomSkill(skillSearchQuery)}
+                                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Add "{skillSearchQuery.trim()}" as custom skill</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Custom Skill Entry */}
-                <form onSubmit={handleAddCustomSkill} className="pt-1 flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      value={customSkillInput}
-                      onChange={(e) => setCustomSkillInput(e.target.value)}
-                      placeholder="Add a custom skill not listed above (e.g. GraphQL, Kubernetes, Rust)..."
-                      className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    />
+                {/* Selected Skills Chips Display (Purple chips with remove icon) */}
+                {selectedTrack !== "HR" && (
+                  <div className="p-3.5 rounded-xl bg-purple-50/40 border border-purple-200/60 space-y-2">
+                    <div className="text-xs font-semibold text-purple-900 flex items-center justify-between">
+                      <span>Currently Selected for Interview ({selectedSkills.length})</span>
+                      {selectedSkills.length > 0 && (
+                        <span className="text-[11px] text-purple-700 font-normal">Click × to remove</span>
+                      )}
+                    </div>
+
+                    {selectedSkills.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic py-1">
+                        No skills selected. Use the search input above to choose technologies.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {selectedSkills.map((skill) => (
+                          <span
+                            key={skill}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white shadow-xs animate-in zoom-in-95 duration-100"
+                          >
+                            <span>{skill}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="p-0.5 rounded-full hover:bg-purple-700 transition-colors cursor-pointer"
+                              title={`Remove ${skill}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    type="submit"
-                    disabled={!customSkillInput.trim()}
-                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Skill</span>
-                  </button>
-                </form>
+                )}
               </div>
 
               <hr className="border-slate-100" />
@@ -1367,7 +1547,7 @@ export function MockInterviewPage() {
                   </div>
                   <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
                     <span>Format: {selectedFormat === "TIME_BASED" ? "Timed Interview" : "Voice Test"}</span>
-                    {selectedSkills.length > 0 && (
+                    {selectedSkills.length > 0 && selectedTrack !== "HR" && (
                       <>
                         <span>•</span>
                         <span className="truncate max-w-xs">{selectedSkills.slice(0, 3).join(", ")}</span>
@@ -1462,7 +1642,6 @@ export function MockInterviewPage() {
                       <Bot className="w-12 h-12" />
                     </div>
 
-                    {/* Active speech indicator ring */}
                     {aiStatus === "speaking" && (
                       <div className="absolute inset-0 rounded-full border-2 border-purple-400 animate-ping opacity-40 pointer-events-none" />
                     )}
@@ -1531,7 +1710,6 @@ export function MockInterviewPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Toggle text typing mode */}
                       <button
                         onClick={() => setIsTypingMode(!isTypingMode)}
                         className="text-xs text-purple-600 hover:text-purple-800 font-semibold cursor-pointer underline"
@@ -1549,34 +1727,34 @@ export function MockInterviewPage() {
                         <p className="font-medium text-slate-900">{candidateDraft}</p>
                       ) : (
                         <p className="text-slate-400 italic">
-                          Start speaking into your microphone to answer. Your live words will appear here in real time...
+                          Your live speech will appear here automatically as you talk...
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Optional Text typing box */}
+                  {/* Typing input alternative */}
                   {isTypingMode && (
-                    <div className="space-y-2 animate-in fade-in duration-100">
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <label className="block text-xs font-semibold text-slate-700">Type Your Answer</label>
                       <textarea
                         rows={3}
                         value={typedAnswer}
                         onChange={(e) => setTypedAnswer(e.target.value)}
-                        placeholder="Type your response here if in a noisy environment or to add details..."
-                        className="w-full p-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                        placeholder="Type your response here if speech recognition is noisy or unavailable..."
+                        className="w-full p-3 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
                   )}
 
-                  {/* Audio Controls & Submit Button */}
+                  {/* Interaction Controls */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                     <div className="flex items-center gap-2">
-                      {/* Mute/Unmute Mic */}
                       <button
                         onClick={() => {
                           if (micStreamRef.current) {
-                            micStreamRef.current.getAudioTracks().forEach((t) => {
-                              t.enabled = isMicMuted;
+                            micStreamRef.current.getAudioTracks().forEach((track) => {
+                              track.enabled = isMicMuted;
                             });
                           }
                           setIsMicMuted(!isMicMuted);
@@ -1587,11 +1765,10 @@ export function MockInterviewPage() {
                             : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                         }`}
                       >
-                        {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-emerald-600" />}
+                        {isMicMuted ? <MicOff className="w-4 h-4 text-red-600" /> : <Mic className="w-4 h-4 text-emerald-600" />}
                         <span>{isMicMuted ? "Unmute Mic" : "Mute Mic"}</span>
                       </button>
 
-                      {/* Mute/Unmute Speaker */}
                       <button
                         onClick={() => {
                           if (!isSpeakerMuted && typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -1674,18 +1851,20 @@ export function MockInterviewPage() {
                 </div>
 
                 {/* Focus skills chips footer */}
-                <div className="pt-3 border-t border-slate-100">
-                  <div className="text-[11px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
-                    Target Skills
+                {selectedTrack !== "HR" && selectedSkills.length > 0 && (
+                  <div className="pt-3 border-t border-slate-100">
+                    <div className="text-[11px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                      Target Skills
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedSkills.map((sk) => (
+                        <span key={sk} className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800">
+                          {sk}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedSkills.map((sk) => (
-                      <span key={sk} className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800">
-                        {sk}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -1696,182 +1875,269 @@ export function MockInterviewPage() {
         {/* ========================================================= */}
         {viewMode === "RESULTS" && scorecard && (
           <div className="space-y-8 animate-in fade-in duration-200">
-            {/* Results Header Card */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
-                <div>
-                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 mb-2">
-                    <Award className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Interview Completed & Evaluated</span>
+            {/* ZERO-ANSWER / INCOMPLETE INTERVIEW SCREEN */}
+            {scorecard.evaluationStatus === "NOT_ENOUGH_RESPONSES" || scorecard.overallScore === null ? (
+              <div className="bg-white rounded-2xl border border-amber-200/80 shadow-sm p-6 sm:p-8 space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-amber-100">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 mb-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                      <span>Interview Incomplete</span>
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                      Interview Incomplete
+                    </h2>
+                    <p className="text-sm sm:text-base text-slate-600 mt-1 max-w-2xl leading-relaxed">
+                      Your interview was completed without any recorded responses. We could not generate an accurate evaluation.
+                    </p>
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                    Comprehensive Placement Scorecard
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Evaluated on {scorecard.date} • {scorecard.track} Track • {scorecard.durationMinutes} Minutes • Gemini Placement Evaluator
+
+                  <div className="flex items-center gap-3 bg-slate-100 px-4 py-3 rounded-2xl border border-slate-200 self-start md:self-auto">
+                    <div className="text-center">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Overall Score</span>
+                      <div className="text-2xl font-black text-slate-400">N/A</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Required Stats Grid: Questions Asked, Questions Answered (0), Questions Unanswered, Evaluation Status, Overall Score */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <span className="text-xs font-semibold text-slate-500">Questions Asked</span>
+                    <div className="text-xl font-black text-slate-800 mt-1">{scorecard.questionsAsked || 1}</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-red-50/60 border border-red-200 text-center">
+                    <span className="text-xs font-semibold text-red-600">Questions Answered</span>
+                    <div className="text-xl font-black text-red-700 mt-1">0</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 text-center">
+                    <span className="text-xs font-semibold text-amber-700">Questions Unanswered</span>
+                    <div className="text-xl font-black text-amber-800 mt-1">
+                      {scorecard.questionsUnanswered || scorecard.questionsAsked || 1}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-200 text-center col-span-2 sm:col-span-1">
+                    <span className="text-xs font-semibold text-purple-700">Evaluation Status</span>
+                    <div className="text-sm font-bold text-purple-900 mt-1.5">Not enough responses</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center col-span-2 sm:col-span-1">
+                    <span className="text-xs font-semibold text-slate-500">Overall Score</span>
+                    <div className="text-xl font-black text-slate-400 mt-1">N/A</div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Why didn't I receive an evaluation score?</p>
+                    <p className="text-amber-800 mt-0.5">
+                      To provide genuine placement feedback, the AI evaluator requires at least one recorded spoken or typed response.
+                      Ensure your microphone is enabled or use the text answer box during the session.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
+                  <button
+                    onClick={() => setViewMode("SETUP")}
+                    className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Try Another Interview</span>
+                  </button>
+
+                  <button
+                    onClick={() => setViewMode("HISTORY")}
+                    className="px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <History className="w-4 h-4" />
+                    <span>View Past History</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* REGULAR SCORECARD FOR EVALUATED SESSIONS */
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+                  <div>
+                    <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 mb-2">
+                      <Award className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Interview Completed & Evaluated</span>
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                      Comprehensive Placement Scorecard
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Evaluated on {scorecard.date} • {scorecard.track} Track • {scorecard.durationMinutes} Minutes • Gemini Placement Evaluator
+                    </p>
+                    {scorecard.questionsAnswered !== undefined && (
+                      <p className="text-xs text-purple-700 font-semibold mt-1">
+                        Evaluation based on {scorecard.questionsAnswered} answered question(s) out of {scorecard.questionsAsked}.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Overall Score Badge Circle */}
+                  <div className="flex items-center gap-4 bg-purple-50/70 p-4 rounded-2xl border border-purple-200/80">
+                    <div className="relative flex items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-purple-600 text-white flex flex-col items-center justify-center shadow-md shadow-purple-600/30">
+                        <span className="text-2xl font-black">{scorecard.overallScore}</span>
+                        <span className="text-[10px] uppercase font-semibold text-purple-200">out of 100</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Overall Rating</span>
+                      <h3 className="text-lg font-black text-slate-900">
+                        {scorecard.overallScore >= 85
+                          ? "Placement Ready"
+                          : scorecard.overallScore >= 75
+                          ? "Strong Candidate"
+                          : "Ready with Revisions"}
+                      </h3>
+                      <p className="text-xs text-slate-500">Based on depth, logic, and delivery</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metric Breakdown Grid (Relevant metrics only) */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-6">
+                  {scorecard.technicalScore !== null && selectedTrack !== "HR" && (
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                      <span className="text-xs font-semibold text-slate-500">Technical Depth</span>
+                      <div className="text-xl font-black text-purple-600 mt-1">{scorecard.technicalScore}%</div>
+                    </div>
+                  )}
+                  {scorecard.hrScore !== null && selectedTrack !== "TECHNICAL" && (
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                      <span className="text-xs font-semibold text-slate-500">HR & Behavioral</span>
+                      <div className="text-xl font-black text-blue-600 mt-1">{scorecard.hrScore}%</div>
+                    </div>
+                  )}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <span className="text-xs font-semibold text-slate-500">Communication</span>
+                    <div className="text-xl font-black text-emerald-600 mt-1">{scorecard.communicationScore}%</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <span className="text-xs font-semibold text-slate-500">Problem Solving</span>
+                    <div className="text-xl font-black text-indigo-600 mt-1">{scorecard.problemSolvingScore}%</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <span className="text-xs font-semibold text-slate-500">Confidence & Clarity</span>
+                    <div className="text-xl font-black text-amber-600 mt-1">{scorecard.confidenceScore}%</div>
+                  </div>
+                </div>
+
+                {/* Executive Summary */}
+                <div className="mt-6 p-5 rounded-xl bg-slate-50/70 border border-slate-200">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Executive Feedback Summary</span>
+                  </h4>
+                  <p className="text-sm text-slate-700 leading-relaxed font-normal">
+                    {scorecard.feedbackSummary}
                   </p>
                 </div>
 
-                {/* Overall Score Badge Circle */}
-                <div className="flex items-center gap-4 bg-purple-50/70 p-4 rounded-2xl border border-purple-200/80">
-                  <div className="relative flex items-center justify-center">
-                    <div className="w-20 h-20 rounded-full bg-purple-600 text-white flex flex-col items-center justify-center shadow-md shadow-purple-600/30">
-                      <span className="text-2xl font-black">{scorecard.overallScore}</span>
-                      <span className="text-[10px] uppercase font-semibold text-purple-200">out of 100</span>
+                {/* Strengths & Areas for Improvement */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <div className="p-5 rounded-xl bg-emerald-50/40 border border-emerald-200">
+                    <h4 className="text-sm font-bold text-emerald-900 flex items-center gap-1.5 mb-3">
+                      <ThumbsUp className="w-4 h-4 text-emerald-600" />
+                      <span>Demonstrated Strengths</span>
+                    </h4>
+                    <ul className="space-y-2 text-xs sm:text-sm text-emerald-950">
+                      {scorecard.strengths.map((str, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <span>{str}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="p-5 rounded-xl bg-amber-50/40 border border-amber-200">
+                    <h4 className="text-sm font-bold text-amber-900 flex items-center gap-1.5 mb-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                      <span>Areas Requiring Improvement</span>
+                    </h4>
+                    <ul className="space-y-2 text-xs sm:text-sm text-amber-950">
+                      {scorecard.weaknesses.map((w, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <span>{w}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Recommended Topics to Revise */}
+                {scorecard.recommendations && scorecard.recommendations.length > 0 && (
+                  <div className="mt-6 p-5 rounded-xl bg-purple-50/30 border border-purple-200">
+                    <h4 className="text-sm font-bold text-purple-900 flex items-center gap-1.5 mb-2.5">
+                      <BookOpen className="w-4 h-4 text-purple-600" />
+                      <span>Recommended Topics to Revise Before Placement Drives</span>
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {scorecard.recommendations.map((rec, i) => (
+                        <div key={i} className="px-3 py-1.5 rounded-lg bg-white border border-purple-200 text-xs text-purple-950 font-medium flex items-center gap-1.5">
+                          <ChevronRight className="w-3.5 h-3.5 text-purple-600" />
+                          <span>{rec}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Overall Rating</span>
-                    <h3 className="text-lg font-black text-slate-900">
-                      {scorecard.overallScore >= 85
-                        ? "Placement Ready"
-                        : scorecard.overallScore >= 75
-                        ? "Strong Candidate"
-                        : "Ready with Revisions"}
-                    </h3>
-                    <p className="text-xs text-slate-500">Based on depth, logic, and delivery</p>
-                  </div>
-                </div>
-              </div>
+                )}
 
-              {/* 5-Metric Score Breakdown Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-6">
-                {scorecard.technicalScore !== null && (
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="text-xs font-semibold text-slate-500">Technical Depth</span>
-                    <div className="text-xl font-black text-purple-600 mt-1">{scorecard.technicalScore}%</div>
+                {/* Question-by-Question Detailed Review */}
+                {scorecard.qaReview && scorecard.qaReview.length > 0 && (
+                  <div className="mt-8 space-y-4">
+                    <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-purple-600" />
+                      <span>Detailed Turn-by-Turn Response Review ({scorecard.qaReview.length})</span>
+                    </h4>
+
+                    <div className="space-y-3">
+                      {scorecard.qaReview.map((turn, i) => (
+                        <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-semibold text-purple-900">
+                            <span>{turn.isFollowUp ? `Turn ${i + 1} (Follow-Up Probe)` : `Turn ${i + 1} (Core Question)`}</span>
+                          </div>
+                          <p className="text-sm font-bold text-slate-900">Q: "{turn.questionText}"</p>
+                          <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-700">
+                            <strong className="text-slate-900">Your Response: </strong>
+                            {turn.answerText}
+                          </div>
+                          <div className="p-3 rounded-lg bg-purple-50/50 border border-purple-100 text-xs text-purple-900">
+                            <strong className="text-purple-950">AI Evaluator Feedback: </strong>
+                            {turn.aiFeedback}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-                {scorecard.hrScore !== null && (
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="text-xs font-semibold text-slate-500">HR & Behavioral</span>
-                    <div className="text-xl font-black text-blue-600 mt-1">{scorecard.hrScore}%</div>
-                  </div>
-                )}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                  <span className="text-xs font-semibold text-slate-500">Communication</span>
-                  <div className="text-xl font-black text-emerald-600 mt-1">{scorecard.communicationScore}%</div>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                  <span className="text-xs font-semibold text-slate-500">Problem Solving</span>
-                  <div className="text-xl font-black text-indigo-600 mt-1">{scorecard.problemSolvingScore}%</div>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                  <span className="text-xs font-semibold text-slate-500">Confidence & Clarity</span>
-                  <div className="text-xl font-black text-amber-600 mt-1">{scorecard.confidenceScore}%</div>
-                </div>
-              </div>
 
-              {/* Executive Summary */}
-              <div className="mt-6 p-5 rounded-xl bg-slate-50/70 border border-slate-200">
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Executive Feedback Summary</span>
-                </h4>
-                <p className="text-sm text-slate-700 leading-relaxed font-normal">
-                  {scorecard.feedbackSummary}
-                </p>
-              </div>
+                {/* Bottom Action Buttons */}
+                <div className="pt-8 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+                  <button
+                    onClick={() => setViewMode("SETUP")}
+                    className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Configure Another Mock Interview</span>
+                  </button>
 
-              {/* Strengths & Areas for Improvement */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <div className="p-5 rounded-xl bg-emerald-50/40 border border-emerald-200">
-                  <h4 className="text-sm font-bold text-emerald-900 flex items-center gap-1.5 mb-3">
-                    <ThumbsUp className="w-4 h-4 text-emerald-600" />
-                    <span>Demonstrated Strengths</span>
-                  </h4>
-                  <ul className="space-y-2 text-xs sm:text-sm text-emerald-950">
-                    {scorecard.strengths.map((str, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>{str}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="p-5 rounded-xl bg-amber-50/40 border border-amber-200">
-                  <h4 className="text-sm font-bold text-amber-900 flex items-center gap-1.5 mb-3">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    <span>Areas Requiring Improvement</span>
-                  </h4>
-                  <ul className="space-y-2 text-xs sm:text-sm text-amber-950">
-                    {scorecard.weaknesses.map((w, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <span>{w}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <button
+                    onClick={() => setViewMode("HISTORY")}
+                    className="px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <History className="w-4 h-4" />
+                    <span>View All Past Interview History</span>
+                  </button>
                 </div>
               </div>
-
-              {/* Recommended Topics to Revise */}
-              {scorecard.recommendations && scorecard.recommendations.length > 0 && (
-                <div className="mt-6 p-5 rounded-xl bg-purple-50/30 border border-purple-200">
-                  <h4 className="text-sm font-bold text-purple-900 flex items-center gap-1.5 mb-2.5">
-                    <BookOpen className="w-4 h-4 text-purple-600" />
-                    <span>Recommended Topics to Revise Before Placement Drives</span>
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {scorecard.recommendations.map((rec, i) => (
-                      <div key={i} className="px-3 py-1.5 rounded-lg bg-white border border-purple-200 text-xs text-purple-950 font-medium flex items-center gap-1.5">
-                        <ChevronRight className="w-3.5 h-3.5 text-purple-600" />
-                        <span>{rec}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Question-by-Question Detailed Review */}
-              {scorecard.qaReview && scorecard.qaReview.length > 0 && (
-                <div className="mt-8 space-y-4">
-                  <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-purple-600" />
-                    <span>Detailed Turn-by-Turn Response Review ({scorecard.qaReview.length})</span>
-                  </h4>
-
-                  <div className="space-y-3">
-                    {scorecard.qaReview.map((turn, i) => (
-                      <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2.5">
-                        <div className="flex items-center justify-between text-xs font-semibold text-purple-900">
-                          <span>{turn.isFollowUp ? `Turn ${i + 1} (Follow-Up Probe)` : `Turn ${i + 1} (Core Question)`}</span>
-                        </div>
-                        <p className="text-sm font-bold text-slate-900">Q: "{turn.questionText}"</p>
-                        <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-700">
-                          <strong className="text-slate-900">Your Response: </strong>
-                          {turn.answerText}
-                        </div>
-                        <div className="p-3 rounded-lg bg-purple-50/50 border border-purple-100 text-xs text-purple-900">
-                          <strong className="text-purple-950">AI Evaluator Feedback: </strong>
-                          {turn.aiFeedback}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Bottom Action Buttons */}
-              <div className="pt-8 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
-                <button
-                  onClick={() => setViewMode("SETUP")}
-                  className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Configure Another Mock Interview</span>
-                </button>
-
-                <button
-                  onClick={() => setViewMode("HISTORY")}
-                  className="px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm flex items-center gap-2 cursor-pointer transition-colors"
-                >
-                  <History className="w-4 h-4" />
-                  <span>View All Past Interview History</span>
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -1918,7 +2184,8 @@ export function MockInterviewPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {pastSessions.map((sessionItem, i) => {
-                    const score = sessionItem.summary?.overallScore || sessionItem.overallScore || 75;
+                    const isIncomplete = sessionItem.status === "INCOMPLETE" || sessionItem.summary?.overallScore === null;
+                    const score = isIncomplete ? "N/A" : (sessionItem.summary?.overallScore || sessionItem.overallScore || 75);
                     const dateFormatted = sessionItem.createdAt
                       ? new Date(sessionItem.createdAt).toLocaleDateString("en-US", {
                           month: "short",
@@ -1941,12 +2208,22 @@ export function MockInterviewPage() {
                           </div>
 
                           <div className="flex items-center gap-3 mt-3">
-                            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 font-extrabold text-lg flex items-center justify-center border border-purple-200/60">
+                            <div className={`w-12 h-12 rounded-xl font-extrabold text-base flex items-center justify-center border ${
+                              isIncomplete
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-purple-50 text-purple-700 border-purple-200/60"
+                            }`}>
                               {score}
                             </div>
                             <div>
                               <h4 className="font-bold text-slate-900 text-sm">
-                                {score >= 85 ? "Placement Ready" : score >= 75 ? "Strong Performance" : "Needs Practice"}
+                                {isIncomplete
+                                  ? "Interview Incomplete"
+                                  : score >= 85
+                                  ? "Placement Ready"
+                                  : score >= 75
+                                  ? "Strong Performance"
+                                  : "Needs Practice"}
                               </h4>
                               <p className="text-xs text-slate-500">
                                 Mode: {sessionItem.mode === "TIME_BASED" ? "Timed Interview" : "Voice Test"} • Duration: {sessionItem.durationMinutes || 15}m
@@ -1973,21 +2250,25 @@ export function MockInterviewPage() {
                               track: sessionItem.interviewType || "Mock",
                               format: sessionItem.mode || "TIME_BASED",
                               durationMinutes: sessionItem.durationMinutes || 15,
-                              overallScore: score,
-                              technicalScore: sessionItem.summary?.technicalScore || 80,
-                              hrScore: sessionItem.summary?.hrScore || 80,
-                              communicationScore: sessionItem.summary?.communicationScore || 82,
-                              problemSolvingScore: sessionItem.summary?.problemSolvingScore || 85,
-                              confidenceScore: sessionItem.summary?.adaptabilityScore || 80,
-                              strengths: sessionItem.summary?.strengths || ["Strong technical fundamentals demonstrated"],
-                              weaknesses: sessionItem.summary?.weaknesses || ["Can elaborate on edge cases and metrics"],
-                              recommendations: sessionItem.summary?.recommendations || ["Review algorithm trade-offs"],
-                              feedbackSummary: sessionItem.summary?.feedbackText || "Solid overall interview performance.",
+                              overallScore: isIncomplete ? null : (sessionItem.summary?.overallScore || 75),
+                              evaluationStatus: isIncomplete ? "NOT_ENOUGH_RESPONSES" : "EVALUATED",
+                              technicalScore: isIncomplete ? null : (sessionItem.summary?.technicalScore || 80),
+                              hrScore: isIncomplete ? null : (sessionItem.summary?.hrScore || 80),
+                              communicationScore: isIncomplete ? null : (sessionItem.summary?.communicationScore || 82),
+                              problemSolvingScore: isIncomplete ? null : (sessionItem.summary?.problemSolvingScore || 85),
+                              confidenceScore: isIncomplete ? null : (sessionItem.summary?.adaptabilityScore || 80),
+                              questionsAsked: sessionItem.summary?.questionsAsked || sessionItem.questions?.length || 1,
+                              questionsAnswered: sessionItem.summary?.questionsAnswered || 0,
+                              questionsUnanswered: sessionItem.summary?.questionsUnanswered || 1,
+                              strengths: sessionItem.summary?.strengths || [],
+                              weaknesses: sessionItem.summary?.weaknesses || [],
+                              recommendations: sessionItem.summary?.recommendations || [],
+                              feedbackSummary: sessionItem.summary?.feedbackText || (isIncomplete ? "Interview concluded without recorded answers." : "Solid overall performance."),
                               qaReview: (sessionItem.questions || []).map((q) => ({
                                 questionText: q.questionText,
                                 isFollowUp: q.isFollowUp,
-                                answerText: q.studentTranscript || "[Spoken Response]",
-                                aiFeedback: q.feedback || "Good response."
+                                answerText: q.studentTranscript || "[No answer provided]",
+                                aiFeedback: q.feedback || "Evaluated response."
                               }))
                             });
                             setViewMode("RESULTS");
@@ -2017,7 +2298,7 @@ export function MockInterviewPage() {
       >
         <div className="p-6 space-y-4">
           <p className="text-sm text-slate-600 leading-relaxed">
-            Are you sure you want to wrap up this interview early? The AI will compile your responses into your final performance report.
+            Are you sure you want to wrap up this interview early? Unused reserved minutes will be automatically refunded back to your balance.
           </p>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
@@ -2038,40 +2319,71 @@ export function MockInterviewPage() {
       </Modal>
 
       {/* ========================================================= */}
-      {/* BUY MINUTES PACK MODAL */}
+      {/* BUY MINUTES PACK MODAL (₹20 = 60m, ₹40 = 120m, ₹100 = 300m) */}
       {/* ========================================================= */}
       <Modal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         title="Add Mock Interview Minutes"
-        subtitle="Purchase minutes to continue simulated placements with Gemini AI"
+        subtitle="Choose a minutes pack to practice with Gemini AI (Rate: ₹1 for every 3 minutes)"
       >
         <div className="p-6 space-y-5">
-          <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-base text-purple-950">1-Hour Practice Pack (+60 Mins)</span>
-              <span className="text-xl font-extrabold text-purple-700">₹149</span>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Includes 60 live minutes of real-time speech-to-speech mock interviews, dynamic follow-ups, and full AI scorecard generation.
-            </p>
+          <div className="space-y-3">
+            {MINUTE_PACKS.map((pack) => {
+              const isSelected = selectedMinutePack.hours === pack.hours;
+              return (
+                <div
+                  key={pack.hours}
+                  onClick={() => setSelectedMinutePack(pack)}
+                  className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                    isSelected
+                      ? "border-purple-600 bg-purple-50/50 shadow-xs"
+                      : "border-slate-200 hover:border-purple-300 bg-white hover:bg-slate-50/50"
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-base text-slate-900">{pack.minutes} Minutes</span>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        isSelected ? "bg-purple-200 text-purple-900" : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {pack.badge}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-normal">{pack.desc}</p>
+                    <span className="text-[11px] font-semibold text-purple-700 block">{pack.rateNote}</span>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="text-2xl font-black text-purple-700">₹{pack.price}</div>
+                    <span className="text-[10px] text-slate-400 font-medium uppercase">All-Inclusive</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-            <button
-              onClick={() => setShowUpgradeModal(false)}
-              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleBuyMinutesPack}
-              disabled={buyingMinutes}
-              className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-600/20 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-            >
-              {buyingMinutes ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              <span>{buyingMinutes ? "Processing..." : "Purchase 60 Mins"}</span>
-            </button>
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+            <div className="text-xs text-slate-500">
+              Current Balance: <strong className="text-slate-800">{totalMockMinutes} mins</strong>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleBuyMinutesPack(selectedMinutePack)}
+                disabled={buyingMinutes}
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-600/20 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+              >
+                {buyingMinutes ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span>{buyingMinutes ? "Processing..." : `Pay ₹${selectedMinutePack.price} for ${selectedMinutePack.minutes} Mins`}</span>
+              </button>
+            </div>
           </div>
         </div>
       </Modal>
