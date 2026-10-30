@@ -286,6 +286,24 @@ export function ContestDetailsPage() {
                 </span>
               )}
 
+              {/* Target Domain Badge */}
+              {(contest.targetDomain === "TECHNICAL" || contest.targetDomain === "TECHNICAL_DOMAIN") ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                  <Code2 className="w-3.5 h-3.5 text-blue-600" />
+                  Engineering & Technical Domain
+                </span>
+              ) : (contest.targetDomain === "MANAGEMENT" || contest.targetDomain === "MANAGEMENT_DOMAIN") ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                  <BrainCircuit className="w-3.5 h-3.5 text-amber-600" />
+                  Management & Business Domain
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                  <Layers className="w-3.5 h-3.5 text-slate-500" />
+                  Open to All Streams
+                </span>
+              )}
+
               <span className="text-xs text-slate-400 font-medium">
                 {user?.collegeName || "Institutional Assessment"}
               </span>
