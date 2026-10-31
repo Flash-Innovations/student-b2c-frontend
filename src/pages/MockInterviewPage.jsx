@@ -55,6 +55,7 @@ import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
 import { evaluateAnswerForQuestion, calculateOverallReport, isSkipOrEvasion } from "../utils/interviewEvaluator";
+import { pickIntelligentNextQuestion, isSemanticallySimilar } from "../utils/interviewQuestionBank";
 
 // ==========================================
 // CURATED TECHNICAL SKILLS CATALOGUE
@@ -722,6 +723,29 @@ export function MockInterviewPage() {
             interviewType: resolvedType
           });
         } catch (_) {}
+
+        // Reflect immediate live deduction in subscription balance
+        setSubscription((prev) => {
+          if (!prev) return prev;
+          let rem = selectedDuration;
+          const inc = prev.includedMinutesRemaining || 0;
+          const pur = prev.purchasedMinutesBalance || 0;
+          let newInc = inc;
+          let newPur = pur;
+          if (newInc >= rem) {
+            newInc -= rem;
+          } else {
+            rem -= newInc;
+            newInc = 0;
+            newPur = Math.max(0, newPur - rem);
+          }
+          return {
+            ...prev,
+            includedMinutesRemaining: newInc,
+            purchasedMinutesBalance: newPur
+          };
+        });
+
         if (refreshSubscription) {
           try { await refreshSubscription(); } catch (_) {}
         }
@@ -819,6 +843,18 @@ export function MockInterviewPage() {
             if (data.status === "evaluating") setAiStatus("evaluating");
             if (data.status === "finalizing") setAiStatus("finalizing");
           } else if (data.type === "question_presented" || data.type === "turn_complete") {
+            if (data.previousTurn) {
+              setTurnEvaluations((prev) => {
+                const existingIdx = prev.findIndex((t) => t.questionIndex === data.previousTurn.questionIndex);
+                if (existingIdx >= 0) {
+                  const updated = [...prev];
+                  updated[existingIdx] = data.previousTurn;
+                  return updated;
+                }
+                return [...prev, data.previousTurn];
+              });
+            }
+
             const nextQText = data.questionText || data.message;
             if (nextQText) {
               setCurrentQuestion({
@@ -860,13 +896,28 @@ export function MockInterviewPage() {
       console.warn("Live WebSocket skipped:", wsErr);
     }
 
-    // 8. Initial greeting trigger
+    // 8. Dynamic Initial Greeting Trigger with Fresh Question 1
+    const candidateFirstName = user?.name ? user.name.split(" ")[0] : "Candidate";
+    let firstCoreQuestion = backendSession?.session?.firstQuestion?.text || backendSession?.firstQuestion?.text;
+
+    if (!firstCoreQuestion) {
+      const pastQuestionTexts = pastSessions.flatMap((s) => (s.qaReview || s.questions || []).map((q) => q.questionText)).filter(Boolean);
+      const pickedQ = pickIntelligentNextQuestion({
+        selectedSkills: selectedTrack === "HR" ? [] : selectedSkills,
+        track: resolvedType,
+        sessionQuestionHistory: [],
+        crossSessionHistory: pastQuestionTexts,
+        isFollowUp: false
+      });
+      firstCoreQuestion = pickedQ.questionText;
+    }
+
     const openingQuestion =
       selectedTrack === "HR"
-        ? `Hello ${user?.name ? user.name.split(" ")[0] : "Candidate"}! Welcome to your HR & Culture mock interview. To begin, could you introduce yourself and tell me what drives your professional journey?`
+        ? `Hello ${candidateFirstName}! Welcome to your HR & Culture placement mock interview. Let's begin: ${firstCoreQuestion}`
         : selectedTrack === "COMBINED"
-        ? `Hello ${user?.name ? user.name.split(" ")[0] : "Candidate"}! Welcome to your Combined Technical & HR mock interview focusing on ${selectedSkills.slice(0, 3).join(", ")}. Let's start with our technical round: Could you explain how you select the appropriate data structure or pattern when designing for high-performance constraints?`
-        : `Hello ${user?.name ? user.name.split(" ")[0] : "Candidate"}! Welcome to your Technical mock interview focusing on ${selectedSkills.slice(0, 3).join(", ")}. Let's begin: Can you describe a challenging problem you solved using these technologies and the architectural trade-offs you evaluated?`;
+        ? `Hello ${candidateFirstName}! Welcome to your Combined Technical & HR mock interview focusing on ${selectedSkills.slice(0, 3).join(", ")}. Let's start with our technical round: ${firstCoreQuestion}`
+        : `Hello ${candidateFirstName}! Welcome to your Technical placement mock interview focusing on ${selectedSkills.slice(0, 3).join(", ")}. Let's begin: ${firstCoreQuestion}`;
 
     setCurrentQuestion({
       text: openingQuestion,
@@ -1125,30 +1176,24 @@ export function MockInterviewPage() {
       let aiFollowUp = "";
       let isFollowUp = false;
 
-      if (evalData.isSkipped) {
-        isFollowUp = false;
-        if (selectedSkills.includes("React.js") && nextIdx === 2) {
-          aiFollowUp = "Understood. Let's pivot to React.js: How do you optimize rendering performance in React when state updates are frequent across nested components?";
-        } else if (selectedSkills.includes("SQL")) {
-          aiFollowUp = "No problem, moving on. In relational databases, what is the difference between Clustered and Non-Clustered indexes?";
-        } else {
-          aiFollowUp = "Understood. Let us move to another question: Can you explain object-oriented programming principles and how encapsulation protects system state?";
-        }
-      } else if (selectedTrack === "COMBINED" && nextIdx > 2 && currentQuestion.trackPhase === "TECHNICAL") {
-        aiFollowUp = "Excellent technical insights. Now let us transition to the behavioral round: Describe a situation where you had a disagreement with a team member. How did you handle it and what was the outcome?";
-        setCurrentQuestion((prev) => ({ ...prev, trackPhase: "HR" }));
-      } else if (evalData.decision === "FOLLOW_UP" && !currentQuestion.isFollowUp) {
-        isFollowUp = true;
-        aiFollowUp = "Could you elaborate on that with concrete examples, edge cases, and the specific trade-offs you accounted for?";
-      } else if (selectedSkills.includes("React.js") && nextIdx === 2) {
-        aiFollowUp = "Good point. How do you optimize rendering performance in React when state updates are frequent across nested components?";
-      } else if (selectedSkills.includes("SQL") && nextIdx === 3) {
-        aiFollowUp = "Understood. When writing complex queries, what indexing strategies would you leverage to avoid table scans on high-traffic databases?";
-      } else if (selectedSkills.includes("DBMS") && nextIdx === 4) {
-        aiFollowUp = "Can you explain Database Normalization up to 3NF and BCNF, and when might intentional denormalization be justified in production?";
-      } else {
-        aiFollowUp = "Thank you for that response. How would you test, monitor, and ensure system reliability for this implementation in a production environment?";
-      }
+      const pastQuestionTexts = pastSessions.flatMap((s) => (s.qaReview || s.questions || []).map((q) => q.questionText)).filter(Boolean);
+      const sessionHistory = conversation.filter((m) => m.sender === "ai").map((m, idx) => ({
+        questionId: `q_${idx + 1}`,
+        questionText: m.text
+      }));
+
+      const isNextFollowUp = evalData.decision === "FOLLOW_UP" && !currentQuestion.isFollowUp;
+      const picked = pickIntelligentNextQuestion({
+        selectedSkills: selectedSkills,
+        track: currentQuestion.trackPhase || selectedTrack,
+        sessionQuestionHistory: sessionHistory,
+        crossSessionHistory: pastQuestionTexts,
+        isFollowUp: isNextFollowUp,
+        previousQuestion: { questionText: currentQuestion.text }
+      });
+
+      aiFollowUp = picked.questionText;
+      isFollowUp = picked.isFollowUp;
 
       handleIncomingTurn({
         questionText: aiFollowUp,
@@ -1413,15 +1458,31 @@ export function MockInterviewPage() {
         weaknesses: backendSummary.weaknesses || [],
         recommendations: backendSummary.recommendations || [],
         feedbackSummary: backendSummary.feedbackText || "Interview completed and evaluated.",
-        qaReview: rawQa.map((q, idx) => ({
-          questionIndex: q.questionIndex || (idx + 1),
-          questionText: q.questionText,
-          isFollowUp: Boolean(q.isFollowUp),
-          answerText: q.studentTranscript || q.answerText || "No answer provided",
-          aiFeedback: q.feedback || q.aiFeedback || "Response evaluated.",
-          score: typeof q.score === "number" ? q.score : 70,
-          isSkipped: (q.score !== undefined && q.score <= 25) || isSkipOrEvasion(q.studentTranscript || q.answerText)
-        }))
+        skillBreakdown: backendSummary.skillBreakdown || {},
+        revisionTopics: backendSummary.revisionTopics || [],
+        qaReview: rawQa.map((q, idx) => {
+          const stored = turnEvaluations.find((t) => t.questionIndex === q.questionIndex || t.questionText === q.questionText);
+          const ans = q.studentTranscript || q.answerText || stored?.studentTranscript || "No answer provided";
+          const fallbackEval = evaluateAnswerForQuestion({
+            questionText: q.questionText,
+            answerText: ans,
+            track: selectedTrack,
+            skills: selectedSkills
+          });
+          return {
+            questionIndex: q.questionIndex || (idx + 1),
+            questionText: q.questionText,
+            isFollowUp: Boolean(q.isFollowUp),
+            answerText: ans,
+            aiFeedback: q.feedback || q.aiFeedback || stored?.feedback || fallbackEval.feedback,
+            whatWasCorrect: q.whatWasCorrect || stored?.whatWasCorrect || fallbackEval.whatWasCorrect,
+            whatWasMissing: q.whatWasMissing || stored?.whatWasMissing || fallbackEval.whatWasMissing,
+            suggestions: q.suggestions || stored?.suggestions || fallbackEval.suggestions,
+            betterApproach: q.betterApproach || stored?.betterApproach || fallbackEval.betterApproach,
+            score: typeof q.score === "number" ? q.score : (stored?.score ?? fallbackEval.score),
+            isSkipped: (q.score !== undefined && q.score <= 25) || isSkipOrEvasion(ans)
+          };
+        })
       };
     } else {
       // Fallback: evaluate each question directly using client evaluator
@@ -2125,7 +2186,13 @@ export function MockInterviewPage() {
               </div>
 
               {/* Status and Countdown Timer */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                {/* Live Remaining Balance Badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/90 border border-blue-200 text-xs font-semibold text-slate-700 shadow-xs">
+                  <Clock className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Balance: <strong className="text-slate-900 font-bold">{totalMockMinutes}m</strong></span>
+                </div>
+
                 {/* Live Countdown Timer */}
                 <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-mono text-sm sm:text-base font-bold shadow-xs">
                   <Clock className="w-4 h-4 text-blue-400" />
@@ -2710,6 +2777,30 @@ export function MockInterviewPage() {
                   </div>
                 )}
 
+                {/* Skill-by-Skill Performance Breakdown */}
+                {scorecard.skillBreakdown && Object.keys(scorecard.skillBreakdown).length > 0 && (
+                  <div className="mt-6 p-5 rounded-xl bg-white border border-slate-200">
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5 mb-3">
+                      <Sparkles className="w-4 h-4 text-blue-600" />
+                      <span>Skill-by-Skill Placement Breakdown</span>
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {Object.entries(scorecard.skillBreakdown).map(([skillName, data]) => (
+                        <div key={skillName} className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                          <span className="text-xs font-semibold text-slate-600 truncate block">{skillName}</span>
+                          <div className="flex items-baseline gap-1 mt-1">
+                            <span className="text-lg font-black text-slate-900">{data.average || data.score || 0}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">/100</span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium block mt-0.5">
+                            {data.count || 1} question(s)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Question-by-Question Detailed Review */}
                 {scorecard.qaReview && scorecard.qaReview.length > 0 && (
                   <div className="mt-8 space-y-4">
@@ -2726,7 +2817,7 @@ export function MockInterviewPage() {
                             {typeof turn.score === "number" && (
                               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
                                 turn.score >= 85
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                   : turn.score >= 70
                                   ? "bg-blue-50 text-blue-700 border-blue-200"
                                   : turn.score >= 50
@@ -2758,6 +2849,36 @@ export function MockInterviewPage() {
                             <strong className={turn.score < 50 || turn.isSkipped ? "text-rose-900" : turn.score >= 85 ? "text-emerald-900" : "text-blue-950"}>AI Evaluator Feedback: </strong>
                             {turn.aiFeedback}
                           </div>
+
+                          {/* Structured Turn Evaluation Cards */}
+                          {(turn.whatWasCorrect || turn.whatWasMissing || turn.suggestions || turn.betterApproach) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-100">
+                              {turn.whatWasCorrect && (
+                                <div className="p-2.5 rounded-lg bg-emerald-50/60 border border-emerald-200 text-xs text-emerald-950">
+                                  <strong className="text-emerald-900 block font-bold mb-0.5">✓ What was good:</strong>
+                                  {turn.whatWasCorrect}
+                                </div>
+                              )}
+                              {turn.whatWasMissing && (
+                                <div className="p-2.5 rounded-lg bg-amber-50/60 border border-amber-200 text-xs text-amber-950">
+                                  <strong className="text-amber-900 block font-bold mb-0.5">⚠ What was missing:</strong>
+                                  {turn.whatWasMissing}
+                                </div>
+                              )}
+                              {turn.suggestions && (
+                                <div className="p-2.5 rounded-lg bg-blue-50/60 border border-blue-200 text-xs text-blue-950">
+                                  <strong className="text-blue-900 block font-bold mb-0.5">💡 Suggested improvement:</strong>
+                                  {turn.suggestions}
+                                </div>
+                              )}
+                              {turn.betterApproach && (
+                                <div className="p-2.5 rounded-lg bg-indigo-50/60 border border-indigo-200 text-xs text-indigo-950">
+                                  <strong className="text-indigo-900 block font-bold mb-0.5">🎯 Better approach:</strong>
+                                  {turn.betterApproach}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
