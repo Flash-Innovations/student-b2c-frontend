@@ -369,7 +369,7 @@ export function DashboardPage() {
                   AI Mock Interview Simulator
                 </h5>
                 <p className="text-xs text-slate-500 mt-1">
-                  {subscription?.includedMinutesRemaining ?? 0} mins practice available
+                  {(subscription?.includedMinutesRemaining || 0) + (subscription?.purchasedMinutesBalance || 0)} mins practice available
                 </p>
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-[11px] mb-1">

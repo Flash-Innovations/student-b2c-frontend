@@ -256,7 +256,7 @@ export async function getOptimalAudioStream() {
 
 export function MockInterviewPage() {
   const navigate = useNavigate();
-  const { user, subscription, planTier, isPaid, isTechnical, refreshSubscription } = useAuth();
+  const { user, subscription, setSubscription, updateSubscription, deductMockMinutes, planTier, isPaid, isTechnical, refreshSubscription } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
 
   // Page View Modes: 'SETUP' | 'LIVE' | 'RESULTS' | 'HISTORY'
@@ -717,34 +717,29 @@ export function MockInterviewPage() {
       if (resp && resp.success && resp.sessionId) {
         backendSession = resp;
         setSessionId(resp.sessionId);
-        try {
-          await b2cApi.post('/api/b2c/entitlements/consume-mock-minutes', {
-            minutesUsed: selectedDuration,
-            interviewType: resolvedType
-          });
-        } catch (_) {}
 
-        // Reflect immediate live deduction in subscription balance
-        setSubscription((prev) => {
-          if (!prev) return prev;
-          let rem = selectedDuration;
-          const inc = prev.includedMinutesRemaining || 0;
-          const pur = prev.purchasedMinutesBalance || 0;
-          let newInc = inc;
-          let newPur = pur;
-          if (newInc >= rem) {
-            newInc -= rem;
+        // Deduct complete scheduled duration immediately from Core Backend
+        try {
+          const deductRes = await b2cApi.consumeMockMinutes({
+            minutesUsed: selectedDuration,
+            interviewType: resolvedType,
+            sessionId: resp.sessionId
+          });
+          if (deductRes && deductRes.subscription) {
+            updateSubscription(deductRes.subscription);
+          } else if (resp.subscription) {
+            updateSubscription(resp.subscription);
           } else {
-            rem -= newInc;
-            newInc = 0;
-            newPur = Math.max(0, newPur - rem);
+            deductMockMinutes(selectedDuration);
           }
-          return {
-            ...prev,
-            includedMinutesRemaining: newInc,
-            purchasedMinutesBalance: newPur
-          };
-        });
+        } catch (consumeErr) {
+          console.warn("Core backend deduction notice, applying live client deduction:", consumeErr?.message);
+          if (resp.subscription) {
+            updateSubscription(resp.subscription);
+          } else {
+            deductMockMinutes(selectedDuration);
+          }
+        }
 
         if (refreshSubscription) {
           try { await refreshSubscription(); } catch (_) {}
@@ -774,11 +769,19 @@ export function MockInterviewPage() {
       console.warn("Session init note, falling back to client mode:", err);
       // Student has valid minutes (e.g. 55 minutes) - consume in core backend and proceed so they are never blocked!
       try {
-        await b2cApi.post('/api/b2c/entitlements/consume-mock-minutes', {
+        const deductRes = await b2cApi.consumeMockMinutes({
           minutesUsed: selectedDuration,
-          interviewType: resolvedType
+          interviewType: resolvedType,
+          sessionId: `fallback_${Date.now()}`
         });
-      } catch (_) {}
+        if (deductRes && deductRes.subscription) {
+          updateSubscription(deductRes.subscription);
+        } else {
+          deductMockMinutes(selectedDuration);
+        }
+      } catch (_) {
+        deductMockMinutes(selectedDuration);
+      }
       if (refreshSubscription) {
         try { refreshSubscription(); } catch (_) {}
       }

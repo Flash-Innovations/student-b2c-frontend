@@ -69,6 +69,12 @@ async function b2cRequest(endpoint, options = {}) {
 }
 
 export const b2cApi = {
+  // Generic HTTP Helpers
+  get: (endpoint, options = {}) => b2cRequest(endpoint, { method: 'GET', ...options }),
+  post: (endpoint, body, options = {}) => b2cRequest(endpoint, { method: 'POST', body, ...options }),
+  put: (endpoint, body, options = {}) => b2cRequest(endpoint, { method: 'PUT', body, ...options }),
+  delete: (endpoint, options = {}) => b2cRequest(endpoint, { method: 'DELETE', ...options }),
+
   // Auth & Student Portfolio
   register: (userData) => b2cRequest('/api/b2c/auth/register', { method: 'POST', body: userData }),
   login: (credentials) => b2cRequest('/api/b2c/auth/login', { method: 'POST', body: credentials }),

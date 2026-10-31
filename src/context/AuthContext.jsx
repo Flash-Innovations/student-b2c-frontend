@@ -118,9 +118,46 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user, token, isTechnical]);
 
+  const updateSubscription = useCallback((updaterOrObj) => {
+    setSubscription((prev) => {
+      if (typeof updaterOrObj === 'function') {
+        return updaterOrObj(prev);
+      }
+      return prev ? { ...prev, ...updaterOrObj } : updaterOrObj;
+    });
+  }, []);
+
+  const deductMockMinutes = useCallback((minutes) => {
+    const mins = Math.max(1, Number(minutes) || 15);
+    setSubscription((prev) => {
+      if (!prev) return prev;
+      let remainingToDeduct = mins;
+      let inc = prev.includedMinutesRemaining || 0;
+      let pur = prev.purchasedMinutesBalance || 0;
+      if (inc >= remainingToDeduct) {
+        inc -= remainingToDeduct;
+        remainingToDeduct = 0;
+      } else {
+        remainingToDeduct -= inc;
+        inc = 0;
+      }
+      if (remainingToDeduct > 0) {
+        pur = Math.max(0, pur - remainingToDeduct);
+      }
+      return {
+        ...prev,
+        includedMinutesRemaining: Math.max(0, inc),
+        purchasedMinutesBalance: Math.max(0, pur)
+      };
+    });
+  }, []);
+
   const value = {
     user,
     subscription,
+    setSubscription,
+    updateSubscription,
+    deductMockMinutes,
     token,
     loading,
     isAuthenticated: Boolean(user && token),
