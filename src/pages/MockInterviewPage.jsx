@@ -173,6 +173,84 @@ export const MINUTE_PACKS = [
   }
 ];
 
+// Phonetic & Technical Terminology Correction Dictionary
+export const TECHNICAL_TERM_PATTERNS = [
+  [/\b(s\s*q\s*l|sequel|seek wel|s\.q\.l\.)\b/gi, "SQL"],
+  [/\b(d\s*b\s*m\s*s|d\.b\.m\.s\.)\b/gi, "DBMS"],
+  [/\b(r\s*d\s*b\s*m\s*s)\b/gi, "RDBMS"],
+  [/\b(a\s*p\s*i\s*s?|a\.p\.i\.)\b/gi, "API"],
+  [/\b(pie\s*thon|py\s*thon)\b/gi, "Python"],
+  [/\b(react\s*js|react\s*j\s*s|reactjs)\b/gi, "React.js"],
+  [/\b(mongo\s*db|mongo\s*d\s*b|mongodb)\b/gi, "MongoDB"],
+  [/\b(post\s*gres|postgress|post\s*gre\s*s\s*q\s*l|postgresql)\b/gi, "PostgreSQL"],
+  [/\b(poly\s*morphism|poly-morphism)\b/gi, "polymorphism"],
+  [/\b(a\s*sync|a\s*sink)\b/gi, "async"],
+  [/\b(call\s*back|call\s*backs)\b/gi, "callback"],
+  [/\b(event\s*loop)\b/gi, "event loop"],
+  [/\b(b\s*tree|b\s*trees|b-tree)\b/gi, "B-Tree"],
+  [/\b(a\s*c\s*i\s*d(\s*properties)?)\b/gi, "ACID properties"],
+  [/\b(s\s*t\s*a\s*r(\s*method)?)\b/gi, "STAR method"],
+  [/\b(git\s*hub)\b/gi, "GitHub"],
+  [/\b(micro\s*task)\b/gi, "microtask"],
+  [/\b(macro\s*task)\b/gi, "macrotask"],
+  [/\b(o\s*o\s*p\s*s?|oops)\b/gi, "OOP"],
+  [/\b(d\s*s\s*a|d\.s\.a\.)\b/gi, "DSA"],
+  [/\b(node\s*js|node\s*j\s*s|nodejs)\b/gi, "Node.js"],
+  [/\b(express\s*js|express\s*j\s*s|expressjs)\b/gi, "Express.js"],
+  [/\b(read\s*is|red\s*is)\b/gi, "Redis"],
+  [/\b(c\s*plus\s*plus|c\s*\+\s*\+)\b/gi, "C++"],
+  [/\b(java\s*script|j\s*s)\b/gi, "JavaScript"],
+  [/\b(type\s*script|t\s*s)\b/gi, "TypeScript"],
+  [/\b(doc\s*ker)\b/gi, "Docker"],
+  [/\b(kubernetes|k8s)\b/gi, "Kubernetes"],
+  [/\b(rest\s*api|rest\s*apis|restful\s*api)\b/gi, "REST API"],
+  [/\b(graph\s*ql)\b/gi, "GraphQL"],
+  [/\b(crud)\b/gi, "CRUD"],
+  [/\b(j\s*son|jay\s*son)\b/gi, "JSON"],
+  [/\b(j\s*w\s*t|jot)\b/gi, "JWT"],
+  [/\b(html\s*5?)\b/gi, "HTML"],
+  [/\b(css\s*3?)\b/gi, "CSS"],
+  [/\b(tailwind(\s*css)?)\b/gi, "Tailwind CSS"],
+  [/\b(multithreading|multi\s*threading)\b/gi, "multithreading"],
+  [/\b(concurrency|con\s*currency)\b/gi, "concurrency"],
+  [/\b(normalization|normalisation)\b/gi, "normalization"],
+  [/\b(denormalization|denormalisation)\b/gi, "denormalization"],
+  [/\b(encapsulation|in\s*capsulation)\b/gi, "encapsulation"],
+  [/\b(inheritance|in\s*heritance)\b/gi, "inheritance"],
+  [/\b(virtual\s*dom)\b/gi, "Virtual DOM"],
+  [/\b(garbage\s*collection|g\s*c)\b/gi, "garbage collection"],
+  [/\b(time\s*complexity)\b/gi, "time complexity"],
+  [/\b(space\s*complexity)\b/gi, "space complexity"],
+  [/\b(big\s*o)\b/gi, "Big-O"]
+];
+
+export function normalizeTranscript(rawText) {
+  if (!rawText) return "";
+  let text = rawText;
+  for (const [pattern, replacement] of TECHNICAL_TERM_PATTERNS) {
+    text = text.replace(pattern, replacement);
+  }
+  return text.replace(/\s+/g, " ").trim();
+}
+
+export async function getOptimalAudioStream() {
+  const constraints = {
+    audio: {
+      echoCancellation: { ideal: true },
+      noiseSuppression: { ideal: true },
+      autoGainControl: { ideal: true },
+      channelCount: { ideal: 1 },
+      sampleRate: { ideal: 16000 }
+    }
+  };
+  try {
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (err) {
+    console.warn("Optimized audio constraints rejected, falling back to basic audio capture:", err);
+    return await navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+}
+
 export function MockInterviewPage() {
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid, isTechnical, refreshSubscription } = useAuth();
@@ -209,7 +287,10 @@ export function MockInterviewPage() {
   const [interviewState, setInterviewState] = useState(INTERVIEW_STATES.INITIALIZING);
   const interviewStateRef = useRef(INTERVIEW_STATES.INITIALIZING);
   const accumulatedTranscriptRef = useRef("");
+  const currentSessionFinalRef = useRef("");
+  const interimTranscriptRef = useRef("");
   const speechSafetyTimerRef = useRef(null);
+  const [speechLanguage, setSpeechLanguage] = useState("en-IN"); // Default Indian English with en-US toggle
 
   useEffect(() => {
     interviewStateRef.current = interviewState;
@@ -341,8 +422,8 @@ export function MockInterviewPage() {
       }
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.05;
+      utterance.rate = 1.05;
+      utterance.pitch = 1.02;
 
       const voices = window.speechSynthesis.getVoices();
       const naturalVoice = voices.find(
@@ -375,7 +456,7 @@ export function MockInterviewPage() {
       };
 
       const wordsCount = cleanText.split(/\s+/).length;
-      const expectedDurationMs = Math.max(3500, wordsCount * 450 + 2000);
+      const expectedDurationMs = Math.max(2500, wordsCount * 360 + 1500);
       speechSafetyTimerRef.current = setTimeout(() => {
         if (interviewStateRef.current === INTERVIEW_STATES.AI_SPEAKING) {
           handleSpeechDone();
@@ -547,13 +628,13 @@ export function MockInterviewPage() {
       return;
     }
 
-    // 3. Request and verify microphone access
+    // 3. Request and verify microphone access with optimized noise suppression & echo cancellation
     let stream = null;
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error("Your browser does not support audio capture.");
       }
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await getOptimalAudioStream();
       micStreamRef.current = stream;
 
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -771,7 +852,7 @@ export function MockInterviewPage() {
 
     try {
       if (!micStreamRef.current) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await getOptimalAudioStream();
         micStreamRef.current = stream;
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
@@ -795,6 +876,8 @@ export function MockInterviewPage() {
 
     setCandidateDraft("");
     accumulatedTranscriptRef.current = "";
+    currentSessionFinalRef.current = "";
+    interimTranscriptRef.current = "";
 
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRec) {
@@ -805,22 +888,34 @@ export function MockInterviewPage() {
         const rec = new SpeechRec();
         rec.continuous = true;
         rec.interimResults = true;
-        rec.lang = "en-US";
+        rec.lang = speechLanguage || "en-IN";
+        if ("maxAlternatives" in rec) {
+          rec.maxAlternatives = 3;
+        }
 
         rec.onresult = (event) => {
-          let interim = "";
-          let final = "";
+          let sessionFinal = "";
+          let sessionInterim = "";
           for (let i = 0; i < event.results.length; i++) {
             const res = event.results[i];
             if (res.isFinal) {
-              final += res[0].transcript + " ";
+              sessionFinal += res[0].transcript + " ";
             } else {
-              interim += res[0].transcript;
+              sessionInterim += res[0].transcript;
             }
           }
-          const fullText = (accumulatedTranscriptRef.current + " " + final + interim).trim();
-          if (fullText) {
-            setCandidateDraft(fullText);
+          currentSessionFinalRef.current = sessionFinal;
+          interimTranscriptRef.current = sessionInterim;
+
+          const rawCombined = [
+            accumulatedTranscriptRef.current,
+            sessionFinal,
+            sessionInterim
+          ].filter(Boolean).join(" ").trim();
+
+          const normalized = normalizeTranscript(rawCombined);
+          if (normalized) {
+            setCandidateDraft(normalized);
           }
         };
 
@@ -830,7 +925,15 @@ export function MockInterviewPage() {
 
         rec.onend = () => {
           if (interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
-            try { rec.start(); } catch (_) {}
+            accumulatedTranscriptRef.current = [
+              accumulatedTranscriptRef.current,
+              currentSessionFinalRef.current
+            ].filter(Boolean).join(" ").trim();
+            currentSessionFinalRef.current = "";
+            interimTranscriptRef.current = "";
+            try {
+              rec.start();
+            } catch (_) {}
           }
         };
 
@@ -849,6 +952,7 @@ export function MockInterviewPage() {
     if (interviewState !== INTERVIEW_STATES.RECORDING) return;
 
     setInterviewState(INTERVIEW_STATES.TRANSCRIBING);
+    setAiStatus("evaluating");
 
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch (_) {}
@@ -860,18 +964,25 @@ export function MockInterviewPage() {
       });
     }
 
+    // Quick 200ms buffer flush for clean interim transcript finalization
     setTimeout(() => {
-      const finalSpeech = (candidateDraft || typedAnswer || "").trim();
+      const fullSpoken = [
+        accumulatedTranscriptRef.current,
+        currentSessionFinalRef.current,
+        interimTranscriptRef.current
+      ].filter(Boolean).join(" ").trim();
 
-      if (!finalSpeech || finalSpeech.length < 2) {
+      const normalized = normalizeTranscript(fullSpoken || candidateDraft || typedAnswer || "");
+
+      if (!normalized || normalized.length < 2) {
         showInfo("No response detected. Please try speaking again.");
         setInterviewState(INTERVIEW_STATES.WAITING_FOR_STUDENT);
         setAiStatus("listening");
         return;
       }
 
-      dispatchStudentAnswer(finalSpeech);
-    }, 350);
+      dispatchStudentAnswer(normalized);
+    }, 200);
   };
 
   const handleIncomingTurn = (turnData) => {
@@ -936,7 +1047,7 @@ export function MockInterviewPage() {
         isFollowUp,
         trackPhase: currentQuestion.trackPhase
       });
-    }, 1200);
+    }, 350);
   };
 
   const dispatchStudentAnswer = async (spokenText) => {
@@ -1943,6 +2054,16 @@ export function MockInterviewPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSpeechLanguage((prev) => (prev === "en-IN" ? "en-US" : "en-IN"))}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 transition-colors cursor-pointer flex items-center gap-1"
+                        title="Toggle speech recognition accent"
+                      >
+                        <span>🌐 Accent:</span>
+                        <span className="font-bold">{speechLanguage === "en-IN" ? "Indian English (en-IN)" : "US English (en-US)"}</span>
+                      </button>
+
                       <button
                         onClick={() => setIsTypingMode(!isTypingMode)}
                         className="text-xs text-purple-600 hover:text-purple-800 font-semibold cursor-pointer underline"
