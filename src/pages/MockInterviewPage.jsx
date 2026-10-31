@@ -53,6 +53,7 @@ import { openRazorpayCheckout } from "../services/razorpayClient";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
+import { evaluateAnswerForQuestion, calculateOverallReport, isSkipOrEvasion } from "../utils/interviewEvaluator";
 
 // ==========================================
 // CURATED TECHNICAL SKILLS CATALOGUE
@@ -319,6 +320,7 @@ export function MockInterviewPage() {
   // EVALUATION & HISTORY STATE
   // ==========================================
   const [scorecard, setScorecard] = useState(null);
+  const [turnEvaluations, setTurnEvaluations] = useState([]);
   const [pastSessions, setPastSessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
@@ -986,6 +988,18 @@ export function MockInterviewPage() {
   };
 
   const handleIncomingTurn = (turnData) => {
+    if (turnData.previousTurn) {
+      setTurnEvaluations((prev) => {
+        const existingIdx = prev.findIndex((t) => t.questionIndex === turnData.previousTurn.questionIndex);
+        if (existingIdx >= 0) {
+          const updated = [...prev];
+          updated[existingIdx] = turnData.previousTurn;
+          return updated;
+        }
+        return [...prev, turnData.previousTurn];
+      });
+    }
+
     if (turnData.isFinished || turnData.event === "interview_ready_for_evaluation") {
       setInterviewState(INTERVIEW_STATES.INTERVIEW_COMPLETED);
       showInfo("All questions completed. Finalizing evaluation...");
@@ -1020,15 +1034,57 @@ export function MockInterviewPage() {
   };
 
   const handleFallbackLocalTurn = (textToSend) => {
+    const evalData = evaluateAnswerForQuestion({
+      questionText: currentQuestion.text,
+      answerText: textToSend,
+      track: currentQuestion.trackPhase || selectedTrack,
+      skills: selectedSkills
+    });
+
+    const completedTurn = {
+      questionIndex: currentQuestion.index,
+      questionText: currentQuestion.text,
+      studentTranscript: textToSend,
+      answerText: textToSend,
+      feedback: evalData.feedback,
+      aiFeedback: evalData.feedback,
+      score: evalData.score,
+      technicalAccuracy: evalData.technicalAccuracy,
+      clarityScore: evalData.clarityScore,
+      completenessScore: evalData.completenessScore,
+      isSkipped: evalData.isSkipped,
+      isFollowUp: Boolean(currentQuestion.isFollowUp),
+      track: currentQuestion.trackPhase || selectedTrack
+    };
+
+    setTurnEvaluations((prev) => {
+      const existingIdx = prev.findIndex((t) => t.questionIndex === completedTurn.questionIndex);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = completedTurn;
+        return updated;
+      }
+      return [...prev, completedTurn];
+    });
+
     setTimeout(() => {
       const nextIdx = currentQuestion.index + 1;
       let aiFollowUp = "";
       let isFollowUp = false;
 
-      if (selectedTrack === "COMBINED" && nextIdx > 2 && currentQuestion.trackPhase === "TECHNICAL") {
+      if (evalData.isSkipped) {
+        isFollowUp = false;
+        if (selectedSkills.includes("React.js") && nextIdx === 2) {
+          aiFollowUp = "Understood. Let's pivot to React.js: How do you optimize rendering performance in React when state updates are frequent across nested components?";
+        } else if (selectedSkills.includes("SQL")) {
+          aiFollowUp = "No problem, moving on. In relational databases, what is the difference between Clustered and Non-Clustered indexes?";
+        } else {
+          aiFollowUp = "Understood. Let us move to another question: Can you explain object-oriented programming principles and how encapsulation protects system state?";
+        }
+      } else if (selectedTrack === "COMBINED" && nextIdx > 2 && currentQuestion.trackPhase === "TECHNICAL") {
         aiFollowUp = "Excellent technical insights. Now let us transition to the behavioral round: Describe a situation where you had a disagreement with a team member. How did you handle it and what was the outcome?";
         setCurrentQuestion((prev) => ({ ...prev, trackPhase: "HR" }));
-      } else if (textToSend.length < 45 && !currentQuestion.isFollowUp) {
+      } else if (evalData.decision === "FOLLOW_UP" && !currentQuestion.isFollowUp) {
         isFollowUp = true;
         aiFollowUp = "Could you elaborate on that with concrete examples, edge cases, and the specific trade-offs you accounted for?";
       } else if (selectedSkills.includes("React.js") && nextIdx === 2) {
@@ -1045,7 +1101,8 @@ export function MockInterviewPage() {
         questionText: aiFollowUp,
         questionIndex: nextIdx,
         isFollowUp,
-        trackPhase: currentQuestion.trackPhase
+        trackPhase: currentQuestion.trackPhase,
+        previousTurn: completedTurn
       });
     }, 350);
   };
@@ -1199,10 +1256,13 @@ export function MockInterviewPage() {
           if (msg.sender === "ai") {
             const nextUserMsg = arr.slice(idx + 1).find((m) => m.sender === "user");
             acc.push({
+              questionIndex: acc.length + 1,
               questionText: msg.text,
               isFollowUp: msg.isFollowUp,
               answerText: nextUserMsg ? nextUserMsg.text : "No answer provided",
-              aiFeedback: "No audible response was recorded for this question."
+              aiFeedback: "No audible response was recorded for this question.",
+              score: 0,
+              isSkipped: true
             });
           }
           return acc;
@@ -1220,73 +1280,115 @@ export function MockInterviewPage() {
     // PARTIALLY OR FULLY ANSWERED INTERVIEW:
     // Evaluate strictly based on valid answers provided
     // -------------------------------------------------------------
-    const totalWords = userAnswers.reduce((sum, a) => sum + a.text.trim().split(/\s+/).length, 0);
-    const avgWords = Math.round(totalWords / userAnswers.length);
+    const backendSummary = backendResult?.summary || backendResult?.interview?.summary;
+    const backendQuestions = backendResult?.interview?.questions || backendSummary?.questionsFeedback;
 
-    // Score calibrated to answered responses
-    const baseScore = Math.min(94, Math.max(65, 68 + userAnswers.length * 5 + Math.min(14, Math.round(avgWords / 6))));
-    const techScore = selectedTrack === "HR" ? null : Math.min(96, Math.max(65, Math.round(baseScore * 1.02)));
-    const hrScore = selectedTrack === "TECHNICAL" ? null : Math.min(95, Math.max(70, Math.round(baseScore * 1.01)));
-    const commScore = Math.min(95, Math.max(68, Math.round(baseScore * 0.99)));
-    const problemSolvingScore = Math.min(96, Math.max(66, Math.round(baseScore * 1.03)));
-    const confidenceScore = Math.min(94, Math.max(68, Math.round(baseScore * 0.97)));
+    let finalReport;
 
-    const report = {
-      sessionId: sessionId || `session_${Date.now()}`,
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      track: selectedTrack,
-      format: selectedFormat,
-      durationMinutes: durationMinutesUsed,
-      status: "COMPLETED",
-      evaluationStatus: "EVALUATED",
-      overallScore: baseScore,
-      technicalScore: techScore,
-      hrScore: hrScore,
-      communicationScore: commScore,
-      problemSolvingScore: problemSolvingScore,
-      confidenceScore: confidenceScore,
-      questionsAsked: totalQuestionsAsked,
-      questionsAnswered: validAnswersCount,
-      questionsUnanswered: Math.max(0, totalQuestionsAsked - validAnswersCount),
-      skills: selectedSkills,
-      strengths: [
-        "Structured thought process with clear, methodical reasoning",
-        selectedTrack === "HR"
-          ? "Good articulation of situational experiences and team interactions"
-          : "Solid technical terminology and architectural trade-off understanding",
-        "Calm composure under dynamic interviewer probing"
-      ],
-      weaknesses: [
-        "Could articulate quantitative performance metrics (e.g. latency, throughput, percentages) more explicitly",
-        "Consider probing corner cases, error boundaries, and scalability limits before proposing solutions"
-      ],
-      recommendations: [
-        selectedTrack === "HR"
-          ? "Practice structured STAR method responses for behavioral questions"
-          : "Review algorithmic time/space complexity trade-offs for core data structures",
-        "Use concrete past project achievements to substantiate technical decisions"
-      ],
-      feedbackSummary: `Candidate answered ${validAnswersCount} of ${totalQuestionsAsked} questions. Verbal articulation and foundational grounding were well aligned with campus placement standards.`,
-      qaReview: conversation.reduce((acc, msg, idx, arr) => {
+    if (backendSummary && typeof backendSummary.overallScore === "number") {
+      const rawQa = (Array.isArray(backendQuestions) && backendQuestions.length > 0)
+        ? backendQuestions
+        : conversation.reduce((acc, msg, idx, arr) => {
+            if (msg.sender === "ai") {
+              const nextUserMsg = arr.slice(idx + 1).find((m) => m.sender === "user");
+              const hasAnswer = nextUserMsg && nextUserMsg.text && nextUserMsg.text.trim().length > 0;
+              const evalData = evaluateAnswerForQuestion({
+                questionText: msg.text,
+                answerText: hasAnswer ? nextUserMsg.text : "",
+                track: selectedTrack,
+                skills: selectedSkills
+              });
+              acc.push({
+                questionIndex: acc.length + 1,
+                questionText: msg.text,
+                isFollowUp: msg.isFollowUp,
+                answerText: hasAnswer ? nextUserMsg.text : "No answer provided",
+                aiFeedback: evalData.feedback,
+                score: evalData.score,
+                isSkipped: evalData.isSkipped
+              });
+            }
+            return acc;
+          }, []);
+
+      finalReport = {
+        sessionId: sessionId || `session_${Date.now()}`,
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        track: selectedTrack,
+        format: selectedFormat,
+        durationMinutes: durationMinutesUsed,
+        status: "COMPLETED",
+        evaluationStatus: "EVALUATED",
+        overallScore: backendSummary.overallScore,
+        technicalScore: selectedTrack === "HR" ? null : (backendSummary.technicalScore ?? backendSummary.overallScore),
+        hrScore: selectedTrack === "TECHNICAL" ? null : (backendSummary.hrScore ?? backendSummary.overallScore),
+        communicationScore: backendSummary.communicationScore || 82,
+        problemSolvingScore: backendSummary.problemSolvingScore || backendSummary.overallScore,
+        confidenceScore: backendSummary.adaptabilityScore || 80,
+        questionsAsked: backendSummary.questionsAsked || rawQa.length,
+        questionsAnswered: backendSummary.questionsAnswered || validAnswersCount,
+        questionsUnanswered: backendSummary.questionsUnanswered || 0,
+        skills: selectedSkills,
+        strengths: backendSummary.strengths || [],
+        weaknesses: backendSummary.weaknesses || [],
+        recommendations: backendSummary.recommendations || [],
+        feedbackSummary: backendSummary.feedbackText || "Interview completed and evaluated.",
+        qaReview: rawQa.map((q, idx) => ({
+          questionIndex: q.questionIndex || (idx + 1),
+          questionText: q.questionText,
+          isFollowUp: Boolean(q.isFollowUp),
+          answerText: q.studentTranscript || q.answerText || "No answer provided",
+          aiFeedback: q.feedback || q.aiFeedback || "Response evaluated.",
+          score: typeof q.score === "number" ? q.score : 70,
+          isSkipped: (q.score !== undefined && q.score <= 25) || isSkipOrEvasion(q.studentTranscript || q.answerText)
+        }))
+      };
+    } else {
+      // Fallback: evaluate each question directly using client evaluator
+      const questionsToEval = conversation.reduce((acc, msg, idx, arr) => {
         if (msg.sender === "ai") {
           const nextUserMsg = arr.slice(idx + 1).find((m) => m.sender === "user");
           const hasAnswer = nextUserMsg && nextUserMsg.text && nextUserMsg.text.trim().length > 0;
+          const userText = hasAnswer ? nextUserMsg.text : "";
+
+          // Check if turnEvaluations has stored evaluation from WS turn_complete
+          const storedEval = turnEvaluations.find(t => t.questionText === msg.text || t.questionIndex === (acc.length + 1));
+
           acc.push({
+            questionIndex: acc.length + 1,
             questionText: msg.text,
             isFollowUp: msg.isFollowUp,
-            answerText: hasAnswer ? nextUserMsg.text : "No answer provided",
-            aiFeedback: hasAnswer
-              ? (nextUserMsg.text.length > 30
-                  ? "Good foundational clarity. Elaborate with deeper constraints and system boundaries for maximum marks."
-                  : "Concise response. Adding more depth and real-world examples will significantly elevate your score.")
-              : "No response was recorded for this question."
+            studentTranscript: userText,
+            answerText: userText || "No answer provided",
+            score: storedEval?.score,
+            feedback: storedEval?.feedback || storedEval?.writtenFeedback,
+            technicalAccuracy: storedEval?.technicalAccuracy,
+            clarityScore: storedEval?.clarityScore,
+            completenessScore: storedEval?.completenessScore
           });
         }
         return acc;
-      }, [])
-    };
+      }, []);
 
-    setScorecard(report);
+      const reportData = calculateOverallReport({
+        questions: questionsToEval,
+        track: selectedTrack,
+        durationMinutes: durationMinutesUsed,
+        studentName: user?.name || "Candidate"
+      });
+
+      finalReport = {
+        sessionId: sessionId || `session_${Date.now()}`,
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        track: selectedTrack,
+        format: selectedFormat,
+        durationMinutes: durationMinutesUsed,
+        ...reportData,
+        skills: selectedSkills
+      };
+    }
+
+    setScorecard(finalReport);
     setViewMode("RESULTS");
     setAiStatus("completed");
     loadPastHistory();
@@ -2370,9 +2472,11 @@ export function MockInterviewPage() {
                           ? "Placement Ready"
                           : scorecard.overallScore >= 75
                           ? "Strong Candidate"
+                          : scorecard.overallScore >= 60
+                          ? "Developing Candidate"
                           : "Ready with Revisions"}
                       </h3>
-                      <p className="text-xs text-slate-500">Based on depth, logic, and delivery</p>
+                      <p className="text-xs text-slate-500">Calculated directly from your question turn evaluations</p>
                     </div>
                   </div>
                 </div>
@@ -2480,14 +2584,39 @@ export function MockInterviewPage() {
                         <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2.5">
                           <div className="flex items-center justify-between text-xs font-semibold text-purple-900">
                             <span>{turn.isFollowUp ? `Turn ${i + 1} (Follow-Up Probe)` : `Turn ${i + 1} (Core Question)`}</span>
+                            {typeof turn.score === "number" && (
+                              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                                turn.score >= 85
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : turn.score >= 70
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : turn.score >= 50
+                                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                              }`}>
+                                {turn.score >= 85
+                                  ? "Excellent"
+                                  : turn.score >= 70
+                                  ? "Strong Answer"
+                                  : turn.score >= 50
+                                  ? "Needs Depth"
+                                  : "Skipped / Incomplete"} • Score: {turn.score}/100
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm font-bold text-slate-900">Q: "{turn.questionText}"</p>
                           <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-700">
                             <strong className="text-slate-900">Your Response: </strong>
                             {turn.answerText}
                           </div>
-                          <div className="p-3 rounded-lg bg-purple-50/50 border border-purple-100 text-xs text-purple-900">
-                            <strong className="text-purple-950">AI Evaluator Feedback: </strong>
+                          <div className={`p-3 rounded-lg border text-xs ${
+                            turn.score < 50 || turn.isSkipped
+                              ? "bg-rose-50/40 border-rose-200 text-rose-950"
+                              : turn.score >= 85
+                              ? "bg-emerald-50/40 border-emerald-200 text-emerald-950"
+                              : "bg-purple-50/50 border-purple-100 text-purple-900"
+                          }`}>
+                            <strong className={turn.score < 50 || turn.isSkipped ? "text-rose-900" : turn.score >= 85 ? "text-emerald-900" : "text-purple-950"}>AI Evaluator Feedback: </strong>
                             {turn.aiFeedback}
                           </div>
                         </div>
@@ -2646,7 +2775,8 @@ export function MockInterviewPage() {
                                 questionText: q.questionText,
                                 isFollowUp: q.isFollowUp,
                                 answerText: q.studentTranscript || "[No answer provided]",
-                                aiFeedback: q.feedback || "Evaluated response."
+                                aiFeedback: q.feedback || "Evaluated response.",
+                                score: typeof q.score === "number" ? q.score : 70
                               }))
                             });
                             setViewMode("RESULTS");
