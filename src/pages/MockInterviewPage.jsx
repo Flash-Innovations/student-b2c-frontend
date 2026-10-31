@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Mic,
   MicOff,
+  Loader2,
   Volume2,
   VolumeX,
   Play,
@@ -334,6 +335,8 @@ export function MockInterviewPage() {
   const analyserRef = useRef(null);
   const recognitionRef = useRef(null);
   const animFrameRef = useRef(null);
+  const isEndingRef = useRef(false);
+  const [startingInterview, setStartingInterview] = useState(false);
 
   const totalMockMinutes = (subscription?.includedMinutesRemaining || 0) + (subscription?.purchasedMinutesBalance || 0);
 
@@ -371,6 +374,9 @@ export function MockInterviewPage() {
 
   useEffect(() => {
     loadPastHistory();
+    if (refreshSubscription) {
+      try { refreshSubscription(); } catch (_) {}
+    }
   }, []);
 
   // Auto-scroll chat transcript to latest entry
@@ -612,16 +618,27 @@ export function MockInterviewPage() {
   // START INTERVIEW (Validations & Session Setup)
   // ==========================================
   const handleStartInterview = async () => {
+    if (startingInterview) return;
     setValidationError("");
 
     // 1. Authoritative Minutes Balance Check: Duration cannot exceed remaining balance
-    if (totalMockMinutes < selectedDuration) {
-      const errorMsg = `Insufficient interview minutes. Please add more minutes to continue (Available: ${totalMockMinutes} mins, Required: ${selectedDuration} mins).`;
+    if (totalMockMinutes === 0) {
+      const errorMsg = "No interview minutes remaining. You have used all your interview minutes. Please add more minutes to continue practising with Sarah.";
       setValidationError(errorMsg);
-      showError("Insufficient interview minutes. Please add more minutes to continue.");
+      showError(errorMsg);
       setShowUpgradeModal(true);
       return;
     }
+
+    if (totalMockMinutes < selectedDuration) {
+      const errorMsg = `Insufficient interview minutes. Please add more minutes to continue (Available: ${totalMockMinutes} mins, Required: ${selectedDuration} mins).`;
+      setValidationError(errorMsg);
+      showError(errorMsg);
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    setStartingInterview(true);
 
     // 2. Validate track & skill requirements
     if (selectedTrack !== "HR" && selectedSkills.length === 0) {
@@ -651,6 +668,7 @@ export function MockInterviewPage() {
       }
     } catch (micErr) {
       console.warn("Microphone access declined or unavailable:", micErr);
+      setStartingInterview(false);
       setValidationError("Microphone permission is required for speech-to-speech interaction. Please grant access in your browser address bar.");
       showError("Microphone access denied. Please allow microphone permissions.");
       return;
@@ -695,15 +713,30 @@ export function MockInterviewPage() {
       if (resp && resp.success && resp.sessionId) {
         backendSession = resp;
         setSessionId(resp.sessionId);
+        if (refreshSubscription) {
+          try { refreshSubscription(); } catch (_) {}
+        }
       } else {
         throw new Error(resp?.message || "Failed to initialize interview session.");
       }
     } catch (err) {
-      if (err?.response?.data?.code === "INSUFFICIENT_MINUTES" || err?.message?.includes("Insufficient")) {
-        setValidationError("Insufficient interview minutes. Please add more minutes to continue.");
-        showError("Insufficient interview minutes. Please add more minutes to continue.");
+      setStartingInterview(false);
+      if (stream) {
+        try { stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      }
+      const isInsufficient = err?.status === 403 ||
+        err?.data?.code === "INSUFFICIENT_MINUTES" ||
+        err?.response?.data?.code === "INSUFFICIENT_MINUTES" ||
+        err?.message?.includes("Insufficient") ||
+        err?.message?.includes("minutes") ||
+        err?.message?.includes("No interview minutes");
+
+      if (isInsufficient) {
+        const errorMsg = err?.data?.message || err?.message || "No interview minutes remaining. Please add more minutes to continue.";
+        setValidationError(errorMsg);
+        showError(errorMsg);
         setShowUpgradeModal(true);
-        if (stream) stream.getTracks().forEach((t) => t.stop());
+        setAiStatus("idle");
         return;
       }
       console.warn("Session init note, falling back to client mode:", err);
@@ -711,6 +744,7 @@ export function MockInterviewPage() {
       setSessionId(fallbackId);
       backendSession = { sessionId: fallbackId };
     }
+    setStartingInterview(false);
 
     // 6. Initialize Web Speech Recognition
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1163,8 +1197,9 @@ export function MockInterviewPage() {
   };
 
   const handleEndInterviewConfirmed = async () => {
+    if (isEndingRef.current) return;
+    isEndingRef.current = true;
     setShowEndModal(false);
-    if (!isSessionActive) return;
 
     setIsSessionActive(false);
     setAiStatus("finalizing");
@@ -1185,41 +1220,67 @@ export function MockInterviewPage() {
       audioContextRef.current = null;
     }
 
+    // Capture in-flight student answer from candidateDraft if they were speaking
+    const inFlightAnswer = (candidateDraft || "").trim();
+    let updatedConversation = conversation;
+    if (inFlightAnswer && inFlightAnswer !== "[Listening...]" && inFlightAnswer.length > 0) {
+      const pendingUserMsg = {
+        sender: "user",
+        text: inFlightAnswer,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      };
+      updatedConversation = [...conversation, pendingUserMsg];
+      setConversation(updatedConversation);
+      setCandidateDraft("");
+    }
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "finish_interview" }));
+      try {
+        wsRef.current.send(JSON.stringify({
+          type: "finish_interview",
+          pendingTranscript: inFlightAnswer
+        }));
+      } catch (_) {}
     }
 
     let finishResponse = null;
     if (sessionId && !sessionId.endsWith("_local")) {
       try {
-        finishResponse = await aiApi.finishSession(sessionId);
+        finishResponse = await aiApi.finishSession(sessionId, { pendingTranscript: inFlightAnswer });
       } catch (e) {
         console.warn("Backend finish session notice:", e.message);
       }
     }
 
-    const minutesElapsed = Math.max(1, Math.ceil((selectedDuration * 60 - timeRemainingSeconds) / 60));
-
-    // Refresh subscription to reflect reconciled/refunded minutes balance
+    // Scheduled duration is the final chargeable duration, not the actual time spent
+    // Refresh subscription to reflect updated balance
     if (refreshSubscription) {
       try { await refreshSubscription(); } catch (_) {}
     }
 
-    generateScorecard(minutesElapsed, finishResponse);
+    generateScorecard(selectedDuration, finishResponse, updatedConversation);
+    setViewMode("RESULTS");
+    setAiStatus("completed");
+    isEndingRef.current = false;
   };
 
   const handleCompleteSession = (data) => {
+    if (isEndingRef.current) return;
+    isEndingRef.current = true;
     setIsSessionActive(false);
-    const minutesElapsed = Math.max(1, Math.ceil((selectedDuration * 60 - timeRemainingSeconds) / 60));
-    generateScorecard(minutesElapsed, { interview: data, summary: data?.summary || data });
+    generateScorecard(selectedDuration, { interview: data, summary: data?.summary || data });
+    setViewMode("RESULTS");
+    setAiStatus("completed");
+    isEndingRef.current = false;
   };
 
   // ==========================================
   // SCORECARD GENERATION LOGIC (Guaranteed accurate, no fabricated scores)
   // ==========================================
-  const generateScorecard = (durationMinutesUsed, backendResult = null) => {
-    const aiQuestions = conversation.filter((m) => m.sender === "ai");
-    const userAnswers = conversation.filter(
+  const generateScorecard = (durationMinutesUsed, backendResult = null, activeConversation = null) => {
+    const activeChat = Array.isArray(activeConversation) && activeConversation.length > 0 ? activeConversation : conversation;
+    const aiQuestions = activeChat.filter((m) => m.sender === "ai");
+    const userAnswers = activeChat.filter(
       (m) => m.sender === "user" && m.text && m.text.trim().length > 0 && !m.text.startsWith("[")
     );
     const totalQuestionsAsked = Math.max(1, aiQuestions.length, currentQuestion.index);
@@ -1252,7 +1313,7 @@ export function MockInterviewPage() {
         weaknesses: [],
         recommendations: [],
         feedbackSummary: "Your interview was completed without any recorded responses. We could not generate an accurate evaluation.",
-        qaReview: conversation.reduce((acc, msg, idx, arr) => {
+        qaReview: activeChat.reduce((acc, msg, idx, arr) => {
           if (msg.sender === "ai") {
             const nextUserMsg = arr.slice(idx + 1).find((m) => m.sender === "user");
             acc.push({
@@ -1288,7 +1349,7 @@ export function MockInterviewPage() {
     if (backendSummary && typeof backendSummary.overallScore === "number") {
       const rawQa = (Array.isArray(backendQuestions) && backendQuestions.length > 0)
         ? backendQuestions
-        : conversation.reduce((acc, msg, idx, arr) => {
+        : activeChat.reduce((acc, msg, idx, arr) => {
             if (msg.sender === "ai") {
               const nextUserMsg = arr.slice(idx + 1).find((m) => m.sender === "user");
               const hasAnswer = nextUserMsg && nextUserMsg.text && nextUserMsg.text.trim().length > 0;
@@ -1529,6 +1590,51 @@ export function MockInterviewPage() {
             )}
 
             {/* Main Configuration Card */}
+            {/* Prominent Zero Minutes / Insufficient Balance Card */}
+            {totalMockMinutes === 0 ? (
+              <div className="p-6 rounded-2xl bg-amber-50/90 border-2 border-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-amber-950">No Interview Minutes Remaining</h3>
+                    <p className="text-sm text-amber-800 mt-1 leading-relaxed">
+                      You have used all your interview minutes. Please add more minutes to continue practising with Sarah.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-md shrink-0 flex items-center gap-2 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Minutes</span>
+                </button>
+              </div>
+            ) : totalMockMinutes < selectedDuration ? (
+              <div className="p-5 rounded-2xl bg-blue-50/80 border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-950">Insufficient Interview Minutes</h4>
+                    <p className="text-xs sm:text-sm text-blue-800 mt-0.5">
+                      Available: <strong className="font-semibold">{totalMockMinutes} mins</strong>, Required: <strong className="font-semibold">{selectedDuration} mins</strong>. Please select a shorter duration or add more minutes.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shrink-0 flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Minutes</span>
+                </button>
+              </div>
+            ) : null}
+
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-8">
               {/* ----------------------------------------------------- */}
               {/* A. INTERVIEW FORMAT */}
@@ -1931,11 +2037,25 @@ export function MockInterviewPage() {
               <div className="pt-4 space-y-3">
                 <button
                   type="button"
+                  disabled={totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview}
                   onClick={handleStartInterview}
-                  className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base sm:text-lg shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.005] active:scale-[0.995]"
+                  className={`w-full py-4 px-6 rounded-xl font-bold text-base sm:text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${
+                    totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                      : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 cursor-pointer hover:scale-[1.005] active:scale-[0.995]"
+                  }`}
                 >
-                  <Play className="w-5 h-5 fill-current" />
-                  <span>Start Mock Interview</span>
+                  {startingInterview ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Initializing Interview with Sarah...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5 fill-current" />
+                      <span>Start Mock Interview</span>
+                    </>
+                  )}
                 </button>
 
                 <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500 pt-1">
@@ -2801,12 +2921,11 @@ export function MockInterviewPage() {
       <Modal
         isOpen={showEndModal}
         onClose={() => setShowEndModal(false)}
-        title="Conclude Mock Interview?"
-        subtitle="Your answers so far will be evaluated and compiled into a scorecard."
+        title="End Interview?"
       >
         <div className="p-6 space-y-4">
           <p className="text-sm text-slate-600 leading-relaxed">
-            Are you sure you want to wrap up this interview early? Unused reserved minutes will be automatically refunded back to your balance.
+            Are you sure you want to end this interview? Your scheduled interview minutes will remain deducted.
           </p>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
@@ -2814,13 +2933,13 @@ export function MockInterviewPage() {
               onClick={() => setShowEndModal(false)}
               className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
-              Resume Interview
+              Continue Interview
             </button>
             <button
               onClick={handleEndInterviewConfirmed}
               className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-red-600 text-white hover:bg-red-700 shadow-sm cursor-pointer"
             >
-              Conclude & Generate Scorecard
+              End Interview
             </button>
           </div>
         </div>
