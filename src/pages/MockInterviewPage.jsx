@@ -1452,8 +1452,8 @@ export function MockInterviewPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200/60 text-xs font-semibold tracking-wide uppercase mb-2">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600 fill-purple-600/20" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 text-xs font-semibold tracking-wide uppercase mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600 fill-blue-600/20" />
                 <span>Powered by Gemini AI</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -1466,14 +1466,14 @@ export function MockInterviewPage() {
 
             {/* Header Right Actions & Quota */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50/70 border border-purple-200/80 text-xs sm:text-sm text-slate-700">
-                <Clock className="w-4 h-4 text-purple-600" />
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-50/70 border border-blue-200/80 text-xs sm:text-sm text-slate-700">
+                <Clock className="w-4 h-4 text-blue-600" />
                 <span>
                   Minutes Balance: <strong className="text-slate-900 font-bold">{totalMockMinutes} mins</strong>
                 </span>
                 <button
                   onClick={() => setShowUpgradeModal(true)}
-                  className="ml-1 text-xs font-bold text-purple-600 hover:text-purple-800 underline cursor-pointer"
+                  className="ml-1 text-xs font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer"
                 >
                   Add More
                 </button>
@@ -1499,7 +1499,7 @@ export function MockInterviewPage() {
                 onClick={() => setViewMode(viewMode === "HISTORY" ? "SETUP" : "HISTORY")}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
                   viewMode === "HISTORY"
-                    ? "bg-purple-600 text-white border-purple-600"
+                    ? "bg-blue-600 text-white border-blue-600"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                 }`}
               >
@@ -1535,7 +1535,7 @@ export function MockInterviewPage() {
               {/* ----------------------------------------------------- */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
-                  <Layers className="w-5 h-5 text-purple-600" />
+                  <Layers className="w-5 h-5 text-blue-600" />
                   <span>Interview Format</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1548,8 +1548,8 @@ export function MockInterviewPage() {
                         onClick={() => setSelectedFormat(fmt.id)}
                         className={`relative rounded-xl p-5 border-2 transition-all cursor-pointer flex flex-col justify-between ${
                           isSelected
-                            ? "border-purple-600 bg-purple-50/40 shadow-xs"
-                            : "border-slate-200 hover:border-purple-300 bg-white hover:bg-slate-50/50"
+                            ? "border-blue-600 bg-blue-50/40 shadow-xs"
+                            : "border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50/50"
                         }`}
                       >
                         <div>
@@ -1557,7 +1557,7 @@ export function MockInterviewPage() {
                             <div className="flex items-center gap-2.5">
                               <div
                                 className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                                  isSelected ? "bg-purple-600 text-white" : "bg-slate-100 text-slate-600"
+                                  isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
                                 }`}
                               >
                                 <IconComp className="w-5 h-5" />
@@ -1565,7 +1565,7 @@ export function MockInterviewPage() {
                               <h3 className="font-bold text-slate-900 text-base">{fmt.title}</h3>
                             </div>
                             {fmt.isRecommended && (
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-600 text-white flex items-center gap-1 shadow-xs">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white flex items-center gap-1 shadow-xs">
                                 <Sparkles className="w-3 h-3 fill-current" /> Recommended
                               </span>
                             )}
@@ -1576,12 +1576,12 @@ export function MockInterviewPage() {
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-slate-100/80 flex items-center justify-between text-xs font-semibold">
-                          <span className={isSelected ? "text-purple-700" : "text-slate-400"}>
+                          <span className={isSelected ? "text-blue-700" : "text-slate-400"}>
                             {isSelected ? "Selected Format" : "Click to select"}
                           </span>
                           <div
                             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              isSelected ? "border-purple-600 bg-purple-600 text-white" : "border-slate-300 bg-white"
+                              isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white"
                             }`}
                           >
                             {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -1601,7 +1601,7 @@ export function MockInterviewPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
-                    <Briefcase className="w-5 h-5 text-purple-600" />
+                    <Briefcase className="w-5 h-5 text-blue-600" />
                     <span>Interview Track</span>
                   </div>
                   <span className="text-xs text-slate-500 font-medium">Select one track to customize questions</span>
@@ -1617,22 +1617,22 @@ export function MockInterviewPage() {
                         onClick={() => handleSelectTrack(trk.id)}
                         className={`rounded-xl p-5 border-2 transition-all cursor-pointer flex flex-col justify-between ${
                           isSelected
-                            ? "border-purple-600 bg-purple-50/40 shadow-xs"
-                            : "border-slate-200 hover:border-purple-300 bg-white hover:bg-slate-50/50"
+                            ? "border-blue-600 bg-blue-50/40 shadow-xs"
+                            : "border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50/50"
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <div
                               className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                                isSelected ? "bg-purple-600 text-white" : "bg-purple-100/60 text-purple-700"
+                                isSelected ? "bg-blue-600 text-white" : "bg-blue-100/60 text-blue-700"
                               }`}
                             >
                               <IconComp className="w-5 h-5" />
                             </div>
                             <span
                               className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                                isSelected ? "bg-purple-200/80 text-purple-900" : "bg-slate-100 text-slate-600"
+                                isSelected ? "bg-blue-200/80 text-blue-900" : "bg-slate-100 text-slate-600"
                               }`}
                             >
                               {trk.badge}
@@ -1645,7 +1645,7 @@ export function MockInterviewPage() {
                           <ul className="mt-3.5 space-y-1.5 border-t border-slate-100/80 pt-3 text-xs text-slate-600">
                             {trk.highlights.map((point, i) => (
                               <li key={i} className="flex items-start gap-1.5">
-                                <Check className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />
+                                <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
                                 <span>{point}</span>
                               </li>
                             ))}
@@ -1653,12 +1653,12 @@ export function MockInterviewPage() {
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-slate-100/80 flex items-center justify-between text-xs font-semibold">
-                          <span className={isSelected ? "text-purple-700" : "text-slate-400"}>
+                          <span className={isSelected ? "text-blue-700" : "text-slate-400"}>
                             {isSelected ? "Active Track" : "Select track"}
                           </span>
                           <div
                             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              isSelected ? "border-purple-600 bg-purple-600 text-white" : "border-slate-300 bg-white"
+                              isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white"
                             }`}
                           >
                             {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -1679,10 +1679,10 @@ export function MockInterviewPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
-                      <Cpu className="w-5 h-5 text-purple-600" />
+                      <Cpu className="w-5 h-5 text-blue-600" />
                       <span>Technical Skills in Focus</span>
                       {selectedTrack !== "HR" && (
-                        <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-purple-100 text-purple-800">
+                        <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800">
                           {selectedSkills.length} Selected
                         </span>
                       )}
@@ -1705,11 +1705,11 @@ export function MockInterviewPage() {
 
                 {/* HR & Culture Informational Notice (Disabled State) */}
                 {selectedTrack === "HR" && (
-                  <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200/80 text-purple-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
-                    <Users className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                  <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+                    <Users className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-purple-950">Technical skill selection is not required for HR interviews.</p>
-                      <p className="text-purple-700 mt-0.5">
+                      <p className="font-semibold text-blue-950">Technical skill selection is not required for HR interviews.</p>
+                      <p className="text-blue-700 mt-0.5">
                         Your interview will focus on communication, behavioural questions, teamwork, and career goals.
                       </p>
                     </div>
@@ -1724,7 +1724,7 @@ export function MockInterviewPage() {
                       value={activeSkillCategory}
                       disabled={selectedTrack === "HR"}
                       onChange={(e) => setActiveSkillCategory(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                      className={`w-full rounded-xl border px-3 py-2 text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                         selectedTrack === "HR"
                           ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
                           : "bg-white border-slate-300 text-slate-700"
@@ -1759,7 +1759,7 @@ export function MockInterviewPage() {
                             ? "Technical skills not required for HR track"
                             : "Search skills (e.g. Python, React.js, SQL, Arrays, Docker)..."
                         }
-                        className={`w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                        className={`w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                           selectedTrack === "HR"
                             ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
                             : "bg-white border-slate-300 text-slate-800"
@@ -1788,10 +1788,10 @@ export function MockInterviewPage() {
                               key={item.name}
                               type="button"
                               onClick={() => handleSelectSkillFromDropdown(item.name)}
-                              className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm hover:bg-purple-50/70 flex items-center justify-between cursor-pointer transition-colors group"
+                              className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm hover:bg-blue-50/70 flex items-center justify-between cursor-pointer transition-colors group"
                             >
                               <div className="flex items-center gap-2">
-                                <span className={`font-medium ${isAlreadySelected ? "text-purple-700 font-bold" : "text-slate-800"}`}>
+                                <span className={`font-medium ${isAlreadySelected ? "text-blue-700 font-bold" : "text-slate-800"}`}>
                                   {item.name}
                                 </span>
                                 <span className="text-[11px] text-slate-400 font-normal">
@@ -1799,11 +1799,11 @@ export function MockInterviewPage() {
                                 </span>
                               </div>
                               {isAlreadySelected ? (
-                                <span className="text-[11px] font-bold text-purple-700 flex items-center gap-1 bg-purple-100 px-2 py-0.5 rounded-full">
+                                <span className="text-[11px] font-bold text-blue-700 flex items-center gap-1 bg-blue-100 px-2 py-0.5 rounded-full">
                                   <Check className="w-3 h-3 stroke-[3]" /> Selected
                                 </span>
                               ) : (
-                                <span className="text-[11px] font-semibold text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[11px] font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                                   + Add
                                 </span>
                               )}
@@ -1820,7 +1820,7 @@ export function MockInterviewPage() {
                               <button
                                 type="button"
                                 onClick={() => handleAddCustomSkill(skillSearchQuery)}
-                                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                                 <span>Add "{skillSearchQuery.trim()}" as custom skill</span>
@@ -1833,13 +1833,13 @@ export function MockInterviewPage() {
                   </div>
                 </div>
 
-                {/* Selected Skills Chips Display (Purple chips with remove icon) */}
+                {/* Selected Skills Chips Display (Blue chips with remove icon) */}
                 {selectedTrack !== "HR" && (
-                  <div className="p-3.5 rounded-xl bg-purple-50/40 border border-purple-200/60 space-y-2">
-                    <div className="text-xs font-semibold text-purple-900 flex items-center justify-between">
+                  <div className="p-3.5 rounded-xl bg-blue-50/40 border border-blue-200/60 space-y-2">
+                    <div className="text-xs font-semibold text-blue-900 flex items-center justify-between">
                       <span>Currently Selected for Interview ({selectedSkills.length})</span>
                       {selectedSkills.length > 0 && (
-                        <span className="text-[11px] text-purple-700 font-normal">Click × to remove</span>
+                        <span className="text-[11px] text-blue-700 font-normal">Click × to remove</span>
                       )}
                     </div>
 
@@ -1852,13 +1852,13 @@ export function MockInterviewPage() {
                         {selectedSkills.map((skill) => (
                           <span
                             key={skill}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white shadow-xs animate-in zoom-in-95 duration-100"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white shadow-xs animate-in zoom-in-95 duration-100"
                           >
                             <span>{skill}</span>
                             <button
                               type="button"
                               onClick={() => removeSkill(skill)}
-                              className="p-0.5 rounded-full hover:bg-purple-700 transition-colors cursor-pointer"
+                              className="p-0.5 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
                               title={`Remove ${skill}`}
                             >
                               <X className="w-3 h-3" />
@@ -1879,7 +1879,7 @@ export function MockInterviewPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
-                    <Clock className="w-5 h-5 text-purple-600" />
+                    <Clock className="w-5 h-5 text-blue-600" />
                     <span>Interview Duration</span>
                   </div>
                   <span className="text-xs text-slate-500 font-medium">Choose target length</span>
@@ -1895,14 +1895,14 @@ export function MockInterviewPage() {
                         onClick={() => setSelectedDuration(mins)}
                         className={`py-3.5 px-4 rounded-xl text-center border-2 transition-all cursor-pointer flex flex-col items-center justify-center ${
                           isSelected
-                            ? "border-purple-600 bg-purple-600 text-white font-bold shadow-md shadow-purple-600/20"
-                            : "border-slate-200 bg-white hover:border-purple-300 text-slate-700 hover:bg-slate-50 font-semibold"
+                            ? "border-blue-600 bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20"
+                            : "border-slate-200 bg-white hover:border-blue-300 text-slate-700 hover:bg-slate-50 font-semibold"
                         }`}
                       >
                         <span className="text-base sm:text-lg">{mins} Minutes</span>
                         <span
                           className={`text-[11px] font-normal mt-0.5 ${
-                            isSelected ? "text-purple-100" : "text-slate-400"
+                            isSelected ? "text-blue-100" : "text-slate-400"
                           }`}
                         >
                           {mins === 10
@@ -1932,7 +1932,7 @@ export function MockInterviewPage() {
                 <button
                   type="button"
                   onClick={handleStartInterview}
-                  className="w-full py-4 px-6 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-base sm:text-lg shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.005] active:scale-[0.995]"
+                  className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base sm:text-lg shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.005] active:scale-[0.995]"
                 >
                   <Play className="w-5 h-5 fill-current" />
                   <span>Start Mock Interview</span>
@@ -1940,13 +1940,13 @@ export function MockInterviewPage() {
 
                 <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500 pt-1">
                   <span className="flex items-center gap-1.5">
-                    <Mic className="w-3.5 h-3.5 text-purple-600" /> Speech-to-Speech Ready
+                    <Mic className="w-3.5 h-3.5 text-blue-600" /> Speech-to-Speech Ready
                   </span>
                   <span className="flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Automatic AI Evaluation
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Powered by Gemini AI
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> Powered by Gemini AI
                   </span>
                 </div>
               </div>
@@ -1962,14 +1962,14 @@ export function MockInterviewPage() {
             {/* Top Live Bar */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900 text-base">Sarah</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">Principal</span>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-800">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">Principal</span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800">
                       {selectedTrack} Round
                     </span>
                   </div>
@@ -1989,7 +1989,7 @@ export function MockInterviewPage() {
               <div className="flex items-center gap-4">
                 {/* Live Countdown Timer */}
                 <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-mono text-sm sm:text-base font-bold shadow-xs">
-                  <Clock className="w-4 h-4 text-purple-400" />
+                  <Clock className="w-4 h-4 text-blue-400" />
                   <span>{formatTime(timeRemainingSeconds)}</span>
                   <span className="text-[10px] text-slate-400 font-sans font-normal uppercase">remaining</span>
                 </div>
@@ -1998,7 +1998,7 @@ export function MockInterviewPage() {
                 <div
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 border ${
                     interviewState === INTERVIEW_STATES.AI_SPEAKING
-                      ? "bg-purple-100 text-purple-800 border-purple-300"
+                      ? "bg-blue-100 text-blue-800 border-blue-300"
                       : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
                       ? "bg-indigo-100 text-indigo-800 border-indigo-300"
                       : interviewState === INTERVIEW_STATES.RECORDING
@@ -2011,7 +2011,7 @@ export function MockInterviewPage() {
                   <span
                     className={`w-2 h-2 rounded-full ${
                       interviewState === INTERVIEW_STATES.AI_SPEAKING
-                        ? "bg-purple-600 animate-ping"
+                        ? "bg-blue-600 animate-ping"
                         : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
                         ? "bg-indigo-600 animate-pulse"
                         : interviewState === INTERVIEW_STATES.RECORDING
@@ -2067,11 +2067,11 @@ export function MockInterviewPage() {
                     <div
                       className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
                         interviewState === INTERVIEW_STATES.AI_SPEAKING
-                          ? "bg-gradient-to-tr from-purple-600 to-indigo-600 ring-8 ring-purple-100 text-white scale-105"
+                          ? "bg-gradient-to-tr from-blue-600 to-indigo-600 ring-8 ring-blue-100 text-white scale-105"
                           : interviewState === INTERVIEW_STATES.RECORDING
                           ? "bg-rose-900 ring-8 ring-rose-100 text-white"
                           : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
-                          ? "bg-purple-900 ring-8 ring-purple-100 text-white"
+                          ? "bg-blue-900 ring-8 ring-blue-100 text-white"
                           : "bg-slate-800 text-white"
                       }`}
                     >
@@ -2079,7 +2079,7 @@ export function MockInterviewPage() {
                     </div>
 
                     {aiStatus === "speaking" && (
-                      <div className="absolute inset-0 rounded-full border-2 border-purple-400 animate-ping opacity-40 pointer-events-none" />
+                      <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-40 pointer-events-none" />
                     )}
                   </div>
 
@@ -2092,7 +2092,7 @@ export function MockInterviewPage() {
                           style={{ height: `${amp}px` }}
                           className={`w-2.5 rounded-full transition-all duration-75 ${
                             aiStatus === "speaking"
-                              ? "bg-purple-600"
+                              ? "bg-blue-600"
                               : aiStatus === "listening"
                               ? "bg-emerald-500"
                               : "bg-slate-300"
@@ -2112,12 +2112,12 @@ export function MockInterviewPage() {
                   </div>
 
                   {/* Current Question Statement Box */}
-                  <div className="w-full text-left p-5 rounded-xl bg-purple-50/50 border border-purple-200/80 shadow-xs">
-                    <div className="flex items-center justify-between text-xs font-bold text-purple-900 mb-1.5">
+                  <div className="w-full text-left p-5 rounded-xl bg-blue-50/50 border border-blue-200/80 shadow-xs">
+                    <div className="flex items-center justify-between text-xs font-bold text-blue-900 mb-1.5">
                       <span className="uppercase tracking-wider">
                         {currentQuestion.isFollowUp ? "Follow-Up Question" : `Interview Question #${currentQuestion.index}`}
                       </span>
-                      <span className="text-purple-700 font-normal">Sarah – Principal • AI Interviewer</span>
+                      <span className="text-blue-700 font-normal">Sarah – Principal • AI Interviewer</span>
                     </div>
                     <p className="text-base sm:text-lg font-semibold text-slate-900 leading-snug">
                       "{currentQuestion.text}"
@@ -2134,9 +2134,9 @@ export function MockInterviewPage() {
                           interviewState === INTERVIEW_STATES.RECORDING
                             ? "bg-rose-500 animate-ping"
                             : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
-                            ? "bg-purple-600 animate-pulse"
+                            ? "bg-blue-600 animate-pulse"
                             : interviewState === INTERVIEW_STATES.AI_SPEAKING
-                            ? "bg-purple-400"
+                            ? "bg-blue-400"
                             : interviewState === INTERVIEW_STATES.EVALUATING
                             ? "bg-amber-500 animate-spin"
                             : "bg-slate-400"
@@ -2159,7 +2159,7 @@ export function MockInterviewPage() {
                       <button
                         type="button"
                         onClick={() => setSpeechLanguage((prev) => (prev === "en-IN" ? "en-US" : "en-IN"))}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 transition-colors cursor-pointer flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors cursor-pointer flex items-center gap-1"
                         title="Toggle speech recognition accent"
                       >
                         <span>🌐 Accent:</span>
@@ -2168,7 +2168,7 @@ export function MockInterviewPage() {
 
                       <button
                         onClick={() => setIsTypingMode(!isTypingMode)}
-                        className="text-xs text-purple-600 hover:text-purple-800 font-semibold cursor-pointer underline"
+                        className="text-xs text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline"
                       >
                         {isTypingMode ? "Hide Text Input" : "Type Response Instead"}
                       </button>
@@ -2209,7 +2209,7 @@ export function MockInterviewPage() {
                             dispatchStudentAnswer(typedAnswer.trim());
                           }}
                           disabled={interviewState === INTERVIEW_STATES.AI_SPEAKING || interviewState === INTERVIEW_STATES.EVALUATING || !typedAnswer.trim()}
-                          className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                         >
                           <Send className="w-3.5 h-3.5" />
                           <span>Submit Typed Response</span>
@@ -2220,7 +2220,7 @@ export function MockInterviewPage() {
                         value={typedAnswer}
                         onChange={(e) => setTypedAnswer(e.target.value)}
                         placeholder="Type your response here if speech recognition is noisy or unavailable..."
-                        className="w-full p-3 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        className="w-full p-3 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   )}
@@ -2234,7 +2234,7 @@ export function MockInterviewPage() {
                         disabled={interviewState !== INTERVIEW_STATES.WAITING_FOR_STUDENT}
                         className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2.5 transition-all shadow-md ${
                           interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
-                            ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/25 cursor-pointer ring-4 ring-purple-100 active:scale-98"
+                            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 cursor-pointer ring-4 ring-blue-100 active:scale-98"
                             : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
                         }`}
                       >
@@ -2272,7 +2272,7 @@ export function MockInterviewPage() {
                             : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                         }`}
                       >
-                        {isSpeakerMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-purple-600" />}
+                        {isSpeakerMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-blue-600" />}
                         <span>{isSpeakerMuted ? "Unmute AI Voice" : "Mute AI Voice"}</span>
                       </button>
                     </div>
@@ -2284,7 +2284,7 @@ export function MockInterviewPage() {
               <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col h-[650px]">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-purple-600" />
+                    <MessageSquare className="w-4 h-4 text-blue-600" />
                     <span className="font-bold text-slate-900 text-sm">Conversation Transcript</span>
                   </div>
                   <span className="text-xs text-slate-400 font-medium">{conversation.length} exchanges</span>
@@ -2303,7 +2303,7 @@ export function MockInterviewPage() {
                       >
                         <div
                           className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-white ${
-                            isAi ? "bg-purple-600" : "bg-slate-900"
+                            isAi ? "bg-blue-600" : "bg-slate-900"
                           }`}
                         >
                           {isAi ? <Bot className="w-4 h-4" /> : <UserIcon className="w-4 h-4" />}
@@ -2318,7 +2318,7 @@ export function MockInterviewPage() {
                           <div
                             className={`p-3 rounded-2xl leading-relaxed text-left ${
                               isAi
-                                ? "bg-purple-50/70 border border-purple-100 text-slate-800 rounded-tl-xs"
+                                ? "bg-blue-50/70 border border-blue-100 text-slate-800 rounded-tl-xs"
                                 : "bg-slate-900 text-white rounded-tr-xs"
                             }`}
                           >
@@ -2338,7 +2338,7 @@ export function MockInterviewPage() {
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedSkills.map((sk) => (
-                        <span key={sk} className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800">
+                        <span key={sk} className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800">
                           {sk}
                         </span>
                       ))}
@@ -2396,9 +2396,9 @@ export function MockInterviewPage() {
                       {scorecard.questionsUnanswered || scorecard.questionsAsked || 1}
                     </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-200 text-center col-span-2 sm:col-span-1">
-                    <span className="text-xs font-semibold text-purple-700">Evaluation Status</span>
-                    <div className="text-sm font-bold text-purple-900 mt-1.5">Not enough responses</div>
+                  <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 text-center col-span-2 sm:col-span-1">
+                    <span className="text-xs font-semibold text-blue-700">Evaluation Status</span>
+                    <div className="text-sm font-bold text-blue-900 mt-1.5">Not enough responses</div>
                   </div>
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center col-span-2 sm:col-span-1">
                     <span className="text-xs font-semibold text-slate-500">Overall Score</span>
@@ -2420,7 +2420,7 @@ export function MockInterviewPage() {
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
                   <button
                     onClick={() => setViewMode("SETUP")}
-                    className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-colors"
+                    className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/20 flex items-center gap-2 cursor-pointer transition-colors"
                   >
                     <RotateCcw className="w-4 h-4" />
                     <span>Try Another Interview</span>
@@ -2451,22 +2451,22 @@ export function MockInterviewPage() {
                       Evaluated on {scorecard.date} • {scorecard.track} Track • {scorecard.durationMinutes} Minutes • Gemini Placement Evaluator
                     </p>
                     {scorecard.questionsAnswered !== undefined && (
-                      <p className="text-xs text-purple-700 font-semibold mt-1">
+                      <p className="text-xs text-blue-700 font-semibold mt-1">
                         Evaluation based on {scorecard.questionsAnswered} answered question(s) out of {scorecard.questionsAsked}.
                       </p>
                     )}
                   </div>
 
                   {/* Overall Score Badge Circle */}
-                  <div className="flex items-center gap-4 bg-purple-50/70 p-4 rounded-2xl border border-purple-200/80">
+                  <div className="flex items-center gap-4 bg-blue-50/70 p-4 rounded-2xl border border-blue-200/80">
                     <div className="relative flex items-center justify-center">
-                      <div className="w-20 h-20 rounded-full bg-purple-600 text-white flex flex-col items-center justify-center shadow-md shadow-purple-600/30">
+                      <div className="w-20 h-20 rounded-full bg-blue-600 text-white flex flex-col items-center justify-center shadow-md shadow-blue-600/30">
                         <span className="text-2xl font-black">{scorecard.overallScore}</span>
-                        <span className="text-[10px] uppercase font-semibold text-purple-200">out of 100</span>
+                        <span className="text-[10px] uppercase font-semibold text-blue-200">out of 100</span>
                       </div>
                     </div>
                     <div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Overall Rating</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Overall Rating</span>
                       <h3 className="text-lg font-black text-slate-900">
                         {scorecard.overallScore >= 85
                           ? "Placement Ready"
@@ -2486,7 +2486,7 @@ export function MockInterviewPage() {
                   {scorecard.technicalScore !== null && selectedTrack !== "HR" && (
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
                       <span className="text-xs font-semibold text-slate-500">Technical Depth</span>
-                      <div className="text-xl font-black text-purple-600 mt-1">{scorecard.technicalScore}%</div>
+                      <div className="text-xl font-black text-blue-600 mt-1">{scorecard.technicalScore}%</div>
                     </div>
                   )}
                   {scorecard.hrScore !== null && selectedTrack !== "TECHNICAL" && (
@@ -2512,7 +2512,7 @@ export function MockInterviewPage() {
                 {/* Executive Summary */}
                 <div className="mt-6 p-5 rounded-xl bg-slate-50/70 border border-slate-200">
                   <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                     <span>Executive Feedback Summary</span>
                   </h4>
                   <p className="text-sm text-slate-700 leading-relaxed font-normal">
@@ -2555,15 +2555,15 @@ export function MockInterviewPage() {
 
                 {/* Recommended Topics to Revise */}
                 {scorecard.recommendations && scorecard.recommendations.length > 0 && (
-                  <div className="mt-6 p-5 rounded-xl bg-purple-50/30 border border-purple-200">
-                    <h4 className="text-sm font-bold text-purple-900 flex items-center gap-1.5 mb-2.5">
-                      <BookOpen className="w-4 h-4 text-purple-600" />
+                  <div className="mt-6 p-5 rounded-xl bg-blue-50/30 border border-blue-200">
+                    <h4 className="text-sm font-bold text-blue-900 flex items-center gap-1.5 mb-2.5">
+                      <BookOpen className="w-4 h-4 text-blue-600" />
                       <span>Recommended Topics to Revise Before Placement Drives</span>
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {scorecard.recommendations.map((rec, i) => (
-                        <div key={i} className="px-3 py-1.5 rounded-lg bg-white border border-purple-200 text-xs text-purple-950 font-medium flex items-center gap-1.5">
-                          <ChevronRight className="w-3.5 h-3.5 text-purple-600" />
+                        <div key={i} className="px-3 py-1.5 rounded-lg bg-white border border-blue-200 text-xs text-blue-950 font-medium flex items-center gap-1.5">
+                          <ChevronRight className="w-3.5 h-3.5 text-blue-600" />
                           <span>{rec}</span>
                         </div>
                       ))}
@@ -2575,21 +2575,21 @@ export function MockInterviewPage() {
                 {scorecard.qaReview && scorecard.qaReview.length > 0 && (
                   <div className="mt-8 space-y-4">
                     <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-purple-600" />
+                      <FileText className="w-4 h-4 text-blue-600" />
                       <span>Detailed Turn-by-Turn Response Review ({scorecard.qaReview.length})</span>
                     </h4>
 
                     <div className="space-y-3">
                       {scorecard.qaReview.map((turn, i) => (
                         <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-semibold text-purple-900">
+                          <div className="flex items-center justify-between text-xs font-semibold text-blue-900">
                             <span>{turn.isFollowUp ? `Turn ${i + 1} (Follow-Up Probe)` : `Turn ${i + 1} (Core Question)`}</span>
                             {typeof turn.score === "number" && (
                               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
                                 turn.score >= 85
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                   : turn.score >= 70
-                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  ? "bg-blue-50 text-blue-700 border-blue-200"
                                   : turn.score >= 50
                                   ? "bg-amber-50 text-amber-700 border-amber-200"
                                   : "bg-rose-50 text-rose-700 border-rose-200"
@@ -2614,9 +2614,9 @@ export function MockInterviewPage() {
                               ? "bg-rose-50/40 border-rose-200 text-rose-950"
                               : turn.score >= 85
                               ? "bg-emerald-50/40 border-emerald-200 text-emerald-950"
-                              : "bg-purple-50/50 border-purple-100 text-purple-900"
+                              : "bg-blue-50/50 border-blue-100 text-blue-900"
                           }`}>
-                            <strong className={turn.score < 50 || turn.isSkipped ? "text-rose-900" : turn.score >= 85 ? "text-emerald-900" : "text-purple-950"}>AI Evaluator Feedback: </strong>
+                            <strong className={turn.score < 50 || turn.isSkipped ? "text-rose-900" : turn.score >= 85 ? "text-emerald-900" : "text-blue-950"}>AI Evaluator Feedback: </strong>
                             {turn.aiFeedback}
                           </div>
                         </div>
@@ -2629,7 +2629,7 @@ export function MockInterviewPage() {
                 <div className="pt-8 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
                   <button
                     onClick={() => setViewMode("SETUP")}
-                    className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-colors"
+                    className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/20 flex items-center gap-2 cursor-pointer transition-colors"
                   >
                     <RotateCcw className="w-4 h-4" />
                     <span>Configure Another Mock Interview</span>
@@ -2663,7 +2663,7 @@ export function MockInterviewPage() {
                 </div>
                 <button
                   onClick={() => setViewMode("SETUP")}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   <span>New Interview</span>
@@ -2674,7 +2674,7 @@ export function MockInterviewPage() {
                 <div className="py-12 text-center text-slate-400">Loading interview records...</div>
               ) : pastSessions.length === 0 ? (
                 <div className="py-12 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto">
                     <History className="w-6 h-6" />
                   </div>
                   <h3 className="font-bold text-slate-900">No Mock Interviews Completed Yet</h3>
@@ -2683,7 +2683,7 @@ export function MockInterviewPage() {
                   </p>
                   <button
                     onClick={() => setViewMode("SETUP")}
-                    className="mt-2 px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold cursor-pointer"
+                    className="mt-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-pointer"
                   >
                     Start Your First Interview
                   </button>
@@ -2704,11 +2704,11 @@ export function MockInterviewPage() {
                     return (
                       <div
                         key={sessionItem._id || sessionItem.id || i}
-                        className="p-5 rounded-xl border border-slate-200 bg-white hover:border-purple-300 transition-all shadow-xs flex flex-col justify-between space-y-4"
+                        className="p-5 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-all shadow-xs flex flex-col justify-between space-y-4"
                       >
                         <div>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
                               {sessionItem.interviewType || sessionItem.roleTitle || "Mock Interview"}
                             </span>
                             <span className="text-xs text-slate-400">{dateFormatted}</span>
@@ -2718,7 +2718,7 @@ export function MockInterviewPage() {
                             <div className={`w-12 h-12 rounded-xl font-extrabold text-base flex items-center justify-center border ${
                               isIncomplete
                                 ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : "bg-purple-50 text-purple-700 border-purple-200/60"
+                                : "bg-blue-50 text-blue-700 border-blue-200/60"
                             }`}>
                               {score}
                             </div>
@@ -2781,7 +2781,7 @@ export function MockInterviewPage() {
                             });
                             setViewMode("RESULTS");
                           }}
-                          className="w-full py-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-colors cursor-pointer text-center"
+                          className="w-full py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors cursor-pointer text-center"
                         >
                           View Full Scorecard & Report
                         </button>
@@ -2845,25 +2845,25 @@ export function MockInterviewPage() {
                   onClick={() => setSelectedMinutePack(pack)}
                   className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4 ${
                     isSelected
-                      ? "border-purple-600 bg-purple-50/50 shadow-xs"
-                      : "border-slate-200 hover:border-purple-300 bg-white hover:bg-slate-50/50"
+                      ? "border-blue-600 bg-blue-50/50 shadow-xs"
+                      : "border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50/50"
                   }`}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-base text-slate-900">{pack.minutes} Minutes</span>
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                        isSelected ? "bg-purple-200 text-purple-900" : "bg-slate-100 text-slate-600"
+                        isSelected ? "bg-blue-200 text-blue-900" : "bg-slate-100 text-slate-600"
                       }`}>
                         {pack.badge}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 leading-normal">{pack.desc}</p>
-                    <span className="text-[11px] font-semibold text-purple-700 block">{pack.rateNote}</span>
+                    <span className="text-[11px] font-semibold text-blue-700 block">{pack.rateNote}</span>
                   </div>
 
                   <div className="text-right shrink-0">
-                    <div className="text-2xl font-black text-purple-700">₹{pack.price}</div>
+                    <div className="text-2xl font-black text-blue-700">₹{pack.price}</div>
                     <span className="text-[10px] text-slate-400 font-medium uppercase">All-Inclusive</span>
                   </div>
                 </div>
@@ -2886,7 +2886,7 @@ export function MockInterviewPage() {
               <button
                 onClick={() => handleBuyMinutesPack(selectedMinutePack)}
                 disabled={buyingMinutes}
-                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-600/20 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
                 {buyingMinutes ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 <span>{buyingMinutes ? "Processing..." : `Pay ₹${selectedMinutePack.price} for ${selectedMinutePack.minutes} Mins`}</span>
