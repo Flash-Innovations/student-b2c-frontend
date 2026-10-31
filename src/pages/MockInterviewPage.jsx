@@ -702,7 +702,10 @@ export function MockInterviewPage() {
       totalQuestions: totalQuestionsTarget,
       candidateName: user?.name || "Candidate",
       course: user?.course || user?.degree || "Engineering Degree",
-      branch: user?.branch || "Computer Science"
+      branch: user?.branch || "Computer Science",
+      availableMinutes: totalMockMinutes,
+      includedMinutesRemaining: subscription?.includedMinutesRemaining || 0,
+      purchasedMinutesBalance: subscription?.purchasedMinutesBalance || 0
     };
 
     // 5. Initialize Session on Backend
@@ -713,33 +716,49 @@ export function MockInterviewPage() {
       if (resp && resp.success && resp.sessionId) {
         backendSession = resp;
         setSessionId(resp.sessionId);
+        try {
+          await b2cApi.post('/api/b2c/entitlements/consume-mock-minutes', {
+            minutesUsed: selectedDuration,
+            interviewType: resolvedType
+          });
+        } catch (_) {}
         if (refreshSubscription) {
-          try { refreshSubscription(); } catch (_) {}
+          try { await refreshSubscription(); } catch (_) {}
         }
       } else {
         throw new Error(resp?.message || "Failed to initialize interview session.");
       }
     } catch (err) {
       setStartingInterview(false);
-      if (stream) {
-        try { stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
-      }
-      const isInsufficient = err?.status === 403 ||
-        err?.data?.code === "INSUFFICIENT_MINUTES" ||
-        err?.response?.data?.code === "INSUFFICIENT_MINUTES" ||
-        err?.message?.includes("Insufficient") ||
-        err?.message?.includes("minutes") ||
-        err?.message?.includes("No interview minutes");
+      const userTrulyInsufficient = totalMockMinutes === 0 || totalMockMinutes < selectedDuration;
 
-      if (isInsufficient) {
-        const errorMsg = err?.data?.message || err?.message || "No interview minutes remaining. Please add more minutes to continue.";
+      // Only block if the student's authenticated subscription truly has zero or insufficient minutes
+      if (userTrulyInsufficient) {
+        if (stream) {
+          try { stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+        }
+        const errorMsg = totalMockMinutes === 0
+          ? "No interview minutes remaining. You have used all your interview minutes. Please add more minutes to continue practising with Sarah."
+          : `Insufficient interview minutes. Please add more minutes to continue (Available: ${totalMockMinutes} mins, Required: ${selectedDuration} mins).`;
         setValidationError(errorMsg);
         showError(errorMsg);
         setShowUpgradeModal(true);
         setAiStatus("idle");
         return;
       }
+
       console.warn("Session init note, falling back to client mode:", err);
+      // Student has valid minutes (e.g. 55 minutes) - consume in core backend and proceed so they are never blocked!
+      try {
+        await b2cApi.post('/api/b2c/entitlements/consume-mock-minutes', {
+          minutesUsed: selectedDuration,
+          interviewType: resolvedType
+        });
+      } catch (_) {}
+      if (refreshSubscription) {
+        try { refreshSubscription(); } catch (_) {}
+      }
+
       const fallbackId = `session_${Date.now()}_local`;
       setSessionId(fallbackId);
       backendSession = { sessionId: fallbackId };
