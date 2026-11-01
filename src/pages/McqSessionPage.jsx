@@ -11,7 +11,10 @@ import {
   RotateCcw,
   AlertTriangle,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  BookOpen,
+  Check,
+  X
 } from "lucide-react";
 import { MathRenderer } from "../components/common/MathRenderer";
 import { useAuth } from "../context/AuthContext";
@@ -54,13 +57,33 @@ export function McqSessionPage() {
     }
   })();
 
-  const [questions, setQuestions] = useState([]);
+  const initialQuestions = location.state?.questions || (() => {
+    try {
+      const s = sessionStorage.getItem(`flash_last_questions_${topicId}`);
+      return s ? JSON.parse(s) : [];
+    } catch (_) { return []; }
+  })();
+
+  const initialAnswers = location.state?.selectedAnswers || (() => {
+    try {
+      const s = sessionStorage.getItem(`flash_last_answers_${topicId}`);
+      return s ? JSON.parse(s) : {};
+    } catch (_) { return {}; }
+  })();
+
+  const initialVerifs = location.state?.verifications || (() => {
+    try {
+      const s = sessionStorage.getItem(`flash_last_verifs_${topicId}`);
+      return s ? JSON.parse(s) : {};
+    } catch (_) { return {}; }
+  })();
+
+  const [questions, setQuestions] = useState(isResultView && initialQuestions.length > 0 ? initialQuestions : []);
   const [loading, setLoading] = useState(!isResultView);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [verifications, setVerifications] = useState({});
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState(isResultView ? initialAnswers : {});
+  const [verifications, setVerifications] = useState(isResultView ? initialVerifs : {});
   const [sessionCompleted, setSessionCompleted] = useState(isResultView && Boolean(initialResult));
   const [timerSeconds, setTimerSeconds] = useState(600); // 10 minutes
   const [attemptId, setAttemptId] = useState(null);
@@ -76,7 +99,6 @@ export function McqSessionPage() {
     setSelectedAnswers({});
     setVerifications({});
     setCurrentIndex(0);
-    setShowExplanation(false);
     setTimerSeconds(600); // 10 minutes strictly
     setSessionStartTime(Date.now());
 
@@ -191,7 +213,7 @@ export function McqSessionPage() {
 
   const currentQ = questions[currentIndex] || null;
 
-  const handleSelectOption = async (optionIdx) => {
+  const handleSelectOption = (optionIdx) => {
     if (sessionCompleted || !currentQ) return;
     setSelectedAnswers((prev) => ({
       ...prev,
@@ -207,32 +229,20 @@ export function McqSessionPage() {
         selectedOption: currentQ.options[optionIdx]
       }).catch((e) => console.warn("Record practice response warning:", e));
     }
+  };
 
-    // Verify against backend
-    try {
-      const selectedText = currentQ.options[optionIdx];
-      const res = await practiceApi.verifyPracticeAnswer({
-        questionId: currentQ.id,
-        selectedOption: selectedText,
-        answerIndex: optionIdx
-      });
-      if (res && (res.success || res.isCorrect !== undefined)) {
-        setVerifications((prev) => ({
-          ...prev,
-          [currentIndex]: {
-            isCorrect: Boolean(res.isCorrect),
-            correctAnswer: res.correctAnswer,
-            explanation: res.explanation || currentQ.explanation
-          }
-        }));
-      }
-    } catch (_) {}
+  const handleClearOption = () => {
+    if (sessionCompleted || !currentQ) return;
+    setSelectedAnswers((prev) => {
+      const copy = { ...prev };
+      delete copy[currentIndex];
+      return copy;
+    });
   };
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
-      setShowExplanation(false);
     } else {
       handleFinishSession();
     }
@@ -242,6 +252,41 @@ export function McqSessionPage() {
     setIsSubmitting(true);
     let finalResult = null;
 
+    // Concurrently evaluate all questions to build verification map for scorecard review
+    const verifMap = {};
+    const verifyPromises = questions.map(async (q, idx) => {
+      const answerIdx = selectedAnswers[idx];
+      const hasAnswered = answerIdx !== undefined && answerIdx !== null;
+      const selectedText = hasAnswered && q.options ? q.options[answerIdx] : null;
+
+      try {
+        const res = await practiceApi.verifyPracticeAnswer({
+          questionId: q.id,
+          selectedOption: selectedText,
+          answerIndex: hasAnswered ? answerIdx : undefined
+        });
+        const data = res?.data || res;
+        verifMap[idx] = {
+          isCorrect: Boolean(data?.isCorrect),
+          correctAnswer: data?.correctAnswer || q.correctAnswer,
+          correctIndex: data?.correctIndex !== undefined ? data.correctIndex : -1,
+          explanation: data?.explanation || q.explanation,
+          selectedOption: selectedText
+        };
+      } catch (_) {
+        verifMap[idx] = {
+          isCorrect: false,
+          selectedOption: selectedText,
+          correctAnswer: q.correctAnswer,
+          correctIndex: -1,
+          explanation: q.explanation || "Detailed solution is recorded in the question repository."
+        };
+      }
+    });
+
+    await Promise.all(verifyPromises);
+    setVerifications(verifMap);
+
     // Build student responses map
     const formattedResponses = questions.map((q, idx) => ({
       questionId: q.id,
@@ -250,9 +295,10 @@ export function McqSessionPage() {
       selectedOption: selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null ? q.options[selectedAnswers[idx]] : null
     }));
 
+    const timeSpent = Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000));
+
     if (attemptId) {
       try {
-        const timeSpent = Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000));
         const submitRes = await practiceApi.submitAttempt(attemptId, {
           responses: formattedResponses,
           timeSpentSeconds: timeSpent
@@ -266,11 +312,10 @@ export function McqSessionPage() {
     // Authoritative calculation of scorecard
     if (!finalResult) {
       const attempted = questions.filter((_, idx) => selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null).length;
-      const correct = questions.filter((_, idx) => verifications[idx]?.isCorrect === true).length;
+      const correct = questions.filter((_, idx) => verifMap[idx]?.isCorrect === true).length;
       const incorrect = Math.max(0, attempted - correct);
       const unanswered = Math.max(0, questions.length - attempted);
       const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
-      const timeTakenSec = Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000));
 
       finalResult = {
         totalQuestions: questions.length,
@@ -282,8 +327,8 @@ export function McqSessionPage() {
         maximumMarks: questions.length,
         accuracy,
         accuracyDisplay: attempted === 0 ? "0%" : `${accuracy}%`,
-        timeTakenSeconds: timeTakenSec,
-        timeTakenDisplay: formatTimer(timeTakenSec)
+        timeTakenSeconds: timeSpent,
+        timeTakenDisplay: formatTimer(timeSpent)
       };
     }
 
@@ -293,6 +338,9 @@ export function McqSessionPage() {
 
     try {
       sessionStorage.setItem(`flash_last_result_${topicId}`, JSON.stringify(finalResult));
+      sessionStorage.setItem(`flash_last_questions_${topicId}`, JSON.stringify(questions));
+      sessionStorage.setItem(`flash_last_answers_${topicId}`, JSON.stringify(selectedAnswers));
+      sessionStorage.setItem(`flash_last_verifs_${topicId}`, JSON.stringify(verifMap));
     } catch (_) {}
 
     // Replace browser history entry so the in-progress questionnaire is eliminated from back/forward history!
@@ -300,11 +348,11 @@ export function McqSessionPage() {
       `/practice/mcq?topic=${encodeURIComponent(topicId)}&name=${encodeURIComponent(topicName)}&view=result`,
       {
         replace: true,
-        state: { completed: true, result: finalResult }
+        state: { completed: true, result: finalResult, questions, verifications: verifMap, selectedAnswers }
       }
     );
 
-    // Fix ii & v: Record exact count of attempted MCQs, correct count, and per-subject telemetry
+    // Record exact count of attempted MCQs, correct count, and per-subject telemetry
     if (finalResult.attemptedQuestions > 0) {
       try {
         const attemptedIds = questions
@@ -335,12 +383,14 @@ export function McqSessionPage() {
     setSelectedAnswers({});
     setVerifications({});
     setCurrentIndex(0);
-    setShowExplanation(false);
     setTimerSeconds(600);
     setAttemptId(null);
     setSessionStartTime(Date.now());
     try {
       sessionStorage.removeItem(`flash_last_result_${topicId}`);
+      sessionStorage.removeItem(`flash_last_questions_${topicId}`);
+      sessionStorage.removeItem(`flash_last_answers_${topicId}`);
+      sessionStorage.removeItem(`flash_last_verifs_${topicId}`);
     } catch (_) {}
     navigate(
       `/practice/mcq?topic=${encodeURIComponent(topicId)}&name=${encodeURIComponent(topicName)}`,
@@ -542,46 +592,30 @@ export function McqSessionPage() {
                 );
               })}
             </div>
-
-            {/* Explanation Toggle */}
-            {selectedAnswers[currentIndex] !== undefined && (
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <button
-                  onClick={() => setShowExplanation(!showExplanation)}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  {showExplanation ? "Hide Detailed Solution" : "View Step-by-Step Explanation"}
-                </button>
-
-                {showExplanation && (
-                  <div className="mt-3 p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 text-xs text-indigo-950 leading-relaxed">
-                    <div className="font-bold text-indigo-900 mb-1">Solution Explanation:</div>
-                    <MathRenderer content={verifications[currentIndex]?.explanation || "Solution verified via authoritative question bank."} />
-                    {verifications[currentIndex]?.correctAnswer && (
-                      <div className="mt-2 font-semibold text-emerald-700">
-                        Correct Answer: {verifications[currentIndex].correctAnswer}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </Card>
 
           {/* Navigation Controls */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <Button
               variant="outline"
               size="sm"
               disabled={currentIndex === 0}
               onClick={() => {
                 setCurrentIndex((prev) => Math.max(0, prev - 1));
-                setShowExplanation(false);
               }}
             >
               <ChevronLeft className="w-4 h-4 mr-1" /> Previous Question
             </Button>
+
+            {selectedAnswers[currentIndex] !== undefined && (
+              <button
+                type="button"
+                onClick={handleClearOption}
+                className="text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors px-2 py-1 cursor-pointer"
+              >
+                Clear Choice
+              </button>
+            )}
 
             <Button
               variant="primary"
@@ -601,88 +635,256 @@ export function McqSessionPage() {
 
         </div>
       ) : (
-        /* Session Completed Scorecard */
-        <Card className="p-8 text-center space-y-6">
-          <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
-            <Award className="w-8 h-8" />
-          </div>
+        /* Session Completed Scorecard & Question Review */
+        <div className="space-y-6">
+          <Card className="p-8 text-center space-y-6">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
+              <Award className="w-8 h-8" />
+            </div>
 
-          <div>
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              {topicName} Practice Result
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              {displayedAttempted === 0 
-                ? "Session finished without attempting any questions." 
-                : "Your results have been recorded in your batch placement telemetry."}
-            </p>
-          </div>
+            <div>
+              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                {topicName} Practice Result
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                {displayedAttempted === 0 
+                  ? "Session finished without attempting any questions." 
+                  : "Your results have been recorded in your batch placement telemetry."}
+              </p>
+            </div>
 
-          {/* Primary Metrics Grid: Score, Accuracy, Time Taken */}
-          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto pt-2">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Score</div>
-              <div className="text-2xl font-black text-slate-900 font-mono mt-1">
-                {displayedScore}/{displayedMaxMarks}
+            {/* Primary Metrics Grid: Score, Accuracy, Time Taken */}
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto pt-2">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Score</div>
+                <div className="text-2xl font-black text-slate-900 font-mono mt-1">
+                  {displayedScore}/{displayedMaxMarks}
+                </div>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Accuracy</div>
+                <div className="text-2xl font-black text-emerald-600 font-mono mt-1">
+                  {displayedAccuracy}
+                </div>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Time Taken</div>
+                <div className="text-2xl font-black text-indigo-600 font-mono mt-1">
+                  {displayedTimeTaken}
+                </div>
               </div>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Accuracy</div>
-              <div className="text-2xl font-black text-emerald-600 font-mono mt-1">
-                {displayedAccuracy}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Time Taken</div>
-              <div className="text-2xl font-black text-indigo-600 font-mono mt-1">
-                {displayedTimeTaken}
-              </div>
-            </div>
-          </div>
 
-          {/* Question Breakdown: Attempted, Correct, Incorrect, Unanswered */}
-          <div className="grid grid-cols-4 gap-3 max-w-lg mx-auto pt-2">
-            <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100/80 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Attempted</div>
-              <div className="text-lg font-black text-indigo-950 font-mono mt-0.5">
-                {displayedAttempted}
+            {/* Question Breakdown: Attempted, Correct, Incorrect, Unanswered */}
+            <div className="grid grid-cols-4 gap-3 max-w-lg mx-auto pt-2">
+              <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100/80 text-center">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Attempted</div>
+                <div className="text-lg font-black text-indigo-950 font-mono mt-0.5">
+                  {displayedAttempted}
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100/80 text-center">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Correct</div>
+                <div className="text-lg font-black text-emerald-950 font-mono mt-0.5">
+                  {displayedCorrect}
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-rose-50/50 border border-rose-100/80 text-center">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Incorrect</div>
+                <div className="text-lg font-black text-rose-950 font-mono mt-0.5">
+                  {displayedIncorrect}
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-100/60 border border-slate-200/80 text-center">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Unanswered</div>
+                <div className="text-lg font-black text-slate-800 font-mono mt-0.5">
+                  {displayedUnanswered}
+                </div>
               </div>
             </div>
-            <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100/80 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Correct</div>
-              <div className="text-lg font-black text-emerald-950 font-mono mt-0.5">
-                {displayedCorrect}
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-rose-50/50 border border-rose-100/80 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Incorrect</div>
-              <div className="text-lg font-black text-rose-950 font-mono mt-0.5">
-                {displayedIncorrect}
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-100/60 border border-slate-200/80 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Unanswered</div>
-              <div className="text-lg font-black text-slate-800 font-mono mt-0.5">
-                {displayedUnanswered}
-              </div>
-            </div>
-          </div>
 
-          <div className="pt-4 flex justify-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/practice", { replace: true })}
-            >
-              Browse Other Topics
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleRetakePractice}
-            >
-              <RotateCcw className="w-4 h-4 mr-1.5" /> Retake Practice
-            </Button>
-          </div>
-        </Card>
+            <div className="pt-4 flex justify-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/practice", { replace: true })}
+              >
+                Browse Other Topics
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleRetakePractice}
+              >
+                <RotateCcw className="w-4 h-4 mr-1.5" /> Retake Practice
+              </Button>
+            </div>
+          </Card>
+
+          {/* Detailed Question Review & Solutions */}
+          {questions.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                    Question Review & Step-by-Step Solutions
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Review your answers, correct options, and detailed pedagogical explanations.
+                  </p>
+                </div>
+                <div className="text-xs font-semibold text-slate-500">
+                  {questions.length} Question{questions.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {questions.map((q, idx) => {
+                  const studentAnsIdx = selectedAnswers[idx];
+                  const hasAnswered = studentAnsIdx !== undefined && studentAnsIdx !== null;
+                  const v = verifications[idx];
+                  const isCorrect = v?.isCorrect === true;
+                  const correctIdx = v?.correctIndex !== undefined && v?.correctIndex >= 0
+                    ? v.correctIndex
+                    : (q.options || []).findIndex(
+                        (opt) =>
+                          v?.correctAnswer &&
+                          String(opt).trim().toLowerCase() === String(v.correctAnswer).trim().toLowerCase()
+                      );
+
+                  return (
+                    <Card key={q.id || idx} className="p-6 text-left border border-slate-200/90 shadow-2xs">
+                      {/* Question Header & Status Badge */}
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                          Question {idx + 1} of {questions.length}
+                        </span>
+                        <div>
+                          {!hasAnswered ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                              Unanswered
+                            </span>
+                          ) : isCorrect ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <Check className="w-3.5 h-3.5" /> Correct (+1)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                              <X className="w-3.5 h-3.5" /> Incorrect (0)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Question Statement */}
+                      <div className="text-sm font-semibold text-slate-900 leading-relaxed">
+                        <MathRenderer content={q.statement || "No question statement provided."} />
+                      </div>
+
+                      {/* Options Grid */}
+                      <div className="mt-4 space-y-2.5">
+                        {(q.options || []).map((opt, optIdx) => {
+                          const isStudentPick = hasAnswered && studentAnsIdx === optIdx;
+                          const isThisOptionCorrect = optIdx === correctIdx || (
+                            v?.correctAnswer &&
+                            String(opt).trim().toLowerCase() === String(v.correctAnswer).trim().toLowerCase()
+                          );
+
+                          let borderAndBg = "bg-white border-slate-200/80 text-slate-700";
+                          let badge = null;
+
+                          if (isStudentPick && isThisOptionCorrect) {
+                            borderAndBg = "bg-emerald-50/80 border-emerald-500 text-emerald-950 font-bold ring-1 ring-emerald-500/20";
+                            badge = (
+                              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded">
+                                Your Choice (Correct)
+                              </span>
+                            );
+                          } else if (isStudentPick && !isThisOptionCorrect) {
+                            borderAndBg = "bg-rose-50/80 border-rose-500 text-rose-950 font-bold ring-1 ring-rose-500/20";
+                            badge = (
+                              <span className="text-[11px] font-bold text-rose-700 bg-rose-100/90 px-2 py-0.5 rounded">
+                                Your Choice (Incorrect)
+                              </span>
+                            );
+                          } else if (!isStudentPick && isThisOptionCorrect) {
+                            borderAndBg = "bg-emerald-50/40 border-emerald-400 text-emerald-900 font-medium border-dashed";
+                            badge = (
+                              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded">
+                                Correct Answer
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={optIdx}
+                              className={`p-3.5 rounded-xl border flex items-center justify-between text-left transition-all ${borderAndBg}`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
+                                  isStudentPick && isThisOptionCorrect
+                                    ? "bg-emerald-600 text-white"
+                                    : isStudentPick && !isThisOptionCorrect
+                                    ? "bg-rose-600 text-white"
+                                    : isThisOptionCorrect
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-slate-100 text-slate-700"
+                                }`}>
+                                  {String.fromCharCode(65 + optIdx)}
+                                </span>
+                                <span className="text-sm">
+                                  <MathRenderer content={opt} inline />
+                                </span>
+                              </div>
+                              {badge && <div className="shrink-0 ml-2">{badge}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Step-by-Step Explanation Card */}
+                      <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-800 leading-relaxed">
+                        <div className="flex items-center gap-1.5 font-bold text-slate-900 mb-1.5">
+                          <BookOpen className="w-4 h-4 text-indigo-600" />
+                          Step-by-Step Explanation
+                        </div>
+                        <div className="text-slate-700 mt-1">
+                          <MathRenderer
+                            content={
+                              v?.explanation ||
+                              q.explanation ||
+                              "Verified solution is recorded in the platform question bank."
+                            }
+                          />
+                        </div>
+                        {v?.correctAnswer && (
+                          <div className="mt-2.5 pt-2 border-t border-slate-200/70 font-semibold text-emerald-800">
+                            Correct Answer: <span className="font-bold">{v.correctAnswer}</span>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Actions */}
+              <div className="pt-2 flex justify-center gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/practice", { replace: true })}
+                >
+                  Browse Other Topics
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleRetakePractice}
+                >
+                  <RotateCcw className="w-4 h-4 mr-1.5" /> Retake Practice
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
     </div>
