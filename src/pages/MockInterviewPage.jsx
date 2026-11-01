@@ -44,7 +44,14 @@ import {
   FileText,
   Activity,
   Flame,
-  CheckSquare
+  CheckSquare,
+  Video,
+  VideoOff,
+  Printer,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  ExternalLink
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -69,6 +76,32 @@ export const CURATED_SKILL_CATEGORIES = {
   "AI & Machine Learning": ["Machine Learning", "Deep Learning", "NLP", "CNN", "Data Science"],
   "Tools & Technologies": ["Git", "GitHub", "Docker", "REST APIs", "Postman", "Linux"]
 };
+
+export const POPULAR_TECHNICAL_SKILLS = [
+  "Python",
+  "Java",
+  "JavaScript",
+  "React.js",
+  "Node.js",
+  "SQL",
+  "DBMS",
+  "Operating Systems",
+  "Arrays & Strings",
+  "Trees & Graphs",
+  "System Design",
+  "Docker"
+];
+
+export const CURATED_HR_COMPETENCIES = [
+  "STAR Method (Situation, Task, Action, Result)",
+  "Conflict Resolution & Teamwork",
+  "Leadership & Ownership",
+  "Strengths, Weaknesses & Self-Awareness",
+  "Career Goals & 5-Year Vision",
+  "Handling Deadlines & Pressure",
+  "Adaptability & Culture Fit",
+  "Project Walkthrough & Impact"
+];
 
 export const TRACK_DEFINITIONS = [
   {
@@ -339,6 +372,73 @@ export function MockInterviewPage() {
   const isEndingRef = useRef(false);
   const [startingInterview, setStartingInterview] = useState(false);
 
+  // Local Webcam Self-Preview State (Client-Side Only)
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
+
+  // Turn Review Filtering & Accordion Expansion State
+  const [turnFilter, setTurnFilter] = useState("ALL"); // 'ALL' | 'NEEDS_WORK' | 'STRONG'
+  const [expandedTurns, setExpandedTurns] = useState({});
+
+  // Toggle Candidate Local Webcam
+  const toggleCamera = async () => {
+    if (showCamera) {
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((t) => t.stop());
+        cameraStreamRef.current = null;
+      }
+      setShowCamera(false);
+    } else {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          showInfo("Webcam is not supported in this browser.");
+          return;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: "user" }
+        });
+        cameraStreamRef.current = stream;
+        setShowCamera(true);
+      } catch (camErr) {
+        console.warn("Webcam access notice:", camErr);
+        showInfo("Camera access was not granted or is unavailable.");
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (showCamera && videoRef.current && cameraStreamRef.current) {
+      videoRef.current.srcObject = cameraStreamRef.current;
+    }
+  }, [showCamera]);
+
+  useEffect(() => {
+    return () => {
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((t) => t.stop());
+        cameraStreamRef.current = null;
+      }
+    };
+  }, []);
+
+  // Turn accordion handlers
+  const toggleTurnAccordion = (index) => {
+    setExpandedTurns((prev) => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  const handleExpandAllTurns = (expand) => {
+    if (!scorecard?.qaReview) return;
+    const nextState = {};
+    scorecard.qaReview.forEach((_, i) => {
+      nextState[i] = expand;
+    });
+    setExpandedTurns(nextState);
+  };
+
   const totalMockMinutes = (subscription?.includedMinutesRemaining || 0) + (subscription?.purchasedMinutesBalance || 0);
 
   // ==========================================
@@ -388,17 +488,21 @@ export function MockInterviewPage() {
   }, [conversation, candidateDraft]);
 
   // ==========================================
-  // TRACK CHANGE HANDLER (Immediately clears technical skills for HR)
+  // TRACK CHANGE HANDLER
   // ==========================================
   const handleSelectTrack = (trackId) => {
     setSelectedTrack(trackId);
     setValidationError("");
     if (trackId === "HR") {
-      setSelectedSkills([]);
+      setSelectedSkills([
+        "STAR Method (Situation, Task, Action, Result)",
+        "Conflict Resolution & Teamwork",
+        "Leadership & Ownership"
+      ]);
       setShowSkillDropdown(false);
       setSkillSearchQuery("");
     } else {
-      if (selectedSkills.length === 0) {
+      if (selectedSkills.length === 0 || selectedSkills.some((s) => CURATED_HR_COMPETENCIES.includes(s))) {
         setSelectedSkills(["Python", "React.js", "SQL", "DBMS"]);
       }
     }
@@ -642,9 +746,13 @@ export function MockInterviewPage() {
     setStartingInterview(true);
 
     // 2. Validate track & skill requirements
-    if (selectedTrack !== "HR" && selectedSkills.length === 0) {
-      setValidationError("Please select at least one technical skill to focus the interview.");
-      showError("Please select at least one technical skill.");
+    if (selectedSkills.length === 0) {
+      const msg =
+        selectedTrack === "HR"
+          ? "Please select at least one behavioral competency for your HR interview."
+          : "Please select at least one technical skill to focus the interview.";
+      setValidationError(msg);
+      showError(msg);
       return;
     }
 
@@ -697,7 +805,7 @@ export function MockInterviewPage() {
     const sessionPayload = {
       interviewType: resolvedType,
       roleTitle: `${resolvedType} Placement Mock`,
-      selectedSkills: selectedTrack === "HR" ? [] : selectedSkills,
+      selectedSkills: selectedSkills,
       mode: selectedFormat,
       durationMinutes: selectedDuration,
       totalQuestions: totalQuestionsTarget,
@@ -906,7 +1014,7 @@ export function MockInterviewPage() {
     if (!firstCoreQuestion) {
       const pastQuestionTexts = pastSessions.flatMap((s) => (s.qaReview || s.questions || []).map((q) => q.questionText)).filter(Boolean);
       const pickedQ = pickIntelligentNextQuestion({
-        selectedSkills: selectedTrack === "HR" ? [] : selectedSkills,
+        selectedSkills: selectedSkills,
         track: resolvedType,
         sessionQuestionHistory: [],
         crossSessionHistory: pastQuestionTexts,
@@ -1093,6 +1201,45 @@ export function MockInterviewPage() {
       dispatchStudentAnswer(normalized);
     }, 200);
   };
+
+  // Repeat AI Interviewer Question Prompt
+  const handleReplayQuestion = () => {
+    if (!currentQuestion.text || interviewStateRef.current === INTERVIEW_STATES.AI_SPEAKING) return;
+    speakAiUtterance(currentQuestion.text);
+  };
+
+  // Keyboard Ergonomics Shortcut Listener in LIVE Mode
+  useEffect(() => {
+    if (viewMode !== "LIVE") return;
+
+    const handleKeyDown = (e) => {
+      const tag = e.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (interviewStateRef.current === INTERVIEW_STATES.WAITING_FOR_STUDENT) {
+          handleStartSpeaking();
+        } else if (interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
+          handleStopRecording();
+        }
+      } else if (e.code === "KeyR") {
+        e.preventDefault();
+        handleReplayQuestion();
+      } else if (e.code === "KeyT") {
+        e.preventDefault();
+        setIsTypingMode((prev) => !prev);
+      } else if (e.code === "Escape") {
+        e.preventDefault();
+        setShowEndModal(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [viewMode, currentQuestion.text]);
 
   const handleIncomingTurn = (turnData) => {
     if (turnData.previousTurn) {
@@ -1286,6 +1433,11 @@ export function MockInterviewPage() {
       try { audioContextRef.current.close(); } catch (_) {}
       audioContextRef.current = null;
     }
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((t) => t.stop());
+      cameraStreamRef.current = null;
+    }
+    setShowCamera(false);
 
     // Capture in-flight student answer from candidateDraft if they were speaking
     const inFlightAnswer = (candidateDraft || "").trim();
@@ -1335,6 +1487,11 @@ export function MockInterviewPage() {
     if (isEndingRef.current) return;
     isEndingRef.current = true;
     setIsSessionActive(false);
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((t) => t.stop());
+      cameraStreamRef.current = null;
+    }
+    setShowCamera(false);
     generateScorecard(selectedDuration, { interview: data, summary: data?.summary || data });
     setViewMode("RESULTS");
     setAiStatus("completed");
@@ -1533,6 +1690,15 @@ export function MockInterviewPage() {
     }
 
     setScorecard(finalReport);
+    if (finalReport?.qaReview && Array.isArray(finalReport.qaReview)) {
+      const initialExpanded = {};
+      finalReport.qaReview.forEach((turn, i) => {
+        if ((turn.score || 0) < 70 || turn.isFollowUp || turn.isSkipped) {
+          initialExpanded[i] = true;
+        }
+      });
+      setExpandedTurns(initialExpanded);
+    }
     if (finalReport && typeof finalReport.overallScore === "number" && finalReport.overallScore > 0) {
       b2cApi.recordQuestionAttempt({
         type: "INTERVIEW",
@@ -1598,6 +1764,28 @@ export function MockInterviewPage() {
     }
   };
 
+  const filteredQaReview = useMemo(() => {
+    if (!scorecard?.qaReview || !Array.isArray(scorecard.qaReview)) return [];
+    if (turnFilter === "NEEDS_WORK") {
+      return scorecard.qaReview
+        .map((turn, originalIndex) => ({ ...turn, originalIndex }))
+        .filter((turn) => (turn.score || 0) < 70 || turn.isSkipped);
+    }
+    if (turnFilter === "STRONG") {
+      return scorecard.qaReview
+        .map((turn, originalIndex) => ({ ...turn, originalIndex }))
+        .filter((turn) => (turn.score || 0) >= 70 && !turn.isSkipped);
+    }
+    return scorecard.qaReview.map((turn, originalIndex) => ({ ...turn, originalIndex }));
+  }, [scorecard?.qaReview, turnFilter]);
+
+  const qaStats = useMemo(() => {
+    const list = scorecard?.qaReview || [];
+    const needsWork = list.filter((t) => (t.score || 0) < 70 || t.isSkipped).length;
+    const strong = list.filter((t) => (t.score || 0) >= 70 && !t.isSkipped).length;
+    return { total: list.length, needsWork, strong };
+  }, [scorecard?.qaReview]);
+
   return (
     <div className="min-h-screen bg-slate-50/60 pb-16">
       {/* ========================================================= */}
@@ -1628,9 +1816,10 @@ export function MockInterviewPage() {
                 </span>
                 <button
                   onClick={() => setShowUpgradeModal(true)}
-                  className="ml-1 text-xs font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                  className="ml-1 px-2.5 py-0.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer transition-colors flex items-center gap-1 shadow-xs"
                 >
-                  Add More
+                  <Plus className="w-3 h-3" />
+                  <span>Add</span>
                 </button>
               </div>
 
@@ -1903,171 +2092,238 @@ export function MockInterviewPage() {
                   )}
                 </div>
 
-                {/* HR & Culture Informational Notice (Disabled State) */}
-                {selectedTrack === "HR" && (
-                  <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
-                    <Users className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-blue-950">Technical skill selection is not required for HR interviews.</p>
-                      <p className="text-blue-700 mt-0.5">
-                        Your interview will focus on communication, behavioural questions, teamwork, and career goals.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Filter Toolbar: Category Dropdown & Interactive Search Input */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
-                    <select
-                      value={activeSkillCategory}
-                      disabled={selectedTrack === "HR"}
-                      onChange={(e) => setActiveSkillCategory(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        selectedTrack === "HR"
-                          ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
-                          : "bg-white border-slate-300 text-slate-700"
-                      }`}
-                    >
-                      <option value="All Categories">All Categories ({Object.keys(CURATED_SKILL_CATEGORIES).length})</option>
-                      {Object.keys(CURATED_SKILL_CATEGORIES).map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-2 relative" ref={searchContainerRef}>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Skill Search</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                      <input
-                        type="text"
-                        disabled={selectedTrack === "HR"}
-                        value={skillSearchQuery}
-                        onFocus={() => {
-                          if (selectedTrack !== "HR") setShowSkillDropdown(true);
-                        }}
-                        onChange={(e) => {
-                          setSkillSearchQuery(e.target.value);
-                          if (selectedTrack !== "HR") setShowSkillDropdown(true);
-                        }}
-                        placeholder={
-                          selectedTrack === "HR"
-                            ? "Technical skills not required for HR track"
-                            : "Search skills (e.g. Python, React.js, SQL, Arrays, Docker)..."
-                        }
-                        className={`w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          selectedTrack === "HR"
-                            ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
-                            : "bg-white border-slate-300 text-slate-800"
-                        }`}
-                      />
-                      {skillSearchQuery && selectedTrack !== "HR" && (
-                        <button
-                          onClick={() => {
-                            setSkillSearchQuery("");
-                            setShowSkillDropdown(false);
-                          }}
-                          className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                {/* HR & Culture Behavioral Competencies or Technical Skill Search */}
+                {selectedTrack === "HR" ? (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+                      <Users className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-blue-950">Behavioral Competency Framework (STAR Method)</p>
+                        <p className="text-blue-700 mt-0.5">
+                          Select the behavioral competencies and communication aspects you want the AI interviewer to assess during this round.
+                        </p>
+                      </div>
                     </div>
 
-                    {/* Dynamic Search Dropdown (Only appears on click/search) */}
-                    {showSkillDropdown && selectedTrack !== "HR" && (
-                      <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-64 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
-                        {matchingSkills.map((item) => {
-                          const isAlreadySelected = selectedSkills.includes(item.name);
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                        <span>Select Focus Competencies ({selectedSkills.length} selected):</span>
+                        {selectedSkills.length > 0 && (
+                          <button
+                            onClick={handleClearAllSkills}
+                            className="text-slate-500 hover:text-red-600 cursor-pointer flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Clear selections</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {CURATED_HR_COMPETENCIES.map((comp) => {
+                          const isSelected = selectedSkills.includes(comp);
                           return (
                             <button
-                              key={item.name}
+                              key={comp}
                               type="button"
-                              onClick={() => handleSelectSkillFromDropdown(item.name)}
-                              className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm hover:bg-blue-50/70 flex items-center justify-between cursor-pointer transition-colors group"
+                              onClick={() => {
+                                if (isSelected) {
+                                  removeSkill(comp);
+                                } else {
+                                  setSelectedSkills((prev) => [...prev, comp]);
+                                }
+                              }}
+                              className={`p-3 rounded-xl border text-left text-xs sm:text-sm transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                                isSelected
+                                  ? "bg-blue-50/80 border-blue-600 text-blue-950 font-semibold shadow-xs"
+                                  : "bg-white border-slate-200 hover:border-blue-300 text-slate-700 hover:bg-slate-50"
+                              }`}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className={`font-medium ${isAlreadySelected ? "text-blue-700 font-bold" : "text-slate-800"}`}>
-                                  {item.name}
-                                </span>
-                                <span className="text-[11px] text-slate-400 font-normal">
-                                  ({item.category})
-                                </span>
+                              <span>{comp}</span>
+                              <div
+                                className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                  isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"
+                                }`}
+                              >
+                                {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                               </div>
-                              {isAlreadySelected ? (
-                                <span className="text-[11px] font-bold text-blue-700 flex items-center gap-1 bg-blue-100 px-2 py-0.5 rounded-full">
-                                  <Check className="w-3 h-3 stroke-[3]" /> Selected
-                                </span>
-                              ) : (
-                                <span className="text-[11px] font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  + Add
-                                </span>
-                              )}
                             </button>
                           );
                         })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Quick Popular Skills Pills */}
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        Quick Add Popular Skills:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {POPULAR_TECHNICAL_SKILLS.map((sk) => {
+                          const isSelected = selectedSkills.includes(sk);
+                          return (
+                            <button
+                              key={sk}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  removeSkill(sk);
+                                } else {
+                                  setSelectedSkills((prev) => [...prev, sk]);
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
+                                isSelected
+                                  ? "bg-blue-100 text-blue-800 border-blue-300 font-semibold"
+                                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                              }`}
+                            >
+                              {isSelected ? <Check className="w-3 h-3 text-blue-700" /> : <Plus className="w-3 h-3 text-slate-400" />}
+                              <span>{sk}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                        {matchingSkills.length === 0 && (
-                          <div className="p-4 text-center space-y-2">
-                            <p className="text-xs text-slate-500">
-                              No matching skills found for "{skillSearchQuery}".
-                            </p>
-                            {skillSearchQuery.trim() && (
-                              <button
-                                type="button"
-                                onClick={() => handleAddCustomSkill(skillSearchQuery)}
-                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>Add "{skillSearchQuery.trim()}" as custom skill</span>
-                              </button>
+                    {/* Filter Toolbar: Category Dropdown & Interactive Search Input */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                        <select
+                          value={activeSkillCategory}
+                          onChange={(e) => setActiveSkillCategory(e.target.value)}
+                          className="w-full rounded-xl border px-3 py-2 text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white border-slate-300 text-slate-700"
+                        >
+                          <option value="All Categories">All Categories ({Object.keys(CURATED_SKILL_CATEGORIES).length})</option>
+                          {Object.keys(CURATED_SKILL_CATEGORIES).map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2 relative" ref={searchContainerRef}>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Skill Search</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                          <input
+                            type="text"
+                            value={skillSearchQuery}
+                            onFocus={() => setShowSkillDropdown(true)}
+                            onChange={(e) => {
+                              setSkillSearchQuery(e.target.value);
+                              setShowSkillDropdown(true);
+                            }}
+                            placeholder="Search skills (e.g. Python, React.js, SQL, Arrays, Docker)..."
+                            className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                          />
+                          {skillSearchQuery && (
+                            <button
+                              onClick={() => {
+                                setSkillSearchQuery("");
+                                setShowSkillDropdown(false);
+                              }}
+                              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Dynamic Search Dropdown (Only appears on click/search) */}
+                        {showSkillDropdown && (
+                          <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-64 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                            {matchingSkills.map((item) => {
+                              const isAlreadySelected = selectedSkills.includes(item.name);
+                              return (
+                                <button
+                                  key={item.name}
+                                  type="button"
+                                  onClick={() => handleSelectSkillFromDropdown(item.name)}
+                                  className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm hover:bg-blue-50/70 flex items-center justify-between cursor-pointer transition-colors group"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`font-medium ${isAlreadySelected ? "text-blue-700 font-bold" : "text-slate-800"}`}>
+                                      {item.name}
+                                    </span>
+                                    <span className="text-[11px] text-slate-400 font-normal">
+                                      ({item.category})
+                                    </span>
+                                  </div>
+                                  {isAlreadySelected ? (
+                                    <span className="text-[11px] font-bold text-blue-700 flex items-center gap-1 bg-blue-100 px-2 py-0.5 rounded-full">
+                                      <Check className="w-3 h-3 stroke-[3]" /> Selected
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      + Add
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+
+                            {matchingSkills.length === 0 && (
+                              <div className="p-4 text-center space-y-2">
+                                <p className="text-xs text-slate-500">
+                                  No matching skills found for "{skillSearchQuery}".
+                                </p>
+                                {skillSearchQuery.trim() && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddCustomSkill(skillSearchQuery)}
+                                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>Add "{skillSearchQuery.trim()}" as custom skill</span>
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Selected Skills Chips Display (Blue chips with remove icon) */}
-                {selectedTrack !== "HR" && (
-                  <div className="p-3.5 rounded-xl bg-blue-50/40 border border-blue-200/60 space-y-2">
-                    <div className="text-xs font-semibold text-blue-900 flex items-center justify-between">
-                      <span>Currently Selected for Interview ({selectedSkills.length})</span>
-                      {selectedSkills.length > 0 && (
-                        <span className="text-[11px] text-blue-700 font-normal">Click × to remove</span>
-                      )}
                     </div>
 
-                    {selectedSkills.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-1">
-                        No skills selected. Use the search input above to choose technologies.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {selectedSkills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white shadow-xs animate-in zoom-in-95 duration-100"
-                          >
-                            <span>{skill}</span>
-                            <button
-                              type="button"
-                              onClick={() => removeSkill(skill)}
-                              className="p-0.5 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
-                              title={`Remove ${skill}`}
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
+                    {/* Selected Skills Chips Display (Blue chips with remove icon) */}
+                    <div className="p-3.5 rounded-xl bg-blue-50/40 border border-blue-200/60 space-y-2">
+                      <div className="text-xs font-semibold text-blue-900 flex items-center justify-between">
+                        <span>Currently Selected for Interview ({selectedSkills.length})</span>
+                        {selectedSkills.length > 0 && (
+                          <span className="text-[11px] text-blue-700 font-normal">Click × to remove</span>
+                        )}
                       </div>
-                    )}
-                  </div>
+
+                      {selectedSkills.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic py-1">
+                          No skills selected. Use the quick pills or search above to choose technologies.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {selectedSkills.map((skill) => (
+                            <span
+                              key={skill}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white shadow-xs animate-in zoom-in-95 duration-100"
+                            >
+                              <span>{skill}</span>
+                              <button
+                                type="button"
+                                onClick={() => removeSkill(skill)}
+                                className="p-0.5 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
+                                title={`Remove ${skill}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -2106,12 +2362,12 @@ export function MockInterviewPage() {
                           }`}
                         >
                           {mins === 10
-                            ? "Fast Warm-Up"
+                            ? "Fast Warm-Up • ~3-4 Qs"
                             : mins === 15
-                            ? "Standard Round"
+                            ? "Standard Round • ~5-6 Qs"
                             : mins === 20
-                            ? "Full Placement"
-                            : "In-Depth Senior"}
+                            ? "Full Placement • ~7-9 Qs"
+                            : "In-Depth Senior • ~10-12 Qs"}
                         </span>
                       </button>
                     );
@@ -2131,10 +2387,10 @@ export function MockInterviewPage() {
               <div className="pt-4 space-y-3">
                 <button
                   type="button"
-                  disabled={totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview}
+                  disabled={totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview || selectedSkills.length === 0}
                   onClick={handleStartInterview}
                   className={`w-full py-4 px-6 rounded-xl font-bold text-base sm:text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${
-                    totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview
+                    totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview || selectedSkills.length === 0
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
                       : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 cursor-pointer hover:scale-[1.005] active:scale-[0.995]"
                   }`}
@@ -2164,6 +2420,66 @@ export function MockInterviewPage() {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Sticky Pre-Flight Summary Bar */}
+            <div className="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-bottom-2 duration-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span>
+                      {selectedTrack === "COMBINED"
+                        ? "Combined Placement Round"
+                        : selectedTrack === "HR"
+                        ? "HR & Culture Round"
+                        : "Technical Round"}
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-blue-600 font-extrabold">{selectedDuration} Mins</span>
+                  </div>
+                  <div className="text-xs text-slate-500 truncate max-w-xs sm:max-w-md">
+                    {selectedSkills.length > 0
+                      ? `${selectedSkills.length} selected: ${selectedSkills.slice(0, 4).join(", ")}${
+                          selectedSkills.length > 4 ? ` +${selectedSkills.length - 4} more` : ""
+                        }`
+                      : "Please select focus skills/competencies"}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={
+                  totalMockMinutes === 0 ||
+                  totalMockMinutes < selectedDuration ||
+                  startingInterview ||
+                  selectedSkills.length === 0
+                }
+                onClick={handleStartInterview}
+                className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  totalMockMinutes === 0 ||
+                  totalMockMinutes < selectedDuration ||
+                  startingInterview ||
+                  selectedSkills.length === 0
+                    ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 hover:scale-[1.01] active:scale-[0.99]"
+                }`}
+              >
+                {startingInterview ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Initializing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Start Interview ({selectedDuration}m)</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}
@@ -2208,8 +2524,24 @@ export function MockInterviewPage() {
                 </div>
 
                 {/* Live Countdown Timer */}
-                <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-mono text-sm sm:text-base font-bold shadow-xs">
-                  <Clock className="w-4 h-4 text-blue-400" />
+                <div
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm sm:text-base font-bold shadow-xs transition-colors ${
+                    timeRemainingSeconds <= 120
+                      ? "bg-rose-50 text-rose-700 border border-rose-300 animate-pulse font-mono"
+                      : timeRemainingSeconds <= 300
+                      ? "bg-amber-50 text-amber-800 border border-amber-300 font-mono"
+                      : "bg-slate-100 text-slate-800 border border-slate-200 font-mono"
+                  }`}
+                >
+                  <Clock
+                    className={`w-4 h-4 ${
+                      timeRemainingSeconds <= 120
+                        ? "text-rose-600"
+                        : timeRemainingSeconds <= 300
+                        ? "text-amber-600"
+                        : "text-blue-600"
+                    }`}
+                  />
                   <span>{formatTime(timeRemainingSeconds)}</span>
                   <span className="text-[10px] text-slate-400 font-sans font-normal uppercase">remaining</span>
                 </div>
@@ -2282,24 +2614,66 @@ export function MockInterviewPage() {
                     )}
                   </div>
 
-                  {/* AI Interviewer Avatar Presence */}
-                  <div className="relative mt-2">
-                    <div
-                      className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
-                        interviewState === INTERVIEW_STATES.AI_SPEAKING
-                          ? "bg-gradient-to-tr from-blue-600 to-indigo-600 ring-8 ring-blue-100 text-white scale-105"
-                          : interviewState === INTERVIEW_STATES.RECORDING
-                          ? "bg-rose-900 ring-8 ring-rose-100 text-white"
-                          : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
-                          ? "bg-blue-900 ring-8 ring-blue-100 text-white"
-                          : "bg-slate-800 text-white"
+                  {/* Camera Self-Preview Toggle Button */}
+                  <div className="absolute top-4 right-4 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleCamera}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        showCamera
+                          ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
                       }`}
+                      title={showCamera ? "Hide self camera preview" : "Enable camera preview to monitor posture and eye contact"}
                     >
-                      <Bot className="w-12 h-12" />
+                      {showCamera ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
+                      <span>{showCamera ? "Hide Camera" : "Self Camera"}</span>
+                    </button>
+                  </div>
+
+                  {/* Interview Avatars Stage */}
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-4">
+                    {/* Sarah Interviewer Avatar */}
+                    <div className="flex flex-col items-center">
+                      <div className="relative">
+                        <div
+                          className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                            interviewState === INTERVIEW_STATES.AI_SPEAKING
+                              ? "bg-gradient-to-tr from-blue-600 to-indigo-600 ring-8 ring-blue-100 text-white scale-105"
+                              : interviewState === INTERVIEW_STATES.RECORDING
+                              ? "bg-rose-900 ring-8 ring-rose-100 text-white"
+                              : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
+                              ? "bg-blue-900 ring-8 ring-blue-100 text-white"
+                              : "bg-slate-800 text-white"
+                          }`}
+                        >
+                          <Bot className="w-12 h-12" />
+                        </div>
+
+                        {aiStatus === "speaking" && (
+                          <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-40 pointer-events-none" />
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-slate-700 mt-2">Sarah – Principal</span>
                     </div>
 
-                    {aiStatus === "speaking" && (
-                      <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-40 pointer-events-none" />
+                    {/* Local Candidate Camera Mirror Preview */}
+                    {showCamera && (
+                      <div className="flex flex-col items-center animate-in zoom-in-95 duration-150">
+                        <div className="w-28 h-28 sm:w-32 sm:h-28 rounded-2xl overflow-hidden border-2 border-blue-400 shadow-md bg-slate-900 relative">
+                          <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            className="w-full h-full object-cover scale-x-[-1]"
+                          />
+                          <div className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded bg-black/70 text-[10px] text-white font-medium">
+                            You
+                          </div>
+                        </div>
+                        <span className="text-xs font-medium text-slate-500 mt-1">Camera Preview (Local)</span>
+                      </div>
                     )}
                   </div>
 
@@ -2324,9 +2698,9 @@ export function MockInterviewPage() {
                       {interviewState === INTERVIEW_STATES.AI_SPEAKING
                         ? "Sarah is speaking the question aloud. Listening is active."
                         : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
-                        ? "Sarah has finished speaking. Click \"Start Speaking\" when ready to answer."
+                        ? "Sarah has finished speaking. Click \"Start Speaking\" (or press Space) when ready."
                         : interviewState === INTERVIEW_STATES.RECORDING
-                        ? "Listening... Speak your answer. Click \"Stop Recording\" when done."
+                        ? "Listening... Speak your answer. Click \"Done Speaking\" (or press Space) when finished."
                         : "Evaluating response with Gemini AI..."}
                     </p>
                   </div>
@@ -2337,7 +2711,16 @@ export function MockInterviewPage() {
                       <span className="uppercase tracking-wider">
                         {currentQuestion.isFollowUp ? "Follow-Up Question" : `Interview Question #${currentQuestion.index}`}
                       </span>
-                      <span className="text-blue-700 font-normal">Sarah – Principal • AI Interviewer</span>
+                      <button
+                        type="button"
+                        onClick={handleReplayQuestion}
+                        disabled={interviewState === INTERVIEW_STATES.AI_SPEAKING}
+                        className="text-xs text-blue-700 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Replay Sarah's spoken question (Press R)"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Repeat Audio (R)</span>
+                      </button>
                     </div>
                     <p className="text-base sm:text-lg font-semibold text-slate-900 leading-snug">
                       "{currentQuestion.text}"
@@ -2382,7 +2765,7 @@ export function MockInterviewPage() {
                         className="px-2.5 py-1 rounded-lg text-xs font-medium border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors cursor-pointer flex items-center gap-1"
                         title="Toggle speech recognition accent"
                       >
-                        <span>🌐 Accent:</span>
+                        <span>Accent:</span>
                         <span className="font-bold">{speechLanguage === "en-IN" ? "Indian English (en-IN)" : "US English (en-US)"}</span>
                       </button>
 
@@ -2445,35 +2828,55 @@ export function MockInterviewPage() {
                     </div>
                   )}
 
-                  {/* THE TWO MAIN BUTTONS FOR THE VOICE INTERVIEW FLOW */}
+                  {/* UNIFIED HERO VOICE ACTION BAR */}
                   <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-100">
                     <div className="flex flex-wrap items-center gap-3">
-                      {/* Button 1: Start Speaking */}
-                      <button
-                        onClick={handleStartSpeaking}
-                        disabled={interviewState !== INTERVIEW_STATES.WAITING_FOR_STUDENT}
-                        className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2.5 transition-all shadow-md ${
-                          interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT
-                            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 cursor-pointer ring-4 ring-blue-100 active:scale-98"
-                            : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
-                        }`}
-                      >
-                        <Mic className={`w-5 h-5 ${interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT ? "animate-bounce" : ""}`} />
-                        <span>Start Speaking</span>
-                      </button>
+                      {interviewState === INTERVIEW_STATES.RECORDING ? (
+                        <button
+                          onClick={handleStopRecording}
+                          className="px-6 py-3.5 rounded-xl font-bold text-sm sm:text-base flex items-center gap-2.5 transition-all shadow-md bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/25 cursor-pointer ring-4 ring-rose-100 animate-pulse active:scale-98"
+                        >
+                          <Square className="w-4 h-4 fill-current" />
+                          <span>Done Speaking • Submit Answer</span>
+                          <span className="text-xs font-normal opacity-80 border-l border-rose-400 pl-2 ml-1 hidden sm:inline">Space</span>
+                        </button>
+                      ) : interviewState === INTERVIEW_STATES.WAITING_FOR_STUDENT ? (
+                        <button
+                          onClick={handleStartSpeaking}
+                          className="px-6 py-3.5 rounded-xl font-bold text-sm sm:text-base flex items-center gap-2.5 transition-all shadow-md bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 cursor-pointer ring-4 ring-blue-100 active:scale-98"
+                        >
+                          <Mic className="w-5 h-5 animate-bounce" />
+                          <span>Start Speaking</span>
+                          <span className="text-xs font-normal opacity-80 border-l border-blue-400 pl-2 ml-1 hidden sm:inline">Space</span>
+                        </button>
+                      ) : interviewState === INTERVIEW_STATES.AI_SPEAKING ? (
+                        <button
+                          disabled
+                          className="px-6 py-3.5 rounded-xl font-bold text-sm flex items-center gap-2.5 bg-blue-50 text-blue-700 border border-blue-200 cursor-not-allowed opacity-80"
+                        >
+                          <Volume2 className="w-5 h-5 text-blue-600 animate-pulse" />
+                          <span>Interviewer is Speaking...</span>
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-6 py-3.5 rounded-xl font-bold text-sm flex items-center gap-2.5 bg-amber-50 text-amber-800 border border-amber-200 cursor-not-allowed"
+                        >
+                          <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                          <span>Evaluating Response...</span>
+                        </button>
+                      )}
 
-                      {/* Button 2: Stop Recording */}
+                      {/* Repeat Audio Button */}
                       <button
-                        onClick={handleStopRecording}
-                        disabled={interviewState !== INTERVIEW_STATES.RECORDING}
-                        className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2.5 transition-all shadow-md ${
-                          interviewState === INTERVIEW_STATES.RECORDING
-                            ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/25 cursor-pointer ring-4 ring-rose-100 animate-pulse active:scale-98"
-                            : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
-                        }`}
+                        type="button"
+                        onClick={handleReplayQuestion}
+                        disabled={interviewState === INTERVIEW_STATES.AI_SPEAKING}
+                        className="px-3.5 py-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                        title="Repeat question audio (Press R)"
                       >
-                        <Square className="w-4 h-4 fill-current" />
-                        <span>Stop Recording</span>
+                        <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="hidden sm:inline">Repeat Question</span>
                       </button>
                     </div>
 
@@ -2486,7 +2889,7 @@ export function MockInterviewPage() {
                           }
                           setIsSpeakerMuted(!isSpeakerMuted);
                         }}
-                        className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-colors cursor-pointer ${
+                        className={`px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-colors cursor-pointer ${
                           isSpeakerMuted
                             ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
                             : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
@@ -2677,27 +3080,39 @@ export function MockInterviewPage() {
                     )}
                   </div>
 
-                  {/* Overall Score Badge Circle */}
-                  <div className="flex items-center gap-4 bg-blue-50/70 p-4 rounded-2xl border border-blue-200/80">
-                    <div className="relative flex items-center justify-center">
-                      <div className="w-20 h-20 rounded-full bg-blue-600 text-white flex flex-col items-center justify-center shadow-md shadow-blue-600/30">
-                        <span className="text-2xl font-black">{scorecard.overallScore}</span>
-                        <span className="text-[10px] uppercase font-semibold text-blue-200">out of 100</span>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    {/* Overall Score Badge Circle */}
+                    <div className="flex items-center gap-4 bg-blue-50/70 p-4 rounded-2xl border border-blue-200/80">
+                      <div className="relative flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full bg-blue-600 text-white flex flex-col items-center justify-center shadow-md shadow-blue-600/30">
+                          <span className="text-2xl font-black">{scorecard.overallScore}</span>
+                          <span className="text-[10px] uppercase font-semibold text-blue-200">out of 100</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Overall Rating</span>
+                        <h3 className="text-lg font-black text-slate-900">
+                          {scorecard.overallScore >= 85
+                            ? "Placement Ready"
+                            : scorecard.overallScore >= 75
+                            ? "Strong Candidate"
+                            : scorecard.overallScore >= 60
+                            ? "Developing Candidate"
+                            : "Ready with Revisions"}
+                        </h3>
+                        <p className="text-xs text-slate-500">Calculated directly from your question turn evaluations</p>
                       </div>
                     </div>
-                    <div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Overall Rating</span>
-                      <h3 className="text-lg font-black text-slate-900">
-                        {scorecard.overallScore >= 85
-                          ? "Placement Ready"
-                          : scorecard.overallScore >= 75
-                          ? "Strong Candidate"
-                          : scorecard.overallScore >= 60
-                          ? "Developing Candidate"
-                          : "Ready with Revisions"}
-                      </h3>
-                      <p className="text-xs text-slate-500">Calculated directly from your question turn evaluations</p>
-                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs shrink-0"
+                      title="Print or Save Scorecard as PDF"
+                    >
+                      <Printer className="w-4 h-4 text-blue-600" />
+                      <span>Print Scorecard</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2773,20 +3188,58 @@ export function MockInterviewPage() {
                   </div>
                 </div>
 
-                {/* Recommended Topics to Revise */}
+                {/* Recommended Topics to Revise (Actionable Practice Loop) */}
                 {scorecard.recommendations && scorecard.recommendations.length > 0 && (
-                  <div className="mt-6 p-5 rounded-xl bg-blue-50/30 border border-blue-200">
-                    <h4 className="text-sm font-bold text-blue-900 flex items-center gap-1.5 mb-2.5">
-                      <BookOpen className="w-4 h-4 text-blue-600" />
-                      <span>Recommended Topics to Revise Before Placement Drives</span>
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {scorecard.recommendations.map((rec, i) => (
-                        <div key={i} className="px-3 py-1.5 rounded-lg bg-white border border-blue-200 text-xs text-blue-950 font-medium flex items-center gap-1.5">
-                          <ChevronRight className="w-3.5 h-3.5 text-blue-600" />
-                          <span>{rec}</span>
-                        </div>
-                      ))}
+                  <div className="mt-6 p-5 rounded-xl bg-blue-50/40 border border-blue-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
+                      <h4 className="text-sm font-bold text-blue-900 flex items-center gap-1.5">
+                        <BookOpen className="w-4 h-4 text-blue-600" />
+                        <span>Recommended Topics to Revise Before Placement Drives</span>
+                      </h4>
+                      <span className="text-xs text-blue-700 font-medium">Click any topic to practice directly</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {scorecard.recommendations.map((rec, i) => {
+                        const isCoding = /array|string|tree|graph|dp|dynamic|algorithm|pointer|stack|queue|sort|search|recursion|linked|matrix|sliding|greedy/i.test(
+                          rec
+                        );
+                        return (
+                          <div
+                            key={i}
+                            className="p-3 rounded-xl bg-white border border-blue-200/90 shadow-xs flex items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                <BookOpen className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="font-semibold text-slate-800">{rec}</span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isCoding ? (
+                                <Link
+                                  to="/coding"
+                                  state={{ topic: rec }}
+                                  className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] flex items-center gap-1 transition-colors shadow-xs"
+                                >
+                                  <Code2 className="w-3 h-3" />
+                                  <span>Coding Arena</span>
+                                </Link>
+                              ) : (
+                                <Link
+                                  to="/practice"
+                                  state={{ query: rec }}
+                                  className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold text-[11px] flex items-center gap-1 transition-colors"
+                                >
+                                  <FileText className="w-3 h-3" />
+                                  <span>Practice Hub</span>
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -2815,86 +3268,211 @@ export function MockInterviewPage() {
                   </div>
                 )}
 
-                {/* Question-by-Question Detailed Review */}
+                {/* Question-by-Question Detailed Review with Filtering & Accordions */}
                 {scorecard.qaReview && scorecard.qaReview.length > 0 && (
                   <div className="mt-8 space-y-4">
-                    <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                      <span>Detailed Turn-by-Turn Response Review ({scorecard.qaReview.length})</span>
-                    </h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          <span>Detailed Turn-by-Turn Response Review</span>
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Review AI analysis and recommended improvements for each interview question.
+                        </p>
+                      </div>
+
+                      {/* Filter Tabs & Expand/Collapse All */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5 text-xs font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => setTurnFilter("ALL")}
+                            className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                              turnFilter === "ALL"
+                                ? "bg-white text-slate-900 shadow-xs"
+                                : "text-slate-600 hover:text-slate-900"
+                            }`}
+                          >
+                            All ({qaStats.total})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTurnFilter("NEEDS_WORK")}
+                            className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                              turnFilter === "NEEDS_WORK"
+                                ? "bg-white text-amber-900 shadow-xs"
+                                : "text-slate-600 hover:text-slate-900"
+                            }`}
+                          >
+                            Needs Work ({qaStats.needsWork})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTurnFilter("STRONG")}
+                            className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                              turnFilter === "STRONG"
+                                ? "bg-white text-emerald-900 shadow-xs"
+                                : "text-slate-600 hover:text-slate-900"
+                            }`}
+                          >
+                            Strong ({qaStats.strong})
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const anyOpen = Object.values(expandedTurns).some(Boolean);
+                            handleExpandAllTurns(!anyOpen);
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-xs font-semibold cursor-pointer transition-colors"
+                        >
+                          {Object.values(expandedTurns).some(Boolean) ? "Collapse All" : "Expand All"}
+                        </button>
+                      </div>
+                    </div>
 
                     <div className="space-y-3">
-                      {scorecard.qaReview.map((turn, i) => (
-                        <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-semibold text-blue-900">
-                            <span>{turn.isFollowUp ? `Turn ${i + 1} (Follow-Up Probe)` : `Turn ${i + 1} (Core Question)`}</span>
-                            {typeof turn.score === "number" && (
-                              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                                turn.score >= 85
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : turn.score >= 70
-                                  ? "bg-blue-50 text-blue-700 border-blue-200"
-                                  : turn.score >= 50
-                                  ? "bg-amber-50 text-amber-700 border-amber-200"
-                                  : "bg-rose-50 text-rose-700 border-rose-200"
-                              }`}>
-                                {turn.score >= 85
-                                  ? "Excellent"
-                                  : turn.score >= 70
-                                  ? "Strong Answer"
-                                  : turn.score >= 50
-                                  ? "Needs Depth"
-                                  : "Skipped / Incomplete"} • Score: {turn.score}/100
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm font-bold text-slate-900">Q: "{turn.questionText}"</p>
-                          <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-700">
-                            <strong className="text-slate-900">Your Response: </strong>
-                            {turn.answerText}
-                          </div>
-                          <div className={`p-3 rounded-lg border text-xs ${
-                            turn.score < 50 || turn.isSkipped
-                              ? "bg-rose-50/40 border-rose-200 text-rose-950"
-                              : turn.score >= 85
-                              ? "bg-emerald-50/40 border-emerald-200 text-emerald-950"
-                              : "bg-blue-50/50 border-blue-100 text-blue-900"
-                          }`}>
-                            <strong className={turn.score < 50 || turn.isSkipped ? "text-rose-900" : turn.score >= 85 ? "text-emerald-900" : "text-blue-950"}>AI Evaluator Feedback: </strong>
-                            {turn.aiFeedback}
-                          </div>
+                      {filteredQaReview.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-200">
+                          No turns match the selected filter.
+                        </div>
+                      ) : (
+                        filteredQaReview.map((turn) => {
+                          const originalIdx = turn.originalIndex;
+                          const isExpanded = expandedTurns[originalIdx] !== false; // Default expanded unless collapsed
+                          return (
+                            <div
+                              key={originalIdx}
+                              className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden transition-all"
+                            >
+                              {/* Accordion Header */}
+                              <button
+                                type="button"
+                                onClick={() => toggleTurnAccordion(originalIdx)}
+                                className="w-full p-4 text-left flex items-start justify-between gap-3 hover:bg-slate-50/60 transition-colors cursor-pointer"
+                              >
+                                <div className="space-y-1 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-blue-900">
+                                      {turn.isFollowUp
+                                        ? `Turn ${originalIdx + 1} (Follow-Up Probe)`
+                                        : `Turn ${originalIdx + 1} (Core Question)`}
+                                    </span>
+                                    {typeof turn.score === "number" && (
+                                      <span
+                                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                          turn.score >= 85
+                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                            : turn.score >= 70
+                                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                                            : turn.score >= 50
+                                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                                            : "bg-rose-50 text-rose-700 border-rose-200"
+                                        }`}
+                                      >
+                                        {turn.score >= 85
+                                          ? "Excellent"
+                                          : turn.score >= 70
+                                          ? "Strong"
+                                          : turn.score >= 50
+                                          ? "Needs Depth"
+                                          : "Needs Revision"} • {turn.score}/100
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm font-bold text-slate-900 leading-snug">
+                                    Q: "{turn.questionText}"
+                                  </p>
+                                </div>
 
-                          {/* Structured Turn Evaluation Cards */}
-                          {(turn.whatWasCorrect || turn.whatWasMissing || turn.suggestions || turn.betterApproach) && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-100">
-                              {turn.whatWasCorrect && (
-                                <div className="p-2.5 rounded-lg bg-emerald-50/60 border border-emerald-200 text-xs text-emerald-950">
-                                  <strong className="text-emerald-900 block font-bold mb-0.5">✓ What was good:</strong>
-                                  {turn.whatWasCorrect}
+                                <div className="shrink-0 text-slate-400 mt-1">
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                  )}
                                 </div>
-                              )}
-                              {turn.whatWasMissing && (
-                                <div className="p-2.5 rounded-lg bg-amber-50/60 border border-amber-200 text-xs text-amber-950">
-                                  <strong className="text-amber-900 block font-bold mb-0.5">⚠ What was missing:</strong>
-                                  {turn.whatWasMissing}
-                                </div>
-                              )}
-                              {turn.suggestions && (
-                                <div className="p-2.5 rounded-lg bg-blue-50/60 border border-blue-200 text-xs text-blue-950">
-                                  <strong className="text-blue-900 block font-bold mb-0.5">💡 Suggested improvement:</strong>
-                                  {turn.suggestions}
-                                </div>
-                              )}
-                              {turn.betterApproach && (
-                                <div className="p-2.5 rounded-lg bg-indigo-50/60 border border-indigo-200 text-xs text-indigo-950">
-                                  <strong className="text-indigo-900 block font-bold mb-0.5">🎯 Better approach:</strong>
-                                  {turn.betterApproach}
+                              </button>
+
+                              {/* Accordion Content */}
+                              {isExpanded && (
+                                <div className="p-4 pt-0 space-y-3 border-t border-slate-100 mt-1 animate-in fade-in duration-150">
+                                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-700">
+                                    <strong className="text-slate-900">Your Response: </strong>
+                                    {turn.answerText}
+                                  </div>
+
+                                  <div
+                                    className={`p-3 rounded-lg border text-xs ${
+                                      turn.score < 50 || turn.isSkipped
+                                        ? "bg-rose-50/40 border-rose-200 text-rose-950"
+                                        : turn.score >= 85
+                                        ? "bg-emerald-50/40 border-emerald-200 text-emerald-950"
+                                        : "bg-blue-50/50 border-blue-100 text-blue-900"
+                                    }`}
+                                  >
+                                    <strong
+                                      className={
+                                        turn.score < 50 || turn.isSkipped
+                                          ? "text-rose-900"
+                                          : turn.score >= 85
+                                          ? "text-emerald-900"
+                                          : "text-blue-950"
+                                      }
+                                    >
+                                      AI Evaluator Feedback:{" "}
+                                    </strong>
+                                    {turn.aiFeedback}
+                                  </div>
+
+                                  {/* Structured Turn Evaluation Cards */}
+                                  {(turn.whatWasCorrect ||
+                                    turn.whatWasMissing ||
+                                    turn.suggestions ||
+                                    turn.betterApproach) && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                                      {turn.whatWasCorrect && (
+                                        <div className="p-2.5 rounded-lg bg-emerald-50/60 border border-emerald-200 text-xs text-emerald-950">
+                                          <strong className="text-emerald-900 block font-bold mb-0.5">
+                                            What was good:
+                                          </strong>
+                                          {turn.whatWasCorrect}
+                                        </div>
+                                      )}
+                                      {turn.whatWasMissing && (
+                                        <div className="p-2.5 rounded-lg bg-amber-50/60 border border-amber-200 text-xs text-amber-950">
+                                          <strong className="text-amber-900 block font-bold mb-0.5">
+                                            What was missing:
+                                          </strong>
+                                          {turn.whatWasMissing}
+                                        </div>
+                                      )}
+                                      {turn.suggestions && (
+                                        <div className="p-2.5 rounded-lg bg-blue-50/60 border border-blue-200 text-xs text-blue-950">
+                                          <strong className="text-blue-900 block font-bold mb-0.5">
+                                            Suggested improvement:
+                                          </strong>
+                                          {turn.suggestions}
+                                        </div>
+                                      )}
+                                      {turn.betterApproach && (
+                                        <div className="p-2.5 rounded-lg bg-indigo-50/60 border border-indigo-200 text-xs text-indigo-950">
+                                          <strong className="text-indigo-900 block font-bold mb-0.5">
+                                            Recommended approach:
+                                          </strong>
+                                          {turn.betterApproach}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      ))}
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 )}
