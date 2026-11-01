@@ -108,6 +108,7 @@ export const b2cApi = {
   // Placement Resume Hub
   uploadResume: (formDataOrBody) => b2cRequest('/api/b2c/auth/resume', { method: 'POST', body: formDataOrBody }),
   confirmResumeSkills: (confirmedSkills) => b2cRequest('/api/b2c/auth/resume/confirm-skills', { method: 'POST', body: { confirmedSkills } }),
+  syncResumeProfile: (fields) => b2cRequest('/api/b2c/auth/resume/sync-profile', { method: 'POST', body: fields }),
   deleteResume: () => b2cRequest('/api/b2c/auth/resume', { method: 'DELETE' }),
 
   // Razorpay Standard Web Checkout

@@ -205,13 +205,26 @@ export function StudentProfilePage() {
   const [syncingPlatform, setSyncingPlatform] = useState("");
   const [codingProfileError, setCodingProfileError] = useState("");
 
-  // Resume Hub State
+  // Resume Hub & Profile Synchronization State
   const resumeFileInputRef = useRef(null);
   const [uploadingResume, setUploadingResume] = useState(false);
-  const [isResumeSkillReviewModalOpen, setIsResumeSkillReviewModalOpen] = useState(false);
+  const [isSyncProfileModalOpen, setIsSyncProfileModalOpen] = useState(false);
+  const [extractedProfileData, setExtractedProfileData] = useState(null);
+  const [selectedSyncFields, setSelectedSyncFields] = useState({
+    name: false,
+    phone: false,
+    degree: false,
+    branch: false,
+    graduationYear: false,
+    cgpa: false,
+    collegeName: false,
+    linkedin: false,
+    github: false,
+    targetRoles: false
+  });
   const [detectedSkillsList, setDetectedSkillsList] = useState([]);
   const [selectedDetectedSkills, setSelectedDetectedSkills] = useState([]);
-  const [confirmingSkills, setConfirmingSkills] = useState(false);
+  const [syncingProfile, setSyncingProfile] = useState(false);
 
   // Initial Data Fetch
   const loadProfileData = async () => {
@@ -702,7 +715,7 @@ export function StudentProfilePage() {
     }
   };
 
-  // 9. Resume Hub Handlers
+  // 9. Resume Hub & Profile Sync Handlers
   const handleResumeFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -729,18 +742,40 @@ export function StudentProfilePage() {
           resumeUrl: res.resumeUrl,
           resumeDetectedSkills: res.detectedSkills || []
         }));
-        showSuccess("Placement resume uploaded and parsed successfully!");
+        showSuccess("Placement resume uploaded and parsed successfully.");
 
-        // If detected skills exist, show the skill review modal
-        if (res.detectedSkills && res.detectedSkills.length > 0) {
-          const newSkills = res.detectedSkills.filter(
-            ds => !skillsList.some(s => s.toLowerCase() === ds.toLowerCase())
-          );
-          if (newSkills.length > 0) {
-            setDetectedSkillsList(newSkills);
-            setSelectedDetectedSkills(newSkills);
-            setIsResumeSkillReviewModalOpen(true);
-          }
+        const extracted = res.extractedProfile || {};
+        const detectedSkills = res.detectedSkills || [];
+
+        setExtractedProfileData(extracted);
+
+        // Compute pre-selected fields where extracted data provides new or improved values
+        const syncSelection = {
+          name: false,
+          phone: Boolean(extracted.phone && (!student?.phone || student.phone !== extracted.phone)),
+          degree: Boolean(extracted.degree && extracted.degree !== student?.degree),
+          branch: Boolean(extracted.branch && extracted.branch !== student?.branch),
+          graduationYear: Boolean(extracted.graduationYear && String(extracted.graduationYear) !== String(student?.graduationYear)),
+          cgpa: Boolean(typeof extracted.cgpa === "number" && extracted.cgpa > 0 && extracted.cgpa !== student?.cgpa),
+          collegeName: Boolean(extracted.collegeName && (!student?.collegeName || student.collegeName === "Student Candidate" || student.collegeName !== extracted.collegeName)),
+          linkedin: Boolean(extracted.linkedin && (!student?.linkedin || student.linkedin !== extracted.linkedin)),
+          github: Boolean(extracted.github && (!student?.github || student.github !== extracted.github)),
+          targetRoles: Boolean(Array.isArray(extracted.targetRoles) && extracted.targetRoles.length > 0)
+        };
+
+        const newSkills = detectedSkills.filter(
+          ds => !skillsList.some(s => s.toLowerCase() === ds.toLowerCase())
+        );
+
+        setSelectedSyncFields(syncSelection);
+        setDetectedSkillsList(newSkills);
+        setSelectedDetectedSkills(newSkills);
+
+        const hasAnyFieldToSync = Object.values(syncSelection).some(Boolean);
+        const hasAnyNewSkill = newSkills.length > 0;
+
+        if (hasAnyFieldToSync || hasAnyNewSkill) {
+          setIsSyncProfileModalOpen(true);
         }
       }
     } catch (err) {
@@ -757,6 +792,7 @@ export function StudentProfilePage() {
       const res = await b2cApi.deleteResume();
       if (res && res.success) {
         setStudent(prev => ({ ...prev, resumeUrl: null, resumeDetectedSkills: [] }));
+        setExtractedProfileData(null);
         showSuccess("Resume removed.");
       }
     } catch (err) {
@@ -764,26 +800,84 @@ export function StudentProfilePage() {
     }
   };
 
-  const handleConfirmDetectedSkills = async () => {
-    if (selectedDetectedSkills.length === 0) {
-      setIsResumeSkillReviewModalOpen(false);
+  const handleOpenSyncModalManual = () => {
+    if (extractedProfileData) {
+      setIsSyncProfileModalOpen(true);
+    } else {
+      resumeFileInputRef.current?.click();
+    }
+  };
+
+  const handleApplyProfileSync = async () => {
+    if (!extractedProfileData) {
+      setIsSyncProfileModalOpen(false);
       return;
     }
 
-    setConfirmingSkills(true);
+    const payload = {};
+    if (selectedSyncFields.name && extractedProfileData.name) {
+      payload.name = extractedProfileData.name;
+    }
+    if (selectedSyncFields.phone && extractedProfileData.phone) {
+      payload.phone = extractedProfileData.phone;
+    }
+    if (selectedSyncFields.degree && extractedProfileData.degree) {
+      payload.degree = extractedProfileData.degree;
+    }
+    if (selectedSyncFields.branch && extractedProfileData.branch) {
+      payload.branch = extractedProfileData.branch;
+    }
+    if (selectedSyncFields.graduationYear && extractedProfileData.graduationYear) {
+      payload.graduationYear = extractedProfileData.graduationYear;
+      payload.batch = extractedProfileData.graduationYear;
+    }
+    if (selectedSyncFields.cgpa && typeof extractedProfileData.cgpa === "number") {
+      payload.cgpa = extractedProfileData.cgpa;
+    }
+    if (selectedSyncFields.collegeName && extractedProfileData.collegeName) {
+      payload.collegeName = extractedProfileData.collegeName;
+    }
+    if (selectedSyncFields.linkedin && extractedProfileData.linkedin) {
+      payload.linkedin = extractedProfileData.linkedin;
+    }
+    if (selectedSyncFields.github && extractedProfileData.github) {
+      payload.github = extractedProfileData.github;
+    }
+    if (selectedSyncFields.targetRoles && Array.isArray(extractedProfileData.targetRoles) && extractedProfileData.targetRoles.length > 0) {
+      payload.targetRoles = extractedProfileData.targetRoles;
+    }
+    if (selectedDetectedSkills.length > 0) {
+      payload.skills = selectedDetectedSkills;
+    }
+
+    const syncCount = Object.keys(payload).length;
+    if (syncCount === 0) {
+      setIsSyncProfileModalOpen(false);
+      return;
+    }
+
+    setSyncingProfile(true);
     try {
-      const res = await b2cApi.confirmResumeSkills(selectedDetectedSkills);
-      if (res && res.success) {
-        setSkillsList(res.skills);
-        setStudent(prev => ({ ...prev, skills: res.skills }));
+      const res = await b2cApi.syncResumeProfile(payload);
+      if (res && res.success && res.user) {
+        setStudent(res.user);
+        setSkillsList(res.user.skills || []);
+        if (res.user.linkedin) {
+          const cleanLi = res.user.linkedin.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "").replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+          setLinkedinUrl(cleanLi);
+        }
+        if (res.user.github) {
+          const cleanGh = res.user.github.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+          setGithubHandle(cleanGh);
+        }
         refreshProfile();
-        setIsResumeSkillReviewModalOpen(false);
-        showSuccess(`Added ${selectedDetectedSkills.length} new skill(s) from resume!`);
+        setIsSyncProfileModalOpen(false);
+        showSuccess("Profile successfully synchronized with resume details.");
       }
     } catch (err) {
-      showError(err.message || "Failed to add resume skills.");
+      showError(err.message || "Failed to synchronize profile from resume.");
     } finally {
-      setConfirmingSkills(false);
+      setSyncingProfile(false);
     }
   };
 
@@ -1707,6 +1801,15 @@ export function StudentProfilePage() {
                 <Button
                   variant="outline"
                   size="xs"
+                  icon={Sparkles}
+                  onClick={handleOpenSyncModalManual}
+                  className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                >
+                  Sync Profile
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xs"
                   icon={Upload}
                   onClick={() => resumeFileInputRef.current?.click()}
                   disabled={uploadingResume}
@@ -2322,81 +2425,541 @@ export function StudentProfilePage() {
         </form>
       </Modal>
 
-      {/* MODAL 6: Resume Detected Skills Review */}
+      {/* MODAL 6: Sync Profile from Resume Review */}
       <Modal
-        isOpen={isResumeSkillReviewModalOpen}
-        onClose={() => setIsResumeSkillReviewModalOpen(false)}
-        title="Add Resume Detected Skills"
+        isOpen={isSyncProfileModalOpen}
+        onClose={() => setIsSyncProfileModalOpen(false)}
+        title="Sync Profile from Resume"
+        subtitle="Review candidate information extracted by the ATS engine and select fields to apply to your profile."
+        maxWidth="max-w-2xl"
       >
-        <div className="space-y-4">
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Our ATS parser extracted the following technical skills from your uploaded resume. Check the ones you'd like to add to your verified profile:
-          </p>
-
-          <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-            {detectedSkillsList.map((skill, idx) => {
-              const isChecked = selectedDetectedSkills.includes(skill);
-              return (
-                <label
-                  key={idx}
-                  className={cn(
-                    "flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-colors",
-                    isChecked
-                      ? "bg-indigo-50/70 border-indigo-200 text-indigo-900"
-                      : "bg-white border-slate-200 text-slate-700"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => {
-                        if (isChecked) {
-                          setSelectedDetectedSkills(selectedDetectedSkills.filter(s => s !== skill));
-                        } else {
-                          setSelectedDetectedSkills([...selectedDetectedSkills, skill]);
-                        }
-                      }}
-                      className="rounded text-indigo-600"
-                    />
-                    <span className="font-semibold">{skill}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400">Extracted from Resume</span>
-                </label>
-              );
-            })}
+        <div className="space-y-5">
+          {/* Top highlight banner */}
+          <div className="p-3.5 rounded-xl border border-blue-100 bg-blue-50/60 flex items-start gap-3 text-xs text-slate-700">
+            <Sparkles className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-semibold text-slate-900">
+                1-Click Profile Synchronization
+              </p>
+              <p className="text-slate-600 leading-relaxed text-[11px]">
+                Fields that differ or add new qualifications to your profile are pre-selected below. Unselected items will remain unchanged.
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+          <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
+            {/* Section 1: Academic Credentials */}
+            {(extractedProfileData?.degree ||
+              extractedProfileData?.branch ||
+              extractedProfileData?.graduationYear ||
+              extractedProfileData?.cgpa ||
+              extractedProfileData?.collegeName) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <GraduationCap className="w-4 h-4 text-slate-500" />
+                  <span>Academic Credentials</span>
+                </div>
+
+                <div className="space-y-2">
+                  {extractedProfileData?.degree && (
+                    <label
+                      className={cn(
+                        "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                        selectedSyncFields.degree
+                          ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedSyncFields.degree || false}
+                          onChange={(e) =>
+                            setSelectedSyncFields((prev) => ({
+                              ...prev,
+                              degree: e.target.checked
+                            }))
+                          }
+                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-slate-900">Degree</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-slate-400 text-[11px]">Current:</span>
+                            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                              {student?.degree || "Not set"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">→</span>
+                            <span className="text-blue-700 bg-blue-100/70 font-semibold px-1.5 py-0.5 rounded text-[11px]">
+                              {extractedProfileData.degree}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                    </label>
+                  )}
+
+                  {extractedProfileData?.branch && (
+                    <label
+                      className={cn(
+                        "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                        selectedSyncFields.branch
+                          ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedSyncFields.branch || false}
+                          onChange={(e) =>
+                            setSelectedSyncFields((prev) => ({
+                              ...prev,
+                              branch: e.target.checked
+                            }))
+                          }
+                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-slate-900">Branch / Major</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-slate-400 text-[11px]">Current:</span>
+                            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                              {student?.branch || "Not set"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">→</span>
+                            <span className="text-blue-700 bg-blue-100/70 font-semibold px-1.5 py-0.5 rounded text-[11px]">
+                              {extractedProfileData.branch}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                    </label>
+                  )}
+
+                  {extractedProfileData?.graduationYear && (
+                    <label
+                      className={cn(
+                        "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                        selectedSyncFields.graduationYear
+                          ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedSyncFields.graduationYear || false}
+                          onChange={(e) =>
+                            setSelectedSyncFields((prev) => ({
+                              ...prev,
+                              graduationYear: e.target.checked
+                            }))
+                          }
+                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-slate-900">Graduation Batch</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-slate-400 text-[11px]">Current:</span>
+                            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                              {student?.graduationYear || "Not set"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">→</span>
+                            <span className="text-blue-700 bg-blue-100/70 font-semibold px-1.5 py-0.5 rounded text-[11px]">
+                              {extractedProfileData.graduationYear}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                    </label>
+                  )}
+
+                  {typeof extractedProfileData?.cgpa === "number" && extractedProfileData.cgpa > 0 && (
+                    <label
+                      className={cn(
+                        "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                        selectedSyncFields.cgpa
+                          ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedSyncFields.cgpa || false}
+                          onChange={(e) =>
+                            setSelectedSyncFields((prev) => ({
+                              ...prev,
+                              cgpa: e.target.checked
+                            }))
+                          }
+                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-slate-900">CGPA (10-Point Scale)</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-slate-400 text-[11px]">Current:</span>
+                            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                              {student?.cgpa ? `${student.cgpa} / 10` : "Not set"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">→</span>
+                            <span className="text-blue-700 bg-blue-100/70 font-semibold px-1.5 py-0.5 rounded text-[11px]">
+                              {extractedProfileData.cgpa} / 10
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                    </label>
+                  )}
+
+                  {extractedProfileData?.collegeName && (
+                    <label
+                      className={cn(
+                        "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                        selectedSyncFields.collegeName
+                          ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedSyncFields.collegeName || false}
+                          onChange={(e) =>
+                            setSelectedSyncFields((prev) => ({
+                              ...prev,
+                              collegeName: e.target.checked
+                            }))
+                          }
+                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-slate-900">College / Institute</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-slate-400 text-[11px]">Current:</span>
+                            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                              {student?.collegeName || "Student Candidate"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">→</span>
+                            <span className="text-blue-700 bg-blue-100/70 font-semibold px-1.5 py-0.5 rounded text-[11px]">
+                              {extractedProfileData.collegeName}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Section 2: Contact & Social Profiles */}
+            {(extractedProfileData?.phone ||
+              extractedProfileData?.linkedin ||
+              extractedProfileData?.github) && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <Phone className="w-4 h-4 text-slate-500" />
+                  <span>Contact & Professional Links</span>
+                </div>
+
+                <div className="space-y-2">
+                  {extractedProfileData?.phone && (
+                    <label
+                      className={cn(
+                        "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                        selectedSyncFields.phone
+                          ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedSyncFields.phone || false}
+                          onChange={(e) =>
+                            setSelectedSyncFields((prev) => ({
+                              ...prev,
+                              phone: e.target.checked
+                            }))
+                          }
+                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-slate-900">Mobile Phone</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-slate-400 text-[11px]">Current:</span>
+                            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                              {student?.phone || "Not set"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">→</span>
+                            <span className="text-blue-700 bg-blue-100/70 font-semibold px-1.5 py-0.5 rounded text-[11px]">
+                              {extractedProfileData.phone}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                    </label>
+                  )}
+
+                  {extractedProfileData?.linkedin && (
+                    <label
+                      className={cn(
+                        "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                        selectedSyncFields.linkedin
+                          ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedSyncFields.linkedin || false}
+                          onChange={(e) =>
+                            setSelectedSyncFields((prev) => ({
+                              ...prev,
+                              linkedin: e.target.checked
+                            }))
+                          }
+                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-slate-900">LinkedIn Profile</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-slate-400 text-[11px]">Current:</span>
+                            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono max-w-[160px] truncate">
+                              {student?.linkedin || "Not set"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">→</span>
+                            <span className="text-blue-700 bg-blue-100/70 font-semibold px-1.5 py-0.5 rounded text-[11px] max-w-[220px] truncate">
+                              {extractedProfileData.linkedin}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                    </label>
+                  )}
+
+                  {extractedProfileData?.github && (
+                    <label
+                      className={cn(
+                        "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                        selectedSyncFields.github
+                          ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedSyncFields.github || false}
+                          onChange={(e) =>
+                            setSelectedSyncFields((prev) => ({
+                              ...prev,
+                              github: e.target.checked
+                            }))
+                          }
+                          className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-slate-900">GitHub Profile</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-slate-400 text-[11px]">Current:</span>
+                            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono max-w-[160px] truncate">
+                              {student?.github || "Not set"}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">→</span>
+                            <span className="text-blue-700 bg-blue-100/70 font-semibold px-1.5 py-0.5 rounded text-[11px] max-w-[220px] truncate">
+                              {extractedProfileData.github}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Section 3: Target Placement Roles */}
+            {Array.isArray(extractedProfileData?.targetRoles) && extractedProfileData.targetRoles.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <Briefcase className="w-4 h-4 text-slate-500" />
+                  <span>Target Placement Roles</span>
+                </div>
+
+                <label
+                  className={cn(
+                    "flex items-start justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors",
+                    selectedSyncFields.targetRoles
+                      ? "bg-blue-50/50 border-blue-200 text-slate-900"
+                      : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                  )}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={selectedSyncFields.targetRoles || false}
+                      onChange={(e) =>
+                        setSelectedSyncFields((prev) => ({
+                          ...prev,
+                          targetRoles: e.target.checked
+                        }))
+                      }
+                      className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="font-semibold text-slate-900">Resume Identified Roles</span>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        {extractedProfileData.targetRoles.map((role, idx) => (
+                          <span
+                            key={idx}
+                            className="text-blue-700 bg-blue-100/70 font-medium px-2 py-0.5 rounded text-[11px]"
+                          >
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-400 shrink-0">Resume</span>
+                </label>
+              </div>
+            )}
+
+            {/* Section 4: Detected Technical Skills */}
+            {detectedSkillsList.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    <Code className="w-4 h-4 text-slate-500" />
+                    <span>New Detected Skills ({detectedSkillsList.length})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedDetectedSkills.length === detectedSkillsList.length) {
+                        setSelectedDetectedSkills([]);
+                      } else {
+                        setSelectedDetectedSkills([...detectedSkillsList]);
+                      }
+                    }}
+                    className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
+                  >
+                    {selectedDetectedSkills.length === detectedSkillsList.length ? "Deselect All Skills" : "Select All Skills"}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {detectedSkillsList.map((skill, idx) => {
+                    const isChecked = selectedDetectedSkills.includes(skill);
+                    return (
+                      <label
+                        key={idx}
+                        className={cn(
+                          "flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-colors",
+                          isChecked
+                            ? "bg-blue-50/60 border-blue-200 text-blue-900"
+                            : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setSelectedDetectedSkills(selectedDetectedSkills.filter((s) => s !== skill));
+                              } else {
+                                setSelectedDetectedSkills([...selectedDetectedSkills, skill]);
+                              }
+                            }}
+                            className="rounded text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="font-semibold text-slate-800">{skill}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400">Extracted</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={() => {
-                if (selectedDetectedSkills.length === detectedSkillsList.length) {
-                  setSelectedDetectedSkills([]);
-                } else {
+                const anyUnselected =
+                  Object.values(selectedSyncFields).some((v) => !v) ||
+                  (detectedSkillsList.length > 0 && selectedDetectedSkills.length < detectedSkillsList.length);
+
+                if (anyUnselected) {
+                  setSelectedSyncFields({
+                    name: Boolean(extractedProfileData?.name),
+                    phone: Boolean(extractedProfileData?.phone),
+                    degree: Boolean(extractedProfileData?.degree),
+                    branch: Boolean(extractedProfileData?.branch),
+                    graduationYear: Boolean(extractedProfileData?.graduationYear),
+                    cgpa: Boolean(typeof extractedProfileData?.cgpa === "number" && extractedProfileData.cgpa > 0),
+                    collegeName: Boolean(extractedProfileData?.collegeName),
+                    linkedin: Boolean(extractedProfileData?.linkedin),
+                    github: Boolean(extractedProfileData?.github),
+                    targetRoles: Boolean(Array.isArray(extractedProfileData?.targetRoles) && extractedProfileData.targetRoles.length > 0)
+                  });
                   setSelectedDetectedSkills([...detectedSkillsList]);
+                } else {
+                  setSelectedSyncFields({
+                    name: false,
+                    phone: false,
+                    degree: false,
+                    branch: false,
+                    graduationYear: false,
+                    cgpa: false,
+                    collegeName: false,
+                    linkedin: false,
+                    github: false,
+                    targetRoles: false
+                  });
+                  setSelectedDetectedSkills([]);
                 }
               }}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
+              className="text-xs text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
             >
-              {selectedDetectedSkills.length === detectedSkillsList.length ? "Deselect All" : "Select All"}
+              Toggle Select All
             </button>
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsResumeSkillReviewModalOpen(false)}
+                onClick={() => setIsSyncProfileModalOpen(false)}
+                disabled={syncingProfile}
               >
-                Skip
+                Cancel
               </Button>
               <Button
                 variant="primary"
                 size="sm"
-                onClick={handleConfirmDetectedSkills}
-                disabled={confirmingSkills || selectedDetectedSkills.length === 0}
+                onClick={handleApplyProfileSync}
+                disabled={
+                  syncingProfile ||
+                  (!Object.values(selectedSyncFields).some(Boolean) && selectedDetectedSkills.length === 0)
+                }
               >
-                {confirmingSkills ? "Adding..." : `Add ${selectedDetectedSkills.length} Skills`}
+                {syncingProfile ? "Applying..." : "Apply Selected Changes"}
               </Button>
             </div>
           </div>
