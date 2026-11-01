@@ -140,7 +140,38 @@ export function ContestListPage() {
         } catch (e) {}
       }
 
-      setContests(list);
+      // Deduplicate contests strictly by ID and normalized title
+      const uniqueContestsMap = new Map();
+      list.forEach((c) => {
+        const idKey = String(c.id || c._id);
+        const titleKey = String(c.title || "").trim().toLowerCase();
+
+        let matchedKey = null;
+        if (idKey && uniqueContestsMap.has(idKey)) {
+          matchedKey = idKey;
+        } else if (titleKey) {
+          for (const [k, val] of uniqueContestsMap.entries()) {
+            if (String(val.title || "").trim().toLowerCase() === titleKey) {
+              matchedKey = k;
+              break;
+            }
+          }
+        }
+
+        if (matchedKey) {
+          const existing = uniqueContestsMap.get(matchedKey);
+          uniqueContestsMap.set(matchedKey, {
+            ...existing,
+            ...c,
+            id: existing.id || idKey,
+            _id: existing._id || idKey
+          });
+        } else {
+          uniqueContestsMap.set(idKey || titleKey, c);
+        }
+      });
+
+      setContests(Array.from(uniqueContestsMap.values()));
     } catch (err) {
       console.error("Failed to load contests:", err);
       setError("Unable to connect to contest platform. Please verify your connection.");
