@@ -173,10 +173,21 @@ export function CodingArenaPage() {
           }));
 
           const resolvedStarterCodes = data.starterCodes || STARTER_CODES;
+          const resolvedVersionId =
+            data.versionId ||
+            data.questionVersionId ||
+            data.latestVersionId ||
+            data.activeVersionId ||
+            version.id ||
+            (data.versions && data.versions[0]?.id) ||
+            (data.latestVersion && data.latestVersion.id) ||
+            data.id ||
+            questionId;
+
           const targetProblem = {
-            id: data.id,
-            versionId: data.versionId || data.questionVersionId || version.id,
-            questionVersionId: data.versionId || data.questionVersionId || version.id,
+            id: data.id || questionId,
+            versionId: resolvedVersionId,
+            questionVersionId: resolvedVersionId,
             title: version.title || data.latestTitle || data.title || "Coding Challenge",
             category: (data.subcategory || data.category || "DSA").replace(/_/g, " "),
             difficulty: (data.difficulty || "MEDIUM").toUpperCase(),
@@ -270,18 +281,25 @@ export function CodingArenaPage() {
     setRunning(true);
     setActiveConsoleTab("output");
     try {
+      const targetVersionId =
+        problem?.questionVersionId ||
+        problem?.versionId ||
+        problem?.id ||
+        questionId;
+
       const payload = {
         language,
         sourceCode,
-        questionId: problem?.id,
-        questionVersionId: problem?.questionVersionId || problem?.versionId
+        questionId: problem?.id || questionId,
+        questionVersionId: targetVersionId
       };
 
       if (useCustomInput && customInputText.trim()) {
         payload.customInput = customInputText;
       }
 
-      const res = await practiceApi.runCode(payload);
+      const rawRes = await practiceApi.runCode(payload);
+      const res = rawRes?.data || rawRes;
       setExecutionResult(res);
 
       if (res.status === "ACCEPTED") {
@@ -290,10 +308,12 @@ export function CodingArenaPage() {
         showError("Compilation Error: Check console output.");
       } else if (res.status === "RUNTIME_ERROR") {
         showError("Runtime Error: Check console output.");
+      } else if (res.status === "TIME_LIMIT_EXCEEDED") {
+        showError("Time Limit Exceeded (TLE): Check execution loop.");
       } else if (res.status === "WRONG_ANSWER") {
         showWarning(`Sample tests failed (${res.testsPassed || 0}/${res.testsTotal || 0} passed).`);
       } else {
-        showWarning(`Execution result: ${res.status}`);
+        showWarning(`Execution result: ${res.status || 'Finished'}`);
       }
     } catch (err) {
       setExecutionResult({
@@ -317,13 +337,20 @@ export function CodingArenaPage() {
     setSubmitting(true);
     setActiveConsoleTab("output");
     try {
-      const res = await practiceApi.submitCode({
+      const targetVersionId =
+        problem?.questionVersionId ||
+        problem?.versionId ||
+        problem?.id ||
+        questionId;
+
+      const rawRes = await practiceApi.submitCode({
         language,
         sourceCode,
-        questionId: problem?.id,
-        questionVersionId: problem?.questionVersionId || problem?.versionId
+        questionId: problem?.id || questionId,
+        questionVersionId: targetVersionId
       });
 
+      const res = rawRes?.data || rawRes;
       setExecutionResult(res);
 
       if (res && (res.testsPassed > 0 || res.status === "ACCEPTED")) {
@@ -332,8 +359,8 @@ export function CodingArenaPage() {
             questionType: "DSA",
             type: "DSA",
             passed: res.status === "ACCEPTED",
-            questionId: problem?.id,
-            topicId: problem?.id,
+            questionId: problem?.id || questionId,
+            topicId: problem?.id || questionId,
             testsPassed: res.testsPassed || 0,
             testsTotal: res.testsTotal || 0
           });
@@ -347,8 +374,18 @@ export function CodingArenaPage() {
 
       if (res.status === "ACCEPTED") {
         showSuccess("Solution Accepted! All test cases passed successfully.");
+      } else if (res.status === "PARTIAL") {
+        showWarning(`Partially Accepted: ${res.testsPassed || 0}/${res.testsTotal || 0} tests passed.`);
+      } else if (res.status === "COMPILATION_ERROR") {
+        showError("Compilation Error: Check compiler output below.");
+      } else if (res.status === "RUNTIME_ERROR") {
+        showError("Runtime Error: Check error output below.");
+      } else if (res.status === "TIME_LIMIT_EXCEEDED") {
+        showError("Time Limit Exceeded: Check algorithm complexity.");
+      } else if (res.status === "WRONG_ANSWER") {
+        showWarning(`Evaluation: ${res.testsPassed || 0}/${res.testsTotal || 0} tests passed. Check failed cases.`);
       } else {
-        showWarning(`Evaluation: ${res.status} (${res.testsPassed || 0}/${res.testsTotal || 0} test cases passed).`);
+        showWarning(`Evaluation result: ${res.status || 'Finished'}`);
       }
     } catch (err) {
       setExecutionResult({
@@ -717,7 +754,7 @@ export function CodingArenaPage() {
                                 ) : (
                                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                 )}
-                                Test Case {tr.index || idx + 1} {tr.isHidden ? "(Hidden)" : ""}
+                                Test Case {tr.order || tr.index || idx + 1} {tr.isHidden ? "(Hidden)" : ""}
                               </span>
                               <span className="text-[11px] font-semibold">
                                 {tr.status} ({tr.executionTimeMs || 0}ms)
@@ -728,8 +765,8 @@ export function CodingArenaPage() {
                               <div className="space-y-1.5 text-[11px] text-slate-700">
                                 <div><strong>Input:</strong> <span className="font-mono text-indigo-700 bg-white/60 px-1 py-0.5 rounded break-all whitespace-pre-wrap">{tr.input || "(empty)"}</span></div>
                                 <OutputDiffViewer
-                                  expected={tr.expected}
-                                  actual={tr.actual}
+                                  expected={tr.expected || tr.expectedOutput}
+                                  actual={tr.actual || tr.stdout}
                                   passed={tr.passed}
                                 />
                               </div>

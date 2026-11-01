@@ -120,8 +120,14 @@ export const practiceApi = {
   getHistory: () => practiceRequest('/api/practice/history', { method: 'GET' }),
 
   // Code Execution Sandbox (Judge0)
-  runCode: (codePayload) => practiceRequest('/api/coding/execute/run', { method: 'POST', body: codePayload }),
-  submitCode: (codePayload) => practiceRequest('/api/coding/execute/submit', { method: 'POST', body: codePayload }),
+  runCode: async (codePayload) => {
+    const res = await practiceRequest('/api/coding/execute/run', { method: 'POST', body: codePayload });
+    return res?.data || res;
+  },
+  submitCode: async (codePayload) => {
+    const res = await practiceRequest('/api/coding/execute/submit', { method: 'POST', body: codePayload });
+    return res?.data || res;
+  },
   getSubmissionById: (submissionId) => practiceRequest(`/api/coding/submissions/${submissionId}`, { method: 'GET' }),
 
   // Contests & Assessments
