@@ -326,14 +326,16 @@ export function CodingArenaPage() {
 
       setExecutionResult(res);
 
-      if (res.status === "ACCEPTED") {
+      if (res && (res.testsPassed > 0 || res.status === "ACCEPTED")) {
         try {
           await b2cApi.recordQuestionAttempt({
             questionType: "DSA",
             type: "DSA",
-            passed: true,
+            passed: res.status === "ACCEPTED",
             questionId: problem?.id,
-            topicId: problem?.id
+            topicId: problem?.id,
+            testsPassed: res.testsPassed || 0,
+            testsTotal: res.testsTotal || 0
           });
           if (typeof refreshSubscription === "function") {
             await refreshSubscription();
@@ -341,6 +343,9 @@ export function CodingArenaPage() {
         } catch (telemetryErr) {
           console.warn("Could not update telemetry/subscription:", telemetryErr);
         }
+      }
+
+      if (res.status === "ACCEPTED") {
         showSuccess("Solution Accepted! All test cases passed successfully.");
       } else {
         showWarning(`Evaluation: ${res.status} (${res.testsPassed || 0}/${res.testsTotal || 0} test cases passed).`);

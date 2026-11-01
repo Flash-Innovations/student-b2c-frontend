@@ -86,7 +86,7 @@ rl.on('line', (line) => {
 export function ContestWorkspacePage() {
   const { contestId, attemptId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshSubscription } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -546,6 +546,9 @@ export function ContestWorkspacePage() {
     setSubmittingContest(true);
     try {
       await practiceApi.submitContestAttempt(contestId, attemptId);
+      if (typeof refreshSubscription === "function") {
+        try { await refreshSubscription(); } catch (_) {}
+      }
       showSuccess("Assessment submitted successfully!");
       navigate(`/contests/${contestId}/result/${attemptId}`, { replace: true });
     } catch (err) {

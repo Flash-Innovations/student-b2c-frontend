@@ -17,12 +17,14 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { practiceApi } from "../services/practiceApi";
 import { DailyTrendChart } from "../components/dashboard/DailyTrendChart";
+import { calculateXp } from "../utils/xpCalculator";
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user, subscription, isTechnical } = useAuth();
 
   const [streakDays, setStreakDays] = useState(0);
+  const [streakData, setStreakData] = useState({ streak: 0, currentStreak: 0, streakBreaks: 0 });
   const [upcomingContest, setUpcomingContest] = useState(null);
   const [historyData, setHistoryData] = useState([]);
 
@@ -33,8 +35,10 @@ export function DashboardPage() {
     // 1. Fetch Streak
     practiceApi.getStreak()
       .then((data) => {
-        if (isMounted && data && typeof data.streak === "number") {
-          setStreakDays(data.streak);
+        if (isMounted && data) {
+          setStreakData(data);
+          const current = data.currentStreak ?? data.streak ?? 0;
+          setStreakDays(current);
         }
       })
       .catch(() => {});
@@ -97,11 +101,10 @@ export function DashboardPage() {
   const mcqLimit = subscription?.mcqLimit ?? 100;
   const dsaLimit = subscription?.dsaLimit ?? 50;
 
-  // Real Dynamic Practice XP (Option A: Zero arbitrary base)
+  // Real Dynamic Practice XP (Authoritative 6-factor formula)
   const practiceXp = useMemo(() => {
-    const computed = (mcqAttempted * 10) + (dsaAttempted * 25) + (streakDays * 15);
-    return computed.toLocaleString("en-IN");
-  }, [mcqAttempted, dsaAttempted, streakDays]);
+    return calculateXp(subscription, streakData).toLocaleString("en-IN");
+  }, [subscription, streakData]);
 
   // Placement Readiness Score (Dynamic based on TelemetryService formula)
   const readinessScore = useMemo(() => {

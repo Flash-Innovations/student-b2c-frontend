@@ -21,6 +21,7 @@ import { Avatar } from "../common/Avatar";
 import { PlanBadge } from "../common/Badge";
 import { useAuth } from "../../context/AuthContext";
 import { practiceApi } from "../../services/practiceApi";
+import { calculateXp } from "../../utils/xpCalculator";
 import { cn } from "../../utils/cn";
 
 export function TopNavbar() {
@@ -30,6 +31,7 @@ export function TopNavbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [streakDays, setStreakDays] = useState(0);
+  const [streakData, setStreakData] = useState({ streak: 0, currentStreak: 0, streakBreaks: 0 });
   const profileRef = useRef(null);
 
   // Close profile dropdown on outside click
@@ -48,8 +50,10 @@ export function TopNavbar() {
     let isMounted = true;
     practiceApi.getStreak()
       .then((data) => {
-        if (isMounted && data && typeof data.streak === "number") {
-          setStreakDays(data.streak);
+        if (isMounted && data) {
+          setStreakData(data);
+          const current = data.currentStreak ?? data.streak ?? 0;
+          setStreakDays(current);
         }
       })
       .catch(() => {});
@@ -59,13 +63,10 @@ export function TopNavbar() {
     };
   }, []);
 
-  // Dynamic real XP calculation (Option A: Zero Fake Data)
-  const mcqAttempted = subscription?.mcqAttemptedCount || 0;
-  const dsaAttempted = subscription?.dsaAttemptedCount || 0;
+  // Dynamic real XP calculation (Authoritative 6-factor formula)
   const practiceXp = useMemo(() => {
-    const computed = (mcqAttempted * 10) + (dsaAttempted * 25) + (streakDays * 15);
-    return computed.toLocaleString("en-IN");
-  }, [mcqAttempted, dsaAttempted, streakDays]);
+    return calculateXp(subscription, streakData).toLocaleString("en-IN");
+  }, [subscription, streakData]);
 
   // Command Deck Navigation Links
   const navLinks = useMemo(() => {

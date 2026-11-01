@@ -1533,6 +1533,17 @@ export function MockInterviewPage() {
     }
 
     setScorecard(finalReport);
+    if (finalReport && typeof finalReport.overallScore === "number" && finalReport.overallScore > 0) {
+      b2cApi.recordQuestionAttempt({
+        type: "INTERVIEW",
+        score: finalReport.overallScore,
+        sessionId: finalReport.sessionId || sessionId
+      }).then(() => {
+        if (typeof refreshSubscription === "function") {
+          try { refreshSubscription(); } catch (_) {}
+        }
+      }).catch((e) => console.warn("Interview XP recording warning:", e));
+    }
     setViewMode("RESULTS");
     setAiStatus("completed");
     loadPastHistory();
