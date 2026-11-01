@@ -23,11 +23,12 @@ export function calculateXp(subscription, streakData = {}) {
   if (!subscription && !streakData) return 0;
 
   // 1. Correct MCQs (+1 XP per correct answer)
-  let mcqCorrect = subscription?.mcqCorrectCount;
-  if (mcqCorrect === undefined || mcqCorrect === null) {
-    const stats = subscription?.subjectStats || {};
-    const sumCorrect = Object.values(stats).reduce((acc, curr) => acc + (curr?.correct || 0), 0);
-    mcqCorrect = sumCorrect > 0 ? sumCorrect : (subscription?.mcqAttemptedCount || 0);
+  let mcqCorrect = 0;
+  if (typeof subscription?.mcqCorrectCount === 'number') {
+    mcqCorrect = subscription.mcqCorrectCount;
+  } else if (subscription?.subjectStats && Object.keys(subscription.subjectStats).length > 0) {
+    const stats = subscription.subjectStats;
+    mcqCorrect = Object.values(stats).reduce((acc, curr) => acc + (curr?.correct || 0), 0);
   }
 
   // 2. Coding Passed Testcases (+2 XP per passed testcase, unique problem best run)
@@ -68,3 +69,4 @@ export function calculateXp(subscription, streakData = {}) {
 export function formatXp(subscription, streakData = {}) {
   return calculateXp(subscription, streakData).toLocaleString("en-IN");
 }
+
