@@ -46,18 +46,36 @@ export function ContestDetailsPage() {
     setError(null);
     try {
       let data = null;
+      let studentAttempt = null;
+
       try {
         const b2cRes = await b2cApi.getContestById(contestId);
         if (b2cRes && b2cRes.contest) {
           data = b2cRes.contest;
+          if (b2cRes.contest.myAttempt) {
+            studentAttempt = b2cRes.contest.myAttempt;
+          }
         }
       } catch (e) {}
 
-      if (!data) {
-        data = await practiceApi.getStudentContest(contestId);
-      }
+      // Always query practice platform student contest details to ensure authoritative myAttempt
+      try {
+        const practiceData = await practiceApi.getStudentContest(contestId);
+        const resolved = practiceData?.data || practiceData;
+        if (resolved) {
+          if (!data) {
+            data = resolved;
+          }
+          if (resolved.myAttempt) {
+            studentAttempt = resolved.myAttempt;
+          }
+        }
+      } catch (e) {}
 
       if (data && (data.id || data.title || data._id)) {
+        if (studentAttempt) {
+          data = { ...data, myAttempt: studentAttempt };
+        }
         setContest(data);
       } else {
         setError("Contest details could not be found.");
@@ -96,6 +114,10 @@ export function ContestDetailsPage() {
 
     // Check if attempt already exists in contest details
     if (contest.myAttempt && contest.myAttempt.id) {
+      if (isAttemptSubmitted) {
+        navigate(`/contests/${contest.id || contest._id}/result/${contest.myAttempt.id}`);
+        return;
+      }
       navigate(`/contests/${contest.id || contest._id}/attempt/${contest.myAttempt.id}`);
       return;
     }
@@ -103,13 +125,42 @@ export function ContestDetailsPage() {
     setStarting(true);
     try {
       const result = await practiceApi.startContestAttempt(contestId);
-      const attemptId = result?.attempt?.id || result?.attemptId;
+      const resData = result?.data || result;
+      const attemptId = resData?.attempt?.id || resData?.attemptId || resData?.id;
       if (attemptId) {
         navigate(`/contests/${contest.id || contest._id}/attempt/${attemptId}`);
       } else {
         showError("Could not initialize attempt session with assessment server.");
       }
     } catch (err) {
+      // If 409 or attempt already exists, recover existing attempt session or scorecard
+      const errData = err?.data || err?.response?.data || {};
+      const existingId = errData?.attemptId || errData?.data?.attemptId || err?.attemptId;
+      const existingStatus = errData?.status || errData?.data?.status || err?.status;
+
+      if (existingId) {
+        if (existingStatus === "SUBMITTED" || existingStatus === "TIMED_OUT") {
+          navigate(`/contests/${contest.id || contest._id}/result/${existingId}`);
+          return;
+        }
+        navigate(`/contests/${contest.id || contest._id}/attempt/${existingId}`);
+        return;
+      }
+
+      // Query getStudentContest directly to find student's existing attempt
+      try {
+        const studentContestRes = await practiceApi.getStudentContest(contestId);
+        const resolved = studentContestRes?.data || studentContestRes;
+        if (resolved?.myAttempt?.id) {
+          if (resolved.myAttempt.status === "SUBMITTED" || resolved.myAttempt.status === "TIMED_OUT") {
+            navigate(`/contests/${contest.id || contest._id}/result/${resolved.myAttempt.id}`);
+            return;
+          }
+          navigate(`/contests/${contest.id || contest._id}/attempt/${resolved.myAttempt.id}`);
+          return;
+        }
+      } catch (_) {}
+
       showError(err.message || "Failed to initialize contest attempt.");
     } finally {
       setStarting(false);

@@ -122,7 +122,8 @@ export function ContestWorkspacePage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await practiceApi.getContestQuestions(contestId, attemptId);
+        const resRaw = await practiceApi.getContestQuestions(contestId, attemptId);
+        const res = (resRaw && resRaw.questions) ? resRaw : (resRaw?.data || resRaw);
         if (res && res.questions && res.questions.length > 0) {
           // If attempt is already submitted or timed out, navigate to result
           if (res.status === "SUBMITTED" || res.status === "TIMED_OUT") {

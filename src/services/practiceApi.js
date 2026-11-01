@@ -133,10 +133,22 @@ export const practiceApi = {
     const q = new URLSearchParams(params).toString();
     return practiceRequest(`/api/contests/my-attempts${q ? `?${q}` : ''}`, { method: 'GET' });
   },
-  getStudentContest: (contestId) => practiceRequest(`/api/contests/${contestId}/student`, { method: 'GET' }),
-  startContestAttempt: (contestId) => practiceRequest(`/api/contests/${contestId}/attempts/start`, { method: 'POST' }),
-  getContestAttempt: (contestId, attemptId) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}`, { method: 'GET' }),
-  getContestQuestions: (contestId, attemptId) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/questions`, { method: 'GET' }),
+  getStudentContest: async (contestId) => {
+    const res = await practiceRequest(`/api/contests/${contestId}/student`, { method: 'GET' });
+    return res?.data || res;
+  },
+  startContestAttempt: async (contestId) => {
+    const res = await practiceRequest(`/api/contests/${contestId}/attempts/start`, { method: 'POST' });
+    return res?.data || res;
+  },
+  getContestAttempt: async (contestId, attemptId) => {
+    const res = await practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}`, { method: 'GET' });
+    return res?.data || res;
+  },
+  getContestQuestions: async (contestId, attemptId) => {
+    const res = await practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/questions`, { method: 'GET' });
+    return res?.data || res;
+  },
   recordContestResponse: (contestId, attemptId, payload) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/responses`, { method: 'POST', body: payload }),
   submitContestAttempt: (contestId, attemptId) => {
     if (attemptId) {
@@ -145,12 +157,11 @@ export const practiceApi = {
     return practiceRequest(`/api/contests/${contestId}/attempts/submit`, { method: 'POST' });
   },
   finalizeContestAttempt: (contestId, attemptId) => practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/finalize`, { method: 'POST' }),
-  getContestResult: (contestId, attemptId) => {
-    if (contestId && attemptId) {
-      return practiceRequest(`/api/contests/${contestId}/attempts/${attemptId}/result`, { method: 'GET' });
-    }
+  getContestResult: async (contestId, attemptId) => {
     const id = attemptId || contestId;
-    return practiceRequest(`/api/contests/attempts/${id}/result`, { method: 'GET' });
+    const path = contestId && attemptId ? `/api/contests/${contestId}/attempts/${attemptId}/result` : `/api/contests/attempts/${id}/result`;
+    const res = await practiceRequest(path, { method: 'GET' });
+    return res?.data || res;
   },
   getContestLeaderboard: (contestId, params = {}) => {
     const q = new URLSearchParams(params).toString();
