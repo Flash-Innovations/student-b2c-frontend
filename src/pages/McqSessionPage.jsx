@@ -553,9 +553,9 @@ export function McqSessionPage() {
               </div>
             </div>
 
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
+            <div className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
               <MathRenderer content={currentQ?.question} />
-            </h2>
+            </div>
 
             {currentQ?.formula && (
               <div className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-center overflow-x-auto">
