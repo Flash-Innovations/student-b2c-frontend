@@ -727,6 +727,74 @@ export function StudentProfilePage() {
     }
   };
 
+  // ATS Performance Report Handlers
+  const handleOpenAtsReport = async () => {
+    if (!student?.resumeUrl) {
+      showWarning("Please upload a PDF resume first to view the ATS Report.");
+      return;
+    }
+
+    if (student.resumeAtsAnalysis) {
+      setAtsReportData({
+        analysis: student.resumeAtsAnalysis,
+        detectedSkills: student.resumeAtsAnalysis.detectedSkills || student.resumeDetectedSkills || [],
+        filename: student.resumeUrl.split("/").pop().replace(/^[\d-]+_/, "") || "Resume.pdf"
+      });
+      setIsAtsReportModalOpen(true);
+    }
+
+    try {
+      setLoadingAtsReport(true);
+      const res = await b2cApi.getAtsReport();
+      if (res && res.success && res.analysis) {
+        setAtsReportData({
+          analysis: res.analysis,
+          detectedSkills: res.detectedSkills || res.analysis.detectedSkills || [],
+          filename: res.filename || student.resumeUrl.split("/").pop().replace(/^[\d-]+_/, "") || "Resume.pdf"
+        });
+        setStudent(prev => ({
+          ...prev,
+          resumeAtsAnalysis: res.analysis,
+          resumeDetectedSkills: res.detectedSkills || res.analysis.detectedSkills || []
+        }));
+        setIsAtsReportModalOpen(true);
+      } else {
+        if (!student.resumeAtsAnalysis) {
+          showError(res?.message || "Could not generate ATS report. Please try again.");
+        }
+      }
+    } catch (err) {
+      if (!student.resumeAtsAnalysis) {
+        showError(err.message || "Failed to fetch ATS report.");
+      }
+    } finally {
+      setLoadingAtsReport(false);
+    }
+  };
+
+  const handleSyncAtsDetectedSkills = async (skillsToSync = []) => {
+    const listToMerge = skillsToSync.length > 0 ? skillsToSync : (atsReportData?.detectedSkills || []);
+    if (!listToMerge || listToMerge.length === 0) {
+      showInfo("No skills to sync from resume.");
+      return;
+    }
+
+    setSyncingAtsSkills(true);
+    try {
+      const res = await b2cApi.confirmResumeSkills(listToMerge);
+      if (res && res.success) {
+        setSkillsList(res.skills);
+        setStudent(prev => ({ ...prev, skills: res.skills }));
+        refreshProfile();
+        showSuccess(`Successfully synchronized ${listToMerge.length} skill(s) into your profile!`);
+      }
+    } catch (err) {
+      showError(err.message || "Failed to sync detected skills to profile.");
+    } finally {
+      setSyncingAtsSkills(false);
+    }
+  };
+
   // 9. Resume Hub & Profile Sync Handlers
   const handleResumeFileChange = async (e) => {
     const file = e.target.files?.[0];
