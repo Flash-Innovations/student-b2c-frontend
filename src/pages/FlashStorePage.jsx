@@ -24,7 +24,11 @@ import {
   AlertTriangle,
   X,
   ChevronRight,
-  Gift
+  Gift,
+  Tag,
+  Percent,
+  Check,
+  Lock
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -72,6 +76,170 @@ export function FlashStorePage() {
   const [processingItem, setProcessingItem] = useState(null);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancellingAutoPay, setCancellingAutoPay] = useState(false);
+
+  // Dynamic Catalog State (Admin Configured Items & Festive Offers)
+  const [catalogData, setCatalogData] = useState(null);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+
+  // Checkout & Coupon Modal State
+  const [checkoutItem, setCheckoutItem] = useState(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  // Fetch dynamic plans and festive offers from backend
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      try {
+        setLoadingCatalog(true);
+        const res = await b2cApi.getPlans();
+        if (res && res.catalog) {
+          setCatalogData(res.catalog);
+        }
+      } catch (err) {
+        console.warn("Could not load dynamic store catalog:", err);
+      } finally {
+        setLoadingCatalog(false);
+      }
+    };
+    fetchCatalog();
+  }, []);
+
+  const openCheckoutModal = (itemDetails) => {
+    setCheckoutItem(itemDetails);
+    setCouponInput("");
+    setAppliedCoupon(null);
+    setCouponError(null);
+  };
+
+  const closeCheckoutModal = () => {
+    if (isCheckingOut) return;
+    setCheckoutItem(null);
+    setCouponInput("");
+    setAppliedCoupon(null);
+    setCouponError(null);
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+    if (!checkoutItem) return;
+
+    try {
+      setValidatingCoupon(true);
+      setCouponError(null);
+      const res = await b2cApi.validateCoupon({
+        couponCode: couponInput.trim().toUpperCase(),
+        orderAmount: checkoutItem.priceInr,
+        orderType: checkoutItem.orderType,
+        itemCategory: checkoutItem.category || checkoutItem.orderType
+      });
+
+      if (res && res.valid) {
+        setAppliedCoupon({
+          code: res.coupon.code,
+          discountType: res.coupon.discountType,
+          discountValue: res.coupon.discountValue,
+          discountAmount: res.discountAmount,
+          finalAmount: res.finalAmount,
+          message: res.message
+        });
+        showSuccess(`Coupon ${res.coupon.code} applied! Saved ₹${res.discountAmount}`);
+      } else {
+        setCouponError((res && res.message) || "Invalid coupon code");
+        setAppliedCoupon(null);
+      }
+    } catch (err) {
+      setCouponError(err.message || "Failed to validate coupon");
+      setAppliedCoupon(null);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  };
+
+  const handleExecuteCheckout = async () => {
+    if (!checkoutItem) return;
+    try {
+      setIsCheckingOut(true);
+      const activeCoupon = appliedCoupon ? appliedCoupon.code : undefined;
+
+      let orderPayload = {
+        orderType: checkoutItem.orderType,
+        couponCode: activeCoupon
+      };
+
+      if (checkoutItem.orderType === "PLAN") {
+        orderPayload.planTier = checkoutItem.planTier;
+        orderPayload.billingCycle = checkoutItem.billingCycle || "MONTHLY";
+      } else if (checkoutItem.orderType === "PASS") {
+        orderPayload.passType = checkoutItem.passType;
+        orderPayload.entityId = checkoutItem.entityId || null;
+        orderPayload.billingCycle = checkoutItem.billingCycle || "MONTHLY";
+      } else if (checkoutItem.orderType === "MINUTES_PACK") {
+        orderPayload.packId = checkoutItem.packId;
+      } else if (checkoutItem.orderType === "CUSTOM_OFFER") {
+        orderPayload.slug = checkoutItem.slug;
+      }
+
+      const orderData = await b2cApi.createOrder(orderPayload);
+
+      if (!orderData || (!orderData.subscriptionId && !orderData.orderId && !orderData.order_id)) {
+        throw new Error("Unable to create checkout order with payment gateway.");
+      }
+
+      const activeSubId = orderData.subscriptionId || orderData.subscription_id;
+      const activeOrderId = orderData.orderId || orderData.order_id;
+
+      openRazorpayCheckout({
+        subscriptionId: activeSubId,
+        orderId: activeOrderId,
+        amountInPaise: orderData.amount || orderData.amountInPaise,
+        amount: orderData.breakdown?.totalAmount || orderData.totalAmountWithGst,
+        currency: orderData.currency || "INR",
+        name: "Flash Store",
+        description: `${checkoutItem.title} (All-Inclusive)`,
+        keyId: orderData.keyId || orderData.key_id,
+        user: {
+          name: user?.name,
+          email: user?.email,
+          phone: user?.phone
+        },
+        onSuccess: async (paymentResponse) => {
+          try {
+            await b2cApi.verifyPayment({
+              razorpay_order_id: paymentResponse.razorpay_order_id || activeOrderId,
+              razorpay_subscription_id: paymentResponse.razorpay_subscription_id || activeSubId,
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_signature: paymentResponse.razorpay_signature
+            });
+
+            showSuccess(`Success! ${checkoutItem.title} is now activated on your account.`);
+            setCheckoutItem(null);
+            await refreshSubscription();
+          } catch (verifyErr) {
+            showError("Payment received, but activation confirmation failed. Please contact support.");
+          }
+        },
+        onFailure: (err) => {
+          showError(err.message || "Payment cancelled.");
+        }
+      });
+    } catch (err) {
+      showError(err.message || "Failed to initiate payment checkout.");
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
 
   // XP Arcade & Ledger State
   const [xpLedger, setXpLedger] = useState([]);
@@ -616,6 +784,84 @@ export function FlashStorePage() {
               </div>
             </div>
 
+            {/* Festive & Special Offers Section (Dynamic from SuperAdmin) */}
+            {catalogData?.customOffers && catalogData.customOffers.length > 0 && (
+              <div className="mb-8 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600" />
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                      Festive & Limited-Time Flash Offers
+                    </h3>
+                  </div>
+                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Live Special
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {catalogData.customOffers.map((offer) => (
+                    <div
+                      key={offer.slug || offer.id}
+                      className="p-5 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 rounded-xl border border-blue-200 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">
+                            {offer.badge || "Special Offer"}
+                          </span>
+                          <span className="text-xs font-semibold text-slate-500 uppercase">
+                            {offer.interval || "One-Time"}
+                          </span>
+                        </div>
+                        <h4 className="text-base font-bold text-slate-900">{offer.title}</h4>
+                        {offer.tagline && (
+                          <p className="text-xs text-slate-600 mt-1">{offer.tagline}</p>
+                        )}
+
+                        <div className="flex items-baseline gap-2 my-3">
+                          <span className="text-2xl font-extrabold text-slate-900">₹{offer.priceInr}</span>
+                          {offer.originalPriceInr && offer.originalPriceInr > offer.priceInr && (
+                            <span className="text-xs text-slate-400 line-through">₹{offer.originalPriceInr}</span>
+                          )}
+                          <span className="text-xs text-slate-500">all-inclusive</span>
+                        </div>
+
+                        {Array.isArray(offer.features) && offer.features.length > 0 && (
+                          <ul className="space-y-1 text-xs text-slate-700 mb-4">
+                            {offer.features.map((feat, idx) => (
+                              <li key={idx} className="flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                <span>{feat}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="primary"
+                        className="w-full text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                        onClick={() =>
+                          openCheckoutModal({
+                            orderType: "CUSTOM_OFFER",
+                            slug: offer.slug,
+                            title: offer.title,
+                            description: offer.tagline,
+                            priceInr: offer.priceInr,
+                            originalPriceInr: offer.originalPriceInr,
+                            badge: offer.badge || "Festive Offer"
+                          })
+                        }
+                      >
+                        Claim Offer & Checkout
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 3 Pricing Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* FREE PLAN */}
@@ -746,7 +992,16 @@ export function FlashStorePage() {
                     variant="primary"
                     className="w-full text-xs font-semibold"
                     disabled={planTier === "STANDARD" || planTier === "BASIC" || processingItem === "PLAN_STANDARD"}
-                    onClick={() => handleSubscribePlan("STANDARD")}
+                    onClick={() => openCheckoutModal({
+                      orderType: "PLAN",
+                      planTier: "STANDARD",
+                      billingCycle,
+                      title: `Flash Standard Plan (${billingCycle === "YEARLY" ? "Annual" : "Monthly"})`,
+                      description: "100 MCQs/subj/mo, 250 DSA Coding Qs, 60m Mock Interviews, 1 Mentorship Session",
+                      priceInr: billingCycle === "YEARLY" ? 999 : 99,
+                      originalPriceInr: billingCycle === "YEARLY" ? 1188 : 199,
+                      badge: "Entry Subscription"
+                    })}
                   >
                     {planTier === "STANDARD" || planTier === "BASIC" ? (
                       "Active Plan"
@@ -822,7 +1077,16 @@ export function FlashStorePage() {
                     variant="primary"
                     className="w-full text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white border-transparent"
                     disabled={planTier === "PREMIUM" || processingItem === "PLAN_PREMIUM"}
-                    onClick={() => handleSubscribePlan("PREMIUM")}
+                    onClick={() => openCheckoutModal({
+                      orderType: "PLAN",
+                      planTier: "PREMIUM",
+                      billingCycle,
+                      title: `Flash Premium Plan (${billingCycle === "YEARLY" ? "Annual" : "Monthly"})`,
+                      description: "250 MCQs/subj/mo, 750 DSA Coding Qs, 180m Mock Interviews, 3 Mentorship Sessions",
+                      priceInr: billingCycle === "YEARLY" ? 2999 : 299,
+                      originalPriceInr: billingCycle === "YEARLY" ? 3588 : 599,
+                      badge: "All-Inclusive Suite"
+                    })}
                   >
                     {planTier === "PREMIUM" ? (
                       "Active Plan"
@@ -869,7 +1133,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="primary"
                     className="flex-1"
-                    onClick={() => handlePurchasePass("PASS_APTITUDE", null, "MONTHLY", "Aptitude Pass (Monthly)")}
+                    onClick={() => openCheckoutModal({
+                      orderType: "PASS",
+                      passType: "PASS_APTITUDE",
+                      billingCycle: "MONTHLY",
+                      title: "Aptitude Pass (Monthly)",
+                      description: "Full access to Quantitative Aptitude, Logical Reasoning, and Verbal Ability banks",
+                      priceInr: 59,
+                      originalPriceInr: 99
+                    })}
                     disabled={processingItem === "PASS_PASS_APTITUDE_MONTHLY"}
                   >
                     Rs 59 Monthly
@@ -878,7 +1150,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="outline"
                     className="flex-1"
-                    onClick={() => handlePurchasePass("PASS_APTITUDE", null, "YEARLY", "Aptitude Pass (Yearly)")}
+                    onClick={() => openCheckoutModal({
+                      orderType: "PASS",
+                      passType: "PASS_APTITUDE",
+                      billingCycle: "YEARLY",
+                      title: "Aptitude Pass (Yearly)",
+                      description: "Full 1-year access to Quants, LR, and Verbal Ability placement banks",
+                      priceInr: 599,
+                      originalPriceInr: 708
+                    })}
                     disabled={processingItem === "PASS_PASS_APTITUDE_YEARLY"}
                   >
                     Rs 599 Yearly
@@ -913,7 +1193,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="primary"
                     className="flex-1"
-                    onClick={() => handlePurchasePass("PASS_SUBJECT_MCQ", null, "MONTHLY", "Core CS Pass (Monthly)")}
+                    onClick={() => openCheckoutModal({
+                      orderType: "PASS",
+                      passType: "PASS_SUBJECT_MCQ",
+                      billingCycle: "MONTHLY",
+                      title: "Core CS Pass (Monthly)",
+                      description: "Complete coverage of OS, DBMS, CN, and OOPs concepts",
+                      priceInr: 79,
+                      originalPriceInr: 129
+                    })}
                     disabled={processingItem === "PASS_PASS_SUBJECT_MCQ_MONTHLY"}
                   >
                     Rs 79 Monthly
@@ -922,7 +1210,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="outline"
                     className="flex-1"
-                    onClick={() => handlePurchasePass("PASS_SUBJECT_MCQ", null, "YEARLY", "Core CS Pass (Yearly)")}
+                    onClick={() => openCheckoutModal({
+                      orderType: "PASS",
+                      passType: "PASS_SUBJECT_MCQ",
+                      billingCycle: "YEARLY",
+                      title: "Core CS Pass (Yearly)",
+                      description: "Full 1-year access to all technical core CS placement question banks",
+                      priceInr: 799,
+                      originalPriceInr: 948
+                    })}
                     disabled={processingItem === "PASS_PASS_SUBJECT_MCQ_YEARLY"}
                   >
                     Rs 799 Yearly
@@ -1016,7 +1312,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="primary"
                     className="flex-1"
-                    onClick={() => handlePurchasePass("PASS_CONTEST", null, "MONTHLY", "Contest Pass (Monthly)")}
+                    onClick={() => openCheckoutModal({
+                      orderType: "PASS",
+                      passType: "PASS_CONTEST",
+                      billingCycle: "MONTHLY",
+                      title: "Contest Pass (Monthly)",
+                      description: "Access to 4 standard weekly contests and 1 premium monthly contest",
+                      priceInr: 59,
+                      originalPriceInr: 99
+                    })}
                     disabled={processingItem === "PASS_PASS_CONTEST_MONTHLY"}
                   >
                     Rs 59 Monthly
@@ -1025,7 +1329,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="outline"
                     className="flex-1"
-                    onClick={() => handlePurchasePass("PASS_CONTEST", null, "YEARLY", "Contest Pass (Yearly)")}
+                    onClick={() => openCheckoutModal({
+                      orderType: "PASS",
+                      passType: "PASS_CONTEST",
+                      billingCycle: "YEARLY",
+                      title: "Contest Pass (Yearly)",
+                      description: "Annual access to all weekly and monthly placement contests",
+                      priceInr: 599,
+                      originalPriceInr: 708
+                    })}
                     disabled={processingItem === "PASS_PASS_CONTEST_YEARLY"}
                   >
                     Rs 599 Yearly
@@ -1319,7 +1631,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="primary"
                     className="w-full"
-                    onClick={() => handlePurchaseMinutes("PACK_100", 100, 30)}
+                    onClick={() => openCheckoutModal({
+                    orderType: "MINUTES_PACK",
+                    packId: "PACK_100",
+                    minutes: 100,
+                    title: "100 AI Mock Interview Minutes",
+                    description: "Voice-driven real-time technical and HR simulation powered by Gemini Live",
+                    priceInr: 30,
+                    originalPriceInr: 50
+                  })}
                     disabled={processingItem === "MINUTES_PACK_100"}
                   >
                     Buy 100 Mins (Rs 30)
@@ -1351,7 +1671,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="primary"
                     className="w-full"
-                    onClick={() => handlePurchaseMinutes("PACK_200", 200, 60)}
+                    onClick={() => openCheckoutModal({
+                    orderType: "MINUTES_PACK",
+                    packId: "PACK_200",
+                    minutes: 200,
+                    title: "200 AI Mock Interview Minutes",
+                    description: "Multi-session interview readiness with live AI feedback and scorecard",
+                    priceInr: 60,
+                    originalPriceInr: 100
+                  })}
                     disabled={processingItem === "MINUTES_PACK_200"}
                   >
                     Buy 200 Mins (Rs 60)
@@ -1383,7 +1711,15 @@ export function FlashStorePage() {
                     size="xs"
                     variant="primary"
                     className="w-full"
-                    onClick={() => handlePurchaseMinutes("PACK_300", 300, 90)}
+                    onClick={() => openCheckoutModal({
+                    orderType: "MINUTES_PACK",
+                    packId: "PACK_300",
+                    minutes: 300,
+                    title: "300 AI Mock Interview Minutes",
+                    description: "Deep interview mastery covering System Design, Coding, and behavioral rounds",
+                    priceInr: 90,
+                    originalPriceInr: 150
+                  })}
                     disabled={processingItem === "MINUTES_PACK_300"}
                   >
                     Buy 300 Mins (Rs 90)
@@ -1417,7 +1753,16 @@ export function FlashStorePage() {
                     size="xs"
                     variant="primary"
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white border-transparent"
-                    onClick={() => handlePurchaseMinutes("PACK_600", 600, 150)}
+                    onClick={() => openCheckoutModal({
+                    orderType: "MINUTES_PACK",
+                    packId: "PACK_600",
+                    minutes: 600,
+                    title: "600 AI Mock Interview Minutes",
+                    description: "Our best value bundle: 10 full hours of live AI placement mock practice",
+                    priceInr: 150,
+                    originalPriceInr: 250,
+                    badge: "Best Value"
+                  })}
                     disabled={processingItem === "MINUTES_PACK_600"}
                   >
                     Buy 600 Mins (Rs 150)

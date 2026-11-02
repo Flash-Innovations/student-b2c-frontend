@@ -117,6 +117,7 @@ export const b2cApi = {
 
   // Subscriptions & Razorpay
   getPlans: () => b2cRequest('/api/b2c/subscriptions/plans', { method: 'GET' }),
+  validateCoupon: (data) => b2cRequest('/api/b2c/subscriptions/coupon/validate', { method: 'POST', body: data }),
   createOrder: (orderPayload) => b2cRequest('/api/b2c/subscriptions/create-order', { method: 'POST', body: orderPayload }),
   verifyPayment: (paymentData) => b2cRequest('/api/b2c/subscriptions/verify-payment', { method: 'POST', body: paymentData }),
   cancelAutoPay: () => b2cRequest('/api/b2c/subscriptions/cancel-autopay', { method: 'POST' }),
