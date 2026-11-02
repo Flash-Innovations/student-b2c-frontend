@@ -31,7 +31,7 @@ const TOPIC_TYPE_MAP = {
   VERBAL: { type: "APTITUDE", category: "VERBAL" },
   DI_ANALYTICS: { type: "APTITUDE", category: "DATA_INTERPRETATION" },
   DBMS: { type: "TECHNICAL", category: "DBMS" },
-  OS: { type: "TECHNICAL", category: "OS" },
+  OS: { type: "TECHNICAL", category: "OPERATING_SYSTEMS" },
   NETWORKS: { type: "TECHNICAL", category: "NETWORKS" },
   OOP: { type: "TECHNICAL", category: "OOP" },
   BUSINESS_GK: { type: "NON_TECHNICAL", category: "BUSINESS" }

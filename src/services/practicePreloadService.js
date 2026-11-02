@@ -16,7 +16,7 @@ const TOPIC_TYPE_MAP = {
   VERBAL: { type: "APTITUDE", category: "VERBAL" },
   DI_ANALYTICS: { type: "APTITUDE", category: "DATA_INTERPRETATION" },
   DBMS: { type: "TECHNICAL", category: "DBMS" },
-  OS: { type: "TECHNICAL", category: "OS" },
+  OS: { type: "TECHNICAL", category: "OPERATING_SYSTEMS" },
   NETWORKS: { type: "TECHNICAL", category: "NETWORKS" },
   OOP: { type: "TECHNICAL", category: "OOP" },
   BUSINESS_GK: { type: "NON_TECHNICAL", category: "BUSINESS" }
@@ -38,7 +38,7 @@ function shuffleArray(array) {
 }
 
 function getSessionCacheKey(topicId) {
-  return `flash_preload_mcq_${topicId}`;
+  return `flash_preload_mcq_v2_${topicId}`;
 }
 
 export const practicePreloadService = {
@@ -88,7 +88,7 @@ export const practicePreloadService = {
         const res = await practiceApi.getPracticeQuestions({
           topic: categoryParam,
           category: categoryParam,
-          type: "MCQ",
+          type: topicConfig.type || "MCQ",
           limit: 30
         });
         const list = (res && (res.questions || res.data)) || [];
