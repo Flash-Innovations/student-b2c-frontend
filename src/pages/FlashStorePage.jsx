@@ -37,6 +37,7 @@ import { openRazorpayCheckout } from "../services/razorpayClient";
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge, PlanBadge } from "../components/common/Badge";
+import { cn } from "../utils/cn";
 
 const POPULAR_COMPANIES = [
   "TCS NQT",
@@ -91,20 +92,26 @@ export function FlashStorePage() {
 
   // Fetch dynamic plans and festive offers from backend
   useEffect(() => {
+    let mounted = true;
     const fetchCatalog = async () => {
       try {
         setLoadingCatalog(true);
         const res = await b2cApi.getPlans();
-        if (res && res.catalog) {
-          setCatalogData(res.catalog);
+        if (mounted && res) {
+          setCatalogData(res.catalog || res);
         }
       } catch (err) {
         console.warn("Could not load dynamic store catalog:", err);
       } finally {
-        setLoadingCatalog(false);
+        if (mounted) {
+          setLoadingCatalog(false);
+        }
       }
     };
     fetchCatalog();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const openCheckoutModal = (itemDetails) => {
@@ -120,6 +127,24 @@ export function FlashStorePage() {
     setCouponInput("");
     setAppliedCoupon(null);
     setCouponError(null);
+  };
+
+  // Check if an item is published or hidden by SuperAdmin
+  const isItemPublished = (code) => {
+    if (!catalogData) return true;
+    const clean = (code || '').toUpperCase().trim();
+    const rawHidden = catalogData.hiddenItemIds || catalogData.hidden || [];
+    const hidden = rawHidden.map((x) => String(x || '').toUpperCase().trim());
+
+    if (hidden.includes(clean)) return false;
+    if (hidden.includes(`PASS_${clean}`)) return false;
+    if (hidden.includes(`PLAN_${clean}`)) return false;
+    if (hidden.includes(`PACK_${clean}`)) return false;
+
+    const stripped = clean.replace(/^(PASS_|PLAN_|PACK_)/, '');
+    if (hidden.includes(stripped)) return false;
+
+    return true;
   };
 
   const handleApplyCoupon = async () => {
@@ -930,6 +955,7 @@ export function FlashStorePage() {
               </div>
 
               {/* STANDARD PLAN (Entry subscription) */}
+              {isItemPublished("PLAN_STANDARD") && (
               <div className="bg-white rounded-xl border-2 border-blue-600 shadow-md p-6 flex flex-col justify-between relative">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
                   Recommended For Practice
@@ -1011,8 +1037,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* PREMIUM PLAN (Advanced subscription) */}
+              {isItemPublished("PLAN_PREMIUM") && (
               <div className="bg-slate-900 text-white rounded-xl border border-slate-800 shadow-xl p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1096,6 +1124,7 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
             </div>
           </div>
         )}
@@ -1107,6 +1136,7 @@ export function FlashStorePage() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* 1. Aptitude Pass */}
+              {isItemPublished("PASS_APTITUDE") && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1165,8 +1195,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* 2. Core CS Subject MCQ Pass */}
+              {isItemPublished("PASS_SUBJECT_MCQ") && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1225,8 +1257,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* 3. Single Subject Deep Dive Pass */}
+              {isItemPublished("PASS_SINGLE_SUBJECT") && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1284,8 +1318,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* 4. Contest All-Access Pass */}
+              {isItemPublished("PASS_CONTEST") && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1344,8 +1380,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* 5. Flash Coding Tournament Series */}
+              {isItemPublished("PASS_FLASH_CODING_SERIES") && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1385,8 +1423,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* 6. CAT / GATE Test Series */}
+              {isItemPublished("PASS_SERIES_CAT_GATE") && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1426,6 +1466,7 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
             </div>
           </div>
         )}
@@ -1437,166 +1478,176 @@ export function FlashStorePage() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Option A: Individual Target Company Pass */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                      Single Company
-                    </span>
-                    <Badge variant="blue">Individual Recruiter</Badge>
-                  </div>
-                  <h4 className="text-xl font-bold text-slate-900 mt-2">
-                    Target Company Pass
-                  </h4>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Curated question banks, aptitude patterns, and coding archives calibrated for 1 specific company.
-                  </p>
+              {isItemPublished("PASS_COMPANY_SINGLE") && isItemPublished("PASS_COMPANY_INDIVIDUAL") && (
+                <div className={cn("bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between", !isItemPublished("PASS_COMPANY_ALL") && "lg:col-span-2 max-w-xl mx-auto w-full")}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                        Single Company
+                      </span>
+                      <Badge variant="blue">Individual Recruiter</Badge>
+                    </div>
+                    <h4 className="text-xl font-bold text-slate-900 mt-2">
+                      Target Company Pass
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1">
+                      Curated question banks, aptitude patterns, and coding archives calibrated for 1 specific company.
+                    </p>
 
-                  <div className="mt-6">
-                    <label className="text-xs font-semibold text-slate-700 block mb-2">
-                      Select Target Company
-                    </label>
-                    <select
-                      value={selectedCompany}
-                      onChange={(e) => setSelectedCompany(e.target.value)}
-                      className="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-900 font-medium"
+                    <div className="mt-6">
+                      <label className="text-xs font-semibold text-slate-700 block mb-2">
+                        Select Target Company
+                      </label>
+                      <select
+                        value={selectedCompany}
+                        onChange={(e) => setSelectedCompany(e.target.value)}
+                        className="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-900 font-medium"
+                      >
+                        {POPULAR_COMPANIES.map((comp) => (
+                          <option key={comp} value={comp}>
+                            {comp}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="mt-6 p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-2 text-xs text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>{selectedCompany} specific aptitude & technical MCQs</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Previous years coding interview problems</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Company-specific interview round guidance</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900">Rs 99</span>
+                      <span className="text-xs text-slate-500">/ month per company</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-4 border-t border-slate-100">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      className="w-full"
+                      onClick={() =>
+                        handlePurchasePass(
+                          "PASS_COMPANY_INDIVIDUAL",
+                          selectedCompany,
+                          "MONTHLY",
+                          `${selectedCompany} Company Pass`
+                        )
+                      }
+                      disabled={processingItem === `PASS_PASS_COMPANY_INDIVIDUAL_${selectedCompany}`}
                     >
-                      {POPULAR_COMPANIES.map((comp) => (
-                        <option key={comp} value={comp}>
-                          {comp}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="mt-6 p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-2 text-xs text-slate-700">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>{selectedCompany} specific aptitude & technical MCQs</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>Previous years coding interview problems</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>Company-specific interview round guidance</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-900">Rs 99</span>
-                    <span className="text-xs text-slate-500">/ month per company</span>
+                      Unlock {selectedCompany} Pass for Rs 99
+                    </Button>
                   </div>
                 </div>
-
-                <div className="mt-8 pt-4 border-t border-slate-100">
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    className="w-full"
-                    onClick={() =>
-                      handlePurchasePass(
-                        "PASS_COMPANY_INDIVIDUAL",
-                        selectedCompany,
-                        "MONTHLY",
-                        `${selectedCompany} Company Pass`
-                      )
-                    }
-                    disabled={processingItem === `PASS_PASS_COMPANY_INDIVIDUAL_${selectedCompany}`}
-                  >
-                    Unlock {selectedCompany} Pass for Rs 99
-                  </Button>
-                </div>
-              </div>
+              )}
 
               {/* Option B: All-Company Placement Pass (Clubbed) */}
-              <div className="bg-slate-900 text-white rounded-xl border border-slate-800 p-6 shadow-xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-purple-400 uppercase tracking-wide">
-                      All Companies Vault
-                    </span>
-                    <Badge variant="orchid" className="bg-purple-950 text-purple-300 border-purple-800">
-                      50+ Companies Included
-                    </Badge>
-                  </div>
-                  <h4 className="text-xl font-bold text-white mt-2">
-                    All-Company Placement Pass (Clubbed)
-                  </h4>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Unconstrained access to all 50+ company banks: TCS, Infosys, Accenture, Amazon, Microsoft, Google, Wipro, Cognizant, and more.
-                  </p>
+              {isItemPublished("PASS_COMPANY_ALL") && (
+                <div className={cn("bg-slate-900 text-white rounded-xl border border-slate-800 p-6 shadow-xl flex flex-col justify-between", (!isItemPublished("PASS_COMPANY_SINGLE") && !isItemPublished("PASS_COMPANY_INDIVIDUAL")) && "lg:col-span-2 max-w-xl mx-auto w-full")}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-purple-400 uppercase tracking-wide">
+                        All Companies Vault
+                      </span>
+                      <Badge variant="orchid" className="bg-purple-950 text-purple-300 border-purple-800">
+                        50+ Companies Included
+                      </Badge>
+                    </div>
+                    <h4 className="text-xl font-bold text-white mt-2">
+                      All-Company Placement Pass (Clubbed)
+                    </h4>
+                    <p className="text-xs text-slate-300 mt-1">
+                      Unconstrained access to all 50+ company banks: TCS, Infosys, Accenture, Amazon, Microsoft, Google, Wipro, Cognizant, and more.
+                    </p>
 
-                  <div className="mt-6 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setCompanyPassCycle("MONTHLY")}
-                      className={`flex-1 py-1.5 px-3 rounded text-xs font-semibold border transition-all ${
-                        companyPassCycle === "MONTHLY"
-                          ? "bg-white text-slate-900 border-white"
-                          : "bg-slate-800 text-slate-300 border-slate-700"
-                      }`}
+                    <div className="mt-6 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCompanyPassCycle("MONTHLY")}
+                        className={`flex-1 py-1.5 px-3 rounded text-xs font-semibold border transition-all ${
+                          companyPassCycle === "MONTHLY"
+                            ? "bg-white text-slate-900 border-white"
+                            : "bg-slate-800 text-slate-300 border-slate-700"
+                        }`}
+                      >
+                        Monthly (Rs 349)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCompanyPassCycle("YEARLY")}
+                        className={`flex-1 py-1.5 px-3 rounded text-xs font-semibold border transition-all ${
+                          companyPassCycle === "YEARLY"
+                            ? "bg-white text-slate-900 border-white"
+                            : "bg-slate-800 text-slate-300 border-slate-700"
+                        }`}
+                      >
+                        Yearly (Rs 999) - Save 76%
+                      </button>
+                    </div>
+
+                    <div className="mt-6 p-4 rounded-lg bg-slate-800/80 border border-slate-700 space-y-2 text-xs text-slate-200">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                        <span>Full access to 50+ company question banks & archives</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                        <span>FAANG, Big 4, and Mass Recruiter patterns included</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                        <span>Free updates whenever new exam batches are ingested</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-white">
+                        Rs {companyPassCycle === "YEARLY" ? "999" : "349"}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {companyPassCycle === "YEARLY" ? "/ year" : "/ month"} (all-inclusive)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-4 border-t border-slate-800">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white border-transparent"
+                      onClick={() =>
+                        handlePurchasePass(
+                          "PASS_COMPANY_ALL",
+                          null,
+                          companyPassCycle,
+                          `All-Company Placement Pass (${companyPassCycle})`
+                        )
+                      }
+                      disabled={processingItem === `PASS_PASS_COMPANY_ALL_${companyPassCycle}`}
                     >
-                      Monthly (Rs 349)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCompanyPassCycle("YEARLY")}
-                      className={`flex-1 py-1.5 px-3 rounded text-xs font-semibold border transition-all ${
-                        companyPassCycle === "YEARLY"
-                          ? "bg-white text-slate-900 border-white"
-                          : "bg-slate-800 text-slate-300 border-slate-700"
-                      }`}
-                    >
-                      Yearly (Rs 999) - Save 76%
-                    </button>
-                  </div>
-
-                  <div className="mt-6 p-4 rounded-lg bg-slate-800/80 border border-slate-700 space-y-2 text-xs text-slate-200">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400" />
-                      <span>Full access to 50+ company question banks & archives</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400" />
-                      <span>FAANG, Big 4, and Mass Recruiter patterns included</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400" />
-                      <span>Free updates whenever new exam batches are ingested</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-white">
-                      Rs {companyPassCycle === "YEARLY" ? "999" : "349"}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {companyPassCycle === "YEARLY" ? "/ year" : "/ month"} (all-inclusive)
-                    </span>
+                      Unlock All 50+ Companies (Rs {companyPassCycle === "YEARLY" ? "999" : "349"})
+                    </Button>
                   </div>
                 </div>
+              )}
 
-                <div className="mt-8 pt-4 border-t border-slate-800">
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white border-transparent"
-                    onClick={() =>
-                      handlePurchasePass(
-                        "PASS_COMPANY_ALL",
-                        null,
-                        companyPassCycle,
-                        `All-Company Placement Pass (${companyPassCycle})`
-                      )
-                    }
-                    disabled={processingItem === `PASS_PASS_COMPANY_ALL_${companyPassCycle}`}
-                  >
-                    Unlock All 50+ Companies (Rs {companyPassCycle === "YEARLY" ? "999" : "349"})
-                  </Button>
+              {!isItemPublished("PASS_COMPANY_ALL") && !isItemPublished("PASS_COMPANY_SINGLE") && !isItemPublished("PASS_COMPANY_INDIVIDUAL") && (
+                <div className="col-span-full p-8 text-center bg-white rounded-xl border border-dashed border-slate-200 text-slate-500 text-xs">
+                  Company placement packages are temporarily offline for updates. Check back shortly.
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -1608,6 +1659,7 @@ export function FlashStorePage() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* 100 Minutes Pack */}
+              {(isItemPublished("PACK_100") || isItemPublished("PACK_100_MINUTES")) && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1646,8 +1698,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* 200 Minutes Pack */}
+              {(isItemPublished("PACK_200") || isItemPublished("PACK_200_MINUTES")) && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1686,8 +1740,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* 300 Minutes Pack */}
+              {(isItemPublished("PACK_300") || isItemPublished("PACK_300_MINUTES")) && (
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1726,8 +1782,10 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* 600 Minutes Pack (Best Value) */}
+              {(isItemPublished("PACK_600") || isItemPublished("PACK_600_MINUTES")) && (
               <div className="bg-slate-900 text-white rounded-lg border border-slate-800 p-5 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -1769,6 +1827,7 @@ export function FlashStorePage() {
                   </Button>
                 </div>
               </div>
+              )}
             </div>
           </div>
         )}
