@@ -338,7 +338,6 @@ export function FlashStorePage() {
   };
 
   const currentXp = Math.max(0, subscription?.totalXp || 0);
-  const xpRupeeEquivalent = (currentXp * 0.01).toFixed(2);
   const totalAvailableMockMinutes = (subscription?.includedMinutesRemaining || 0) + (subscription?.purchasedMinutesBalance || 0);
   const currentStreak = subscription?.currentStreak || 0;
   const streakHealth = subscription?.streakHealth || {};
@@ -358,14 +357,6 @@ export function FlashStorePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-semibold tracking-wider uppercase text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
-                  Flash Store & Commerce
-                </span>
-                <span className="text-xs font-medium text-slate-500">
-                  FanCode Modular Model
-                </span>
-              </div>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
                 Flash Store
               </h1>
@@ -383,7 +374,7 @@ export function FlashStorePage() {
                 <Coins className="w-4 h-4 text-amber-500" />
                 <div className="text-xs">
                   <span className="font-bold text-slate-900">{currentXp.toLocaleString("en-IN")} XP</span>
-                  <span className="text-slate-500 ml-1">(approx Rs {xpRupeeEquivalent})</span>
+                  <span className="text-slate-500 ml-1">Wallet</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -846,22 +837,10 @@ export function FlashStorePage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: MODULAR PASSES (FanCode Style) */}
+        {/* TAB 2: MODULAR PASSES */}
         {/* ========================================================================= */}
         {activeTab === "PASSES" && (
           <div className="space-y-8">
-            <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex items-start gap-3">
-              <Layers className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  FanCode-Style Modular Commerce
-                </h3>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Don't need a full platform subscription? Purchase only the passes you need for your target preparation. Each pass grants dedicated access without monthly recurring commitment.
-                </p>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* 1. Aptitude Pass */}
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
@@ -1140,29 +1119,17 @@ export function FlashStorePage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: COMPANY PLACEMENT PACKS (Decision 5 Hybrid Model) */}
+        {/* TAB 3: COMPANY PLACEMENT PACKS */}
         {/* ========================================================================= */}
         {activeTab === "COMPANIES" && (
           <div className="space-y-8">
-            <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex items-start gap-3">
-              <Building2 className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  Decision 5: Hybrid Company-Specific Architecture
-                </h3>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Prepare specifically for one target recruiter or unlock the complete 50+ company placement vault. All company question banks are also included free in the Premium Plan (Rs 299/mo).
-                </p>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Option A: Individual Target Company Pass */}
               <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                      Option A
+                      Single Company
                     </span>
                     <Badge variant="blue">Individual Recruiter</Badge>
                   </div>
@@ -1236,10 +1203,10 @@ export function FlashStorePage() {
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-purple-400 uppercase tracking-wide">
-                      Option B • Complete Vault
+                      All Companies Vault
                     </span>
                     <Badge variant="orchid" className="bg-purple-950 text-purple-300 border-purple-800">
-                      Best For Multiple Drives
+                      50+ Companies Included
                     </Badge>
                   </div>
                   <h4 className="text-xl font-bold text-white mt-2">
@@ -1323,22 +1290,10 @@ export function FlashStorePage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: AI MOCK INTERVIEW MINUTES (Decision 3 Non-Expiring Top-ups) */}
+        {/* TAB 4: AI MOCK INTERVIEW MINUTES */}
         {/* ========================================================================= */}
         {activeTab === "MINUTES" && (
           <div className="space-y-8">
-            <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex items-start gap-3">
-              <Clock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  Decision 3: Mock Interview Minutes Policy
-                </h3>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  <strong>Top-up packs never expire.</strong> Use them whenever you need Gemini Live AI interview practice. Monthly included subscription minutes (60m Standard, 180m Premium) refresh monthly.
-                </p>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* 100 Minutes Pack */}
               <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
@@ -1478,31 +1433,20 @@ export function FlashStorePage() {
         {/* ========================================================================= */}
         {activeTab === "XP_ARCADE" && (
           <div className="space-y-8">
-            {/* XP Wallet & Valuation Card */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-amber-600" />
-                  <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">
-                    Flash XP Internal Economy
-                  </span>
-                </div>
-                <h3 className="text-2xl font-extrabold text-slate-900 mt-1">
-                  {currentXp.toLocaleString("en-IN")} XP Balance
-                </h3>
-                <p className="text-xs text-slate-600 mt-1 max-w-xl">
-                  Internal valuation: <strong>100 XP = Rs 1</strong> platform credit. Earn XP by answering MCQs, passing coding testcases, maintaining streaks, and competing in contests.
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg border border-amber-200/80 shadow-sm text-right shrink-0">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">
-                  Equivalent Reward Value
+            {/* XP Wallet Card */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Coins className="w-5 h-5 text-amber-600" />
+                <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+                  Flash XP Rewards
                 </span>
-                <p className="text-2xl font-black text-amber-600 mt-0.5">
-                  Rs {xpRupeeEquivalent}
-                </p>
               </div>
+              <h3 className="text-2xl font-extrabold text-slate-900 mt-1">
+                {currentXp.toLocaleString("en-IN")} XP Balance
+              </h3>
+              <p className="text-xs text-slate-600 mt-1 max-w-xl">
+                Earn XP by answering MCQs, passing coding testcases, maintaining streaks, and competing in contests. Redeem your earned XP below for mock interview minutes, contest entries, and streak repairs.
+              </p>
             </div>
 
             {/* Redemption Arcade Grid */}
@@ -1524,9 +1468,7 @@ export function FlashStorePage() {
                     <p className="text-xs text-slate-600 mt-1">
                       Convert 1,000 XP directly into 30 minutes of Gemini Live AI interview practice.
                     </p>
-                    <div className="mt-3 text-[11px] text-slate-400">
-                      Internal monetary value: Rs 10
-                    </div>
+
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-slate-100">
@@ -1553,11 +1495,8 @@ export function FlashStorePage() {
                       Contest Entry Pass
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Join any Rs 25 contest for free by redeeming 2,500 XP.
+                      Join eligible placement contests for free by redeeming 2,500 XP.
                     </p>
-                    <div className="mt-3 text-[11px] text-slate-400">
-                      Internal monetary value: Rs 25
-                    </div>
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-slate-100">
@@ -1586,8 +1525,8 @@ export function FlashStorePage() {
                     <p className="text-xs text-slate-600 mt-1">
                       Missed 2 days in a row? Spend 5 XP to repair your broken streak and keep your consecutive progress alive.
                     </p>
-                    <div className="mt-3 text-[11px] text-slate-400">
-                      Day 1 is protected by grace for free.
+                    <div className="mt-3 text-[11px] text-slate-500">
+                      Day 1 miss is protected by Flash Grace automatically.
                     </div>
                   </div>
 
@@ -1793,3 +1732,4 @@ export function FlashStorePage() {
 }
 
 export default FlashStorePage;
+
