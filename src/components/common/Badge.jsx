@@ -48,10 +48,10 @@ export function PlanBadge({ tier = "FREE", size = "md", className = "" }) {
     );
   }
 
-  if (normalized === "BASIC") {
+  if (normalized === "BASIC" || normalized === "STANDARD") {
     return (
       <Badge variant="primary" size={size} className={cn("gap-1 font-semibold", className)}>
-        <Sparkles className="w-3.5 h-3.5 text-blue-700" /> Basic
+        <Sparkles className="w-3.5 h-3.5 text-blue-700" /> Standard
       </Badge>
     );
   }

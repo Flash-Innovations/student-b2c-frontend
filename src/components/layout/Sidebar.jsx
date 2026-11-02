@@ -10,6 +10,7 @@ import {
   FileText,
   Award,
   Crown,
+  ShoppingBag,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -34,7 +35,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/interview", label: "AI Mock Interview", icon: Mic },
     { to: "/resume", label: "ATS Resume Optimizer", icon: FileText },
     { to: "/profile", label: "Candidate Profile", icon: User },
-    { to: "/pricing", label: "Pricing & Plans", icon: Crown }
+    { to: "/store", label: "Flash Store", icon: ShoppingBag }
   ];
 
   const navLinks = allNavLinks.filter((link) => {

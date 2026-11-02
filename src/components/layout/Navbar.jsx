@@ -7,6 +7,7 @@ import {
   FileCheck2,
   Award,
   Crown,
+  ShoppingBag,
   LogOut,
   User,
   ChevronDown,
@@ -32,7 +33,7 @@ export function Navbar() {
     { name: 'Coding Arena', path: '/coding', icon: Code2 },
     { name: 'AI Mock Interview', path: '/interview', icon: Sparkles },
     { name: 'Resume ATS', path: '/resume', icon: FileCheck2 },
-    { name: 'Pricing', path: '/pricing', icon: Crown }
+    { name: 'Flash Store', path: '/store', icon: ShoppingBag }
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -89,7 +90,7 @@ export function Navbar() {
             <>
               {/* Mock minutes quick counter */}
               <Link
-                to="/pricing"
+                to="/store"
                 title="Remaining AI Mock Interview Minutes"
                 className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700/60 text-slate-300 hover:border-indigo-500/50 transition-colors text-xs"
               >

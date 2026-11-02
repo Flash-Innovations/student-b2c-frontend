@@ -10,6 +10,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { PricingPage } from "./pages/PricingPage";
+import { FlashStorePage } from "./pages/FlashStorePage";
 
 // Authenticated Student Pages
 import { DashboardPage } from "./pages/DashboardPage";
@@ -110,7 +111,8 @@ export function App() {
           <Route path="/interview" element={<MockInterviewPage />} />
           <Route path="/mock-interview" element={<Navigate to="/interview" replace />} />
           <Route path="/resume" element={<ResumeOptimizerPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/store" element={<FlashStorePage />} />
+          <Route path="/pricing" element={<FlashStorePage />} />
 
           {/* Student Career Profile */}
           <Route path="/profile" element={<StudentProfilePage />} />

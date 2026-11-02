@@ -172,7 +172,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated: Boolean(user && token),
     planTier: subscription?.planTier || 'FREE',
-    isPaid: subscription?.planTier === 'BASIC' || subscription?.planTier === 'PREMIUM',
+    isPaid: subscription?.planTier === 'BASIC' || subscription?.planTier === 'STANDARD' || subscription?.planTier === 'PREMIUM',
     isPremium: subscription?.planTier === 'PREMIUM',
     isTechnical,
     login,

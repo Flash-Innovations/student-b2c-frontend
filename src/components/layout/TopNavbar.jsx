@@ -12,6 +12,7 @@ import {
   Zap,
   User,
   Crown,
+  ShoppingBag,
   LogOut,
   Menu,
   X,
@@ -223,12 +224,12 @@ export function TopNavbar() {
                       Candidate Profile
                     </Link>
                     <Link
-                      to="/pricing"
+                      to="/store"
                       onClick={() => setProfileOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 font-medium"
                     >
-                      <Crown className="w-3.5 h-3.5 text-slate-400" />
-                      Pricing & Subscriptions
+                      <ShoppingBag className="w-3.5 h-3.5 text-slate-400" />
+                      Flash Store
                     </Link>
                   </div>
 
@@ -352,12 +353,12 @@ export function TopNavbar() {
                 <span>Candidate Profile</span>
               </NavLink>
               <NavLink
-                to="/pricing"
+                to="/store"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               >
-                <Crown className="w-5 h-5 text-slate-400" />
-                <span>Pricing & Subscriptions</span>
+                <ShoppingBag className="w-5 h-5 text-slate-400" />
+                <span>Flash Store</span>
               </NavLink>
             </div>
 
