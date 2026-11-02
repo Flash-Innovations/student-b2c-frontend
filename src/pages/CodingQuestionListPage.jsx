@@ -23,14 +23,16 @@ import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
 import { MathRenderer } from "../components/common/MathRenderer";
 import { practiceApi } from "../services/practiceApi";
+import { codingPreloadService } from "../services/codingPreloadService";
 import { useAuth } from "../context/AuthContext";
 
 export function CodingQuestionListPage() {
   const navigate = useNavigate();
   const { user, subscription, planTier, isPaid } = useAuth();
 
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialCatalog = codingPreloadService.getCodingCatalog() || [];
+  const [questions, setQuestions] = useState(initialCatalog);
+  const [loading, setLoading] = useState(initialCatalog.length === 0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
@@ -47,26 +49,35 @@ export function CodingQuestionListPage() {
     return new Set(user?.solvedQuestions || []);
   }, [user]);
 
-  const fetchQuestions = async ({ forceRefresh = false } = {}) => {
+  const fetchQuestions = async ({ forceRefresh = false, silent = false } = {}) => {
     if (forceRefresh) {
       setIsRefreshing(true);
-    } else {
+    } else if (!silent && questions.length === 0) {
       setLoading(true);
     }
     setError(null);
     try {
-      const res = await practiceApi.getQuestions({ type: "CODING", limit: 1000 });
-      const list = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.data)
-          ? res.data
-          : Array.isArray(res?.questions)
-            ? res.questions
-            : [];
-      setQuestions(list);
+      const list = await codingPreloadService.preloadCodingCatalog({ force: forceRefresh });
+      if (list && list.length > 0) {
+        setQuestions(list);
+      } else {
+        const res = await practiceApi.getQuestions({ type: "CODING", limit: 1000 });
+        const directList = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+            ? res.data
+            : Array.isArray(res?.questions)
+              ? res.questions
+              : [];
+        if (directList.length > 0) {
+          setQuestions(directList);
+        }
+      }
     } catch (err) {
       console.error("Failed to load coding questions:", err);
-      setError(err.message || "Unable to fetch coding questions from the Practice Platform.");
+      if (questions.length === 0) {
+        setError(err.message || "Unable to fetch coding questions from the Practice Platform.");
+      }
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -74,7 +85,8 @@ export function CodingQuestionListPage() {
   };
 
   useEffect(() => {
-    fetchQuestions();
+    const hasCached = initialCatalog.length > 0;
+    fetchQuestions({ silent: hasCached });
   }, []);
 
   // Extract unique subcategories
@@ -374,6 +386,8 @@ export function CodingQuestionListPage() {
                 <div
                   key={q.id}
                   onClick={() => navigate(`/coding/${q.id}`)}
+                  onMouseEnter={() => codingPreloadService.prefetchProblem(q.id)}
+                  onFocus={() => codingPreloadService.prefetchProblem(q.id)}
                   className="p-4 hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">

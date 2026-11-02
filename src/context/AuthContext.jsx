@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { b2cApi, getAuthToken, setAuthToken } from '../services/b2cApi';
 import { practicePreloadService } from '../services/practicePreloadService';
+import { codingPreloadService } from '../services/codingPreloadService';
 
 const AuthContext = createContext(null);
 
@@ -60,6 +61,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    codingPreloadService.clearCache();
     setAuthToken(null);
     setTokenState(null);
     setUser(null);
@@ -115,6 +117,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (user && token) {
       practicePreloadService.preloadAllCoreTopics(isTechnical);
+      if (isTechnical) {
+        codingPreloadService.preloadCodingCatalog();
+      } else {
+        const timer = setTimeout(() => {
+          codingPreloadService.preloadCodingCatalog();
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [user, token, isTechnical]);
 

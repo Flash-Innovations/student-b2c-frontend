@@ -26,6 +26,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { practiceApi } from "../services/practiceApi";
 import { b2cApi } from "../services/b2cApi";
+import { codingPreloadService, formatProblemData } from "../services/codingPreloadService";
 import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
@@ -88,17 +89,12 @@ export function CodingArenaPage() {
   const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
   
-  const [problem, setProblem] = useState(null);
-  const [loadingProblem, setLoadingProblem] = useState(true);
+  const cachedProblem = questionId ? codingPreloadService.getCachedProblem(questionId) : null;
+  const [problem, setProblem] = useState(cachedProblem || null);
+  const [loadingProblem, setLoadingProblem] = useState(!cachedProblem);
   const [language, setLanguage] = useState("cpp");
-  const [sourceCode, setSourceCode] = useState(STARTER_CODES.cpp);
-  const [running, setRunning] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [activeConsoleTab, setActiveConsoleTab] = useState("testcases"); // "testcases" | "custominput" | "output"
-  const [customInputText, setCustomInputText] = useState("");
-  const [useCustomInput, setUseCustomInput] = useState(false);
-  const [executionResult, setExecutionResult] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const languageRef = useRef(language);
+  languageRef.current = language;
 
   // Drafts keyed by language, preserved per question
   const storageKey = `flash_arena_drafts_${questionId || "default"}`;
@@ -107,8 +103,30 @@ export function CodingArenaPage() {
       const saved = localStorage.getItem(storageKey);
       if (saved) return JSON.parse(saved);
     } catch (_) {}
-    return { ...STARTER_CODES };
+    return cachedProblem?.starterCodes || { ...STARTER_CODES };
   });
+
+  const [sourceCode, setSourceCode] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed[language]) return parsed[language];
+      }
+    } catch (_) {}
+    if (cachedProblem?.starterCodes?.[language]) {
+      return cachedProblem.starterCodes[language];
+    }
+    return STARTER_CODES.cpp;
+  });
+
+  const [running, setRunning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeConsoleTab, setActiveConsoleTab] = useState("testcases"); // "testcases" | "custominput" | "output"
+  const [customInputText, setCustomInputText] = useState("");
+  const [useCustomInput, setUseCustomInput] = useState(false);
+  const [executionResult, setExecutionResult] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const solvedQuestionIds = useMemo(() => {
     return new Set(user?.solvedQuestions || []);
@@ -124,6 +142,12 @@ export function CodingArenaPage() {
     let isMounted = true;
     async function loadQuestion() {
       if (!questionId) {
+        const catalog = codingPreloadService.getCodingCatalog();
+        if (catalog && catalog.length > 0 && isMounted) {
+          navigate(`/coding/${catalog[0].id}`, { replace: true });
+          return;
+        }
+
         setLoadingProblem(true);
         try {
           // If no questionId in URL, fetch first available coding question from backend
@@ -157,68 +181,46 @@ export function CodingArenaPage() {
         return;
       }
 
-      setLoadingProblem(true);
+      const cached = codingPreloadService.getCachedProblem(questionId);
+      if (cached && isMounted) {
+        setProblem(cached);
+        setLoadingProblem(false);
+      } else {
+        setLoadingProblem(true);
+      }
+
       try {
         const res = await practiceApi.getQuestionById(questionId);
         const data = res?.data || res;
         if (data && isMounted) {
-          const version = (data.versions && data.versions[0]) || {};
-          const cp = version.codingProblem || data.codingProblem || {};
-          const rawTestCases = cp.testCases || data.sampleTestCases || data.testCases || [];
-          const testCases = rawTestCases.map((tc) => ({
-            id: tc.id,
-            input: tc.input || "",
-            expectedOutput: tc.expectedOutput || "",
-            isHidden: Boolean(tc.isHidden)
-          }));
+          const targetProblem = formatProblemData(data, questionId);
+          if (targetProblem) {
+            codingPreloadService.cacheProblem(questionId, targetProblem);
+            setProblem(targetProblem);
 
-          const resolvedStarterCodes = data.starterCodes || STARTER_CODES;
-          const resolvedVersionId =
-            data.versionId ||
-            data.questionVersionId ||
-            data.latestVersionId ||
-            data.activeVersionId ||
-            version.id ||
-            (data.versions && data.versions[0]?.id) ||
-            (data.latestVersion && data.latestVersion.id) ||
-            data.id ||
-            questionId;
+            // Restore draft or starter code
+            let savedDrafts = null;
+            try {
+              const rawSaved = localStorage.getItem(`flash_arena_drafts_${targetProblem.id}`);
+              if (rawSaved) savedDrafts = JSON.parse(rawSaved);
+            } catch (_) {}
 
-          const targetProblem = {
-            id: data.id || questionId,
-            versionId: resolvedVersionId,
-            questionVersionId: resolvedVersionId,
-            title: version.title || data.latestTitle || data.title || "Coding Challenge",
-            category: (data.subcategory || data.category || "DSA").replace(/_/g, " "),
-            difficulty: (data.difficulty || "MEDIUM").toUpperCase(),
-            statement: version.statement || data.statement || "No detailed statement provided.",
-            constraints: cp.constraints || data.constraints || "Time Limit: 2.0s | Memory Limit: 128MB",
-            timeLimit: cp.timeLimitMs ? `${cp.timeLimitMs / 1000}s` : (data.timeLimit || "2.0s"),
-            memoryLimit: cp.memoryLimitKb ? `${Math.round(cp.memoryLimitKb / 1024)}MB` : (data.memoryLimit || "128MB"),
-            inputFormat: cp.inputFormat || "Standard input via stdin",
-            outputFormat: cp.outputFormat || "Standard output via stdout",
-            testCases: testCases.length > 0 ? testCases : [
-              { input: "[Sample Input]", expectedOutput: "[Sample Output]" }
-            ],
-            starterCodes: resolvedStarterCodes
-          };
+            const resolvedStarterCodes = targetProblem.starterCodes || STARTER_CODES;
+            const currentDrafts = savedDrafts || resolvedStarterCodes;
+            setDrafts(currentDrafts);
 
-          setProblem(targetProblem);
-
-          // Restore draft or starter code
-          let savedDrafts = null;
-          try {
-            const rawSaved = localStorage.getItem(`flash_arena_drafts_${data.id}`);
-            if (rawSaved) savedDrafts = JSON.parse(rawSaved);
-          } catch (_) {}
-
-          const currentDrafts = savedDrafts || resolvedStarterCodes;
-          setDrafts(currentDrafts);
-          setSourceCode(currentDrafts[language] || resolvedStarterCodes[language] || STARTER_CODES[language]);
+            const activeLang = languageRef.current || "cpp";
+            setSourceCode((prev) => {
+              if (prev && prev.trim().length > 0 && prev !== STARTER_CODES[activeLang]) {
+                return prev;
+              }
+              return currentDrafts[activeLang] || resolvedStarterCodes[activeLang] || STARTER_CODES[activeLang];
+            });
+          }
         }
       } catch (err) {
         console.warn("Could not load question details from API:", err);
-        if (isMounted) {
+        if (isMounted && !cached) {
           showError("Could not load question details from database.");
         }
       } finally {
@@ -228,7 +230,7 @@ export function CodingArenaPage() {
 
     loadQuestion();
     return () => { isMounted = false; };
-  }, [questionId]);
+  }, [questionId, navigate, showError]);
 
   
   // Save drafts when code changes
