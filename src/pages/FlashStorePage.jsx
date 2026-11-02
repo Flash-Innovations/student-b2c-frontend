@@ -147,6 +147,69 @@ export function FlashStorePage() {
     return true;
   };
 
+  // Get dynamic pricing and details configured by SuperAdmin
+  const getItemData = (code, fallback = {}) => {
+    if (!catalogData) return fallback;
+    const clean = (code || '').toUpperCase().trim();
+    const stripped = clean.replace(/^(PASS_|PLAN_|PACK_)/, '');
+
+    // Check plans
+    const plan = catalogData.plans?.[clean] || catalogData.plans?.[stripped];
+    if (plan) {
+      const monthlyPrice = plan.pricing?.MONTHLY?.grossInr ?? plan.pricing?.monthly ?? plan.priceInr ?? fallback.monthlyPrice ?? 99;
+      const yearlyPrice = plan.pricing?.YEARLY?.grossInr ?? plan.pricing?.yearly ?? (monthlyPrice * 10) ?? fallback.yearlyPrice ?? 999;
+      return {
+        ...fallback,
+        title: plan.name || plan.title || fallback.title,
+        tagline: plan.description || plan.tagline || fallback.tagline,
+        badge: plan.badgeText || plan.badge || fallback.badge,
+        monthlyPrice,
+        yearlyPrice,
+        features: (plan.features && plan.features.length) ? plan.features : fallback.features,
+        quotas: plan.quotas || fallback.quotas || {}
+      };
+    }
+
+    // Check passes
+    const pass = catalogData.passes?.[clean] || catalogData.passes?.[stripped];
+    if (pass) {
+      const monthlyPrice = pass.pricing?.MONTHLY?.grossInr ?? pass.pricing?.monthly ?? pass.priceInr ?? fallback.monthlyPrice;
+      const yearlyPrice = pass.pricing?.YEARLY?.grossInr ?? pass.pricing?.yearly ?? fallback.yearlyPrice;
+      const oneTimePrice = pass.pricing?.ONE_TIME?.grossInr ?? pass.pricing?.oneTime ?? pass.priceInr ?? fallback.oneTimePrice;
+      const weeklyPrice = pass.pricing?.WEEKLY?.grossInr ?? pass.pricing?.weekly ?? pass.priceInr ?? fallback.weeklyPrice;
+      const priceInr = pass.priceInr ?? monthlyPrice ?? oneTimePrice ?? weeklyPrice ?? fallback.priceInr;
+      return {
+        ...fallback,
+        title: pass.name || pass.title || fallback.title,
+        tagline: pass.description || pass.tagline || fallback.tagline,
+        badge: pass.badgeText || pass.badge || fallback.badge,
+        monthlyPrice,
+        yearlyPrice,
+        oneTimePrice,
+        weeklyPrice,
+        priceInr,
+        features: (pass.features && pass.features.length) ? pass.features : fallback.features,
+        quotas: pass.quotas || fallback.quotas || {}
+      };
+    }
+
+    // Check minute packs
+    const pack = catalogData.minutePacks?.[clean] || catalogData.minutePacks?.[stripped];
+    if (pack) {
+      const priceInr = pack.priceInr ?? pack.pricing?.grossInr ?? pack.pricing?.oneTime ?? fallback.priceInr;
+      return {
+        ...fallback,
+        title: pack.title || pack.name || fallback.title,
+        tagline: pack.description || pack.tagline || fallback.tagline,
+        badge: pack.badgeText || pack.badge || fallback.badge,
+        priceInr,
+        features: (pack.features && pack.features.length) ? pack.features : fallback.features
+      };
+    }
+
+    return fallback;
+  };
+
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) {
       setCouponError("Please enter a coupon code");
@@ -542,6 +605,28 @@ export function FlashStorePage() {
         year: "numeric"
       })
     : null;
+
+  // Dynamic Catalog Item Resolution
+  const standardPlanData = getItemData("PLAN_STANDARD", { title: "Standard Plan", monthlyPrice: 99, yearlyPrice: 999 });
+  const premiumPlanData = getItemData("PLAN_PREMIUM", { title: "Premium Plan", monthlyPrice: 299, yearlyPrice: 2999 });
+  const standardPrice = billingCycle === "YEARLY" ? standardPlanData.yearlyPrice : standardPlanData.monthlyPrice;
+  const premiumPrice = billingCycle === "YEARLY" ? premiumPlanData.yearlyPrice : premiumPlanData.monthlyPrice;
+
+  const aptiPassData = getItemData("PASS_APTITUDE", { monthlyPrice: 59, yearlyPrice: 599 });
+  const coreCsPassData = getItemData("PASS_SUBJECT_MCQ", { monthlyPrice: 79, yearlyPrice: 799 });
+  const singleSubjectPassData = getItemData("PASS_SINGLE_SUBJECT", { priceInr: 29 });
+  const contestPassData = getItemData("PASS_CONTEST", { monthlyPrice: 59, yearlyPrice: 599 });
+  const codingSeriesData = getItemData("PASS_FLASH_CODING_SERIES", { priceInr: 150 });
+  const catGateSeriesData = getItemData("PASS_SERIES_CAT_GATE", { priceInr: 29 });
+
+  const companySingleData = getItemData("PASS_COMPANY_SINGLE", { monthlyPrice: 99 });
+  const companyAllData = getItemData("PASS_COMPANY_ALL", { monthlyPrice: 349, yearlyPrice: 999 });
+  const companyAllPrice = companyPassCycle === "YEARLY" ? (companyAllData.yearlyPrice || 999) : (companyAllData.monthlyPrice || 349);
+
+  const pack100Data = getItemData("PACK_100_MINUTES", { priceInr: 30, badge: "₹0.30/min" });
+  const pack200Data = getItemData("PACK_200_MINUTES", { priceInr: 60, badge: "₹0.30/min" });
+  const pack300Data = getItemData("PACK_300_MINUTES", { priceInr: 90, badge: "₹0.30/min" });
+  const pack600Data = getItemData("PACK_600_MINUTES", { priceInr: 150, badge: "₹0.25/min" });
 
   return (
     <div className="min-h-screen bg-slate-50/60 pb-20">
@@ -964,20 +1049,20 @@ export function FlashStorePage() {
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">
-                      Standard Plan
+                      {standardPlanData.title}
                     </span>
-                    <Badge variant="blue">Entry Subscription</Badge>
+                    <Badge variant="blue">{standardPlanData.badge || "Entry Subscription"}</Badge>
                   </div>
                   <div className="mt-4 flex items-baseline gap-1">
                     <span className="text-4xl font-extrabold text-slate-900">
-                      Rs {billingCycle === "YEARLY" ? "999" : "99"}
+                      Rs {standardPrice}
                     </span>
                     <span className="text-xs text-slate-500">
                       {billingCycle === "YEARLY" ? "/ year" : "/ month"} (all-inclusive)
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-slate-600">
-                    Comprehensive practice for campus aptitude, core technical MCQs, and coding.
+                    {standardPlanData.tagline || "Comprehensive practice for campus aptitude, core technical MCQs, and coding."}
                   </p>
 
                   <div className="mt-6 space-y-3">
@@ -1022,11 +1107,11 @@ export function FlashStorePage() {
                       orderType: "PLAN",
                       planTier: "STANDARD",
                       billingCycle,
-                      title: `Flash Standard Plan (${billingCycle === "YEARLY" ? "Annual" : "Monthly"})`,
-                      description: "100 MCQs/subj/mo, 250 DSA Coding Qs, 60m Mock Interviews, 1 Mentorship Session",
-                      priceInr: billingCycle === "YEARLY" ? 999 : 99,
-                      originalPriceInr: billingCycle === "YEARLY" ? 1188 : 199,
-                      badge: "Entry Subscription"
+                      title: `Flash ${standardPlanData.title} (${billingCycle === "YEARLY" ? "Annual" : "Monthly"})`,
+                      description: standardPlanData.tagline || "100 MCQs/subj/mo, 250 DSA Coding Qs, 60m Mock Interviews, 1 Mentorship Session",
+                      priceInr: standardPrice,
+                      originalPriceInr: Math.round(standardPrice * 1.5),
+                      badge: standardPlanData.badge || "Entry Subscription"
                     })}
                   >
                     {planTier === "STANDARD" || planTier === "BASIC" ? (
@@ -1045,22 +1130,22 @@ export function FlashStorePage() {
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-purple-400 uppercase tracking-wide">
-                      Premium Plan
+                      {premiumPlanData.title}
                     </span>
                     <Badge variant="orchid" className="bg-purple-950/80 text-purple-300 border-purple-800">
-                      All-Inclusive Suite
+                      {premiumPlanData.badge || "All-Inclusive Suite"}
                     </Badge>
                   </div>
                   <div className="mt-4 flex items-baseline gap-1">
                     <span className="text-4xl font-extrabold text-white">
-                      Rs {billingCycle === "YEARLY" ? "2,999" : "299"}
+                      Rs {premiumPrice}
                     </span>
                     <span className="text-xs text-slate-400">
                       {billingCycle === "YEARLY" ? "/ year" : "/ month"} (all-inclusive)
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-slate-300">
-                    The ultimate suite for dream placements with live 1:1 mentorship and all company archives.
+                    {premiumPlanData.tagline || "The ultimate suite for dream placements with live 1:1 mentorship and all company archives."}
                   </p>
 
                   <div className="mt-6 space-y-3">
@@ -1109,11 +1194,11 @@ export function FlashStorePage() {
                       orderType: "PLAN",
                       planTier: "PREMIUM",
                       billingCycle,
-                      title: `Flash Premium Plan (${billingCycle === "YEARLY" ? "Annual" : "Monthly"})`,
-                      description: "250 MCQs/subj/mo, 750 DSA Coding Qs, 180m Mock Interviews, 3 Mentorship Sessions",
-                      priceInr: billingCycle === "YEARLY" ? 2999 : 299,
-                      originalPriceInr: billingCycle === "YEARLY" ? 3588 : 599,
-                      badge: "All-Inclusive Suite"
+                      title: `Flash ${premiumPlanData.title} (${billingCycle === "YEARLY" ? "Annual" : "Monthly"})`,
+                      description: premiumPlanData.tagline || "250 MCQs/subj/mo, 750 DSA Coding Qs, 180m Mock Interviews, 3 Mentorship Sessions",
+                      priceInr: premiumPrice,
+                      originalPriceInr: Math.round(premiumPrice * 1.5),
+                      badge: premiumPlanData.badge || "All-Inclusive Suite"
                     })}
                   >
                     {planTier === "PREMIUM" ? (
@@ -1152,9 +1237,9 @@ export function FlashStorePage() {
                     100 MCQs per subject across Quantitative Aptitude, Logical Reasoning, Verbal Ability, and Data Interpretation.
                   </p>
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-slate-900">Rs 59</span>
+                    <span className="text-2xl font-bold text-slate-900">Rs {contestPassData.monthlyPrice || 59}</span>
                     <span className="text-xs text-slate-500">/ month</span>
-                    <span className="text-xs text-slate-400">or Rs 599 / year</span>
+                    <span className="text-xs text-slate-400">or Rs {contestPassData.yearlyPrice || 599} / year</span>
                   </div>
                 </div>
 
@@ -1169,12 +1254,12 @@ export function FlashStorePage() {
                       billingCycle: "MONTHLY",
                       title: "Aptitude Pass (Monthly)",
                       description: "Full access to Quantitative Aptitude, Logical Reasoning, and Verbal Ability banks",
-                      priceInr: 59,
+                      priceInr: contestPassData.monthlyPrice || 59,
                       originalPriceInr: 99
                     })}
                     disabled={processingItem === "PASS_PASS_APTITUDE_MONTHLY"}
                   >
-                    Rs 59 Monthly
+                    Rs {contestPassData.monthlyPrice || 59} Monthly
                   </Button>
                   <Button
                     size="xs"
@@ -1186,12 +1271,12 @@ export function FlashStorePage() {
                       billingCycle: "YEARLY",
                       title: "Aptitude Pass (Yearly)",
                       description: "Full 1-year access to Quants, LR, and Verbal Ability placement banks",
-                      priceInr: 599,
+                      priceInr: contestPassData.yearlyPrice || 599,
                       originalPriceInr: 708
                     })}
                     disabled={processingItem === "PASS_PASS_APTITUDE_YEARLY"}
                   >
-                    Rs 599 Yearly
+                    Rs {contestPassData.yearlyPrice || 599} Yearly
                   </Button>
                 </div>
               </div>
@@ -1214,9 +1299,9 @@ export function FlashStorePage() {
                     100 MCQs per subject across Operating Systems, DBMS, Computer Networks, OOP, and Software Engineering.
                   </p>
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-slate-900">Rs 79</span>
+                    <span className="text-2xl font-bold text-slate-900">Rs {coreCsPassData.monthlyPrice || 79}</span>
                     <span className="text-xs text-slate-500">/ month</span>
-                    <span className="text-xs text-slate-400">or Rs 799 / year</span>
+                    <span className="text-xs text-slate-400">or Rs {coreCsPassData.yearlyPrice || 799} / year</span>
                   </div>
                 </div>
 
@@ -1294,7 +1379,7 @@ export function FlashStorePage() {
                   </div>
 
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-slate-900">Rs 29</span>
+                    <span className="text-2xl font-bold text-slate-900">Rs {singleSubjectPassData.priceInr || 29}</span>
                     <span className="text-xs text-slate-500">/ 30 days</span>
                   </div>
                 </div>
@@ -1314,7 +1399,7 @@ export function FlashStorePage() {
                     }
                     disabled={processingItem === `PASS_PASS_SINGLE_SUBJECT_${selectedSubject}`}
                   >
-                    Purchase for Rs 29
+                    Purchase for Rs {singleSubjectPassData.priceInr || 29}
                   </Button>
                 </div>
               </div>
@@ -1337,9 +1422,9 @@ export function FlashStorePage() {
                     Free entry to 4 weekly placement contests + 1 monthly major contest without paying individual entry fees.
                   </p>
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-slate-900">Rs 59</span>
+                    <span className="text-2xl font-bold text-slate-900">Rs {aptiPassData.monthlyPrice || 59}</span>
                     <span className="text-xs text-slate-500">/ month</span>
-                    <span className="text-xs text-slate-400">or Rs 599 / year</span>
+                    <span className="text-xs text-slate-400">or Rs {aptiPassData.yearlyPrice || 599} / year</span>
                   </div>
                 </div>
 
@@ -1399,7 +1484,7 @@ export function FlashStorePage() {
                     Competitive tournament series with real-time testcase runs. 10,000 XP prize pool distributed among Top 10 participants (1,000 XP each).
                   </p>
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-slate-900">Rs 150</span>
+                    <span className="text-2xl font-bold text-slate-900">Rs {codingSeriesData.priceInr || 150}</span>
                     <span className="text-xs text-slate-500">/ one-time tournament entry</span>
                   </div>
                 </div>
@@ -1419,7 +1504,7 @@ export function FlashStorePage() {
                     }
                     disabled={processingItem === "PASS_PASS_FLASH_CODING_SERIES_ONE_TIME"}
                   >
-                    Enter Series for Rs 150
+                    Enter Series for Rs {codingSeriesData.priceInr || 150}
                   </Button>
                 </div>
               </div>
@@ -1442,7 +1527,7 @@ export function FlashStorePage() {
                     Weekly full-length mock assessment series for GATE CS and CAT Aptitude with percentile benchmarking.
                   </p>
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-slate-900">Rs 29</span>
+                    <span className="text-2xl font-bold text-slate-900">Rs {catGateSeriesData.priceInr || 29}</span>
                     <span className="text-xs text-slate-500">/ week</span>
                   </div>
                 </div>
@@ -1462,7 +1547,7 @@ export function FlashStorePage() {
                     }
                     disabled={processingItem === "PASS_PASS_CAT_GATE_SERIES_WEEKLY"}
                   >
-                    Join Series for Rs 29
+                    Join Series for Rs {catGateSeriesData.priceInr || 29}
                   </Button>
                 </div>
               </div>
@@ -1527,7 +1612,7 @@ export function FlashStorePage() {
                     </div>
 
                     <div className="mt-6 flex items-baseline gap-2">
-                      <span className="text-3xl font-extrabold text-slate-900">Rs 99</span>
+                      <span className="text-3xl font-extrabold text-slate-900">Rs {companySingleData.priceInr || companySingleData.monthlyPrice || 99}</span>
                       <span className="text-xs text-slate-500">/ month per company</span>
                     </div>
                   </div>
@@ -1547,7 +1632,7 @@ export function FlashStorePage() {
                       }
                       disabled={processingItem === `PASS_PASS_COMPANY_INDIVIDUAL_${selectedCompany}`}
                     >
-                      Unlock {selectedCompany} Pass for Rs 99
+                      Unlock {selectedCompany} Pass for Rs {companySingleData.priceInr || companySingleData.monthlyPrice || 99}
                     </Button>
                   </div>
                 </div>
@@ -1582,7 +1667,7 @@ export function FlashStorePage() {
                             : "bg-slate-800 text-slate-300 border-slate-700"
                         }`}
                       >
-                        Monthly (Rs 349)
+                        Monthly (Rs {companyAllData.monthlyPrice || 349})
                       </button>
                       <button
                         type="button"
@@ -1593,7 +1678,7 @@ export function FlashStorePage() {
                             : "bg-slate-800 text-slate-300 border-slate-700"
                         }`}
                       >
-                        Yearly (Rs 999) - Save 76%
+                        Yearly (Rs {companyAllData.yearlyPrice || 999}) - Save 76%
                       </button>
                     </div>
 
@@ -1614,7 +1699,7 @@ export function FlashStorePage() {
 
                     <div className="mt-6 flex items-baseline gap-2">
                       <span className="text-3xl font-extrabold text-white">
-                        Rs {companyPassCycle === "YEARLY" ? "999" : "349"}
+                        Rs {companyAllPrice}
                       </span>
                       <span className="text-xs text-slate-400">
                         {companyPassCycle === "YEARLY" ? "/ year" : "/ month"} (all-inclusive)
@@ -1637,7 +1722,7 @@ export function FlashStorePage() {
                       }
                       disabled={processingItem === `PASS_PASS_COMPANY_ALL_${companyPassCycle}`}
                     >
-                      Unlock All 50+ Companies (Rs {companyPassCycle === "YEARLY" ? "999" : "349"})
+                      Unlock All 50+ Companies (Rs {companyAllPrice})
                     </Button>
                   </div>
                 </div>
@@ -1673,7 +1758,7 @@ export function FlashStorePage() {
                     Perfect for 3-4 full mock technical or HR interview sessions.
                   </p>
                   <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-slate-900">Rs 30</span>
+                    <span className="text-3xl font-extrabold text-slate-900">Rs {pack100Data.priceInr || 30}</span>
                     <span className="text-xs text-slate-500">(all-inclusive)</span>
                   </div>
                 </div>
@@ -1689,12 +1774,12 @@ export function FlashStorePage() {
                     minutes: 100,
                     title: "100 AI Mock Interview Minutes",
                     description: "Voice-driven real-time technical and HR simulation powered by Gemini Live",
-                    priceInr: 30,
-                    originalPriceInr: 50
+                    priceInr: pack100Data.priceInr || 30,
+                    originalPriceInr: Math.round((pack100Data.priceInr || 30) * 1.5)
                   })}
                     disabled={processingItem === "MINUTES_PACK_100"}
                   >
-                    Buy 100 Mins (Rs 30)
+                    Buy 100 Mins (Rs {pack100Data.priceInr || 30})
                   </Button>
                 </div>
               </div>
@@ -1715,7 +1800,7 @@ export function FlashStorePage() {
                     Enough for 7-8 deep interview simulations with voice & video feedback.
                   </p>
                   <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-slate-900">Rs 60</span>
+                    <span className="text-3xl font-extrabold text-slate-900">Rs {pack200Data.priceInr || 60}</span>
                     <span className="text-xs text-slate-500">(all-inclusive)</span>
                   </div>
                 </div>
@@ -1731,12 +1816,12 @@ export function FlashStorePage() {
                     minutes: 200,
                     title: "200 AI Mock Interview Minutes",
                     description: "Multi-session interview readiness with live AI feedback and scorecard",
-                    priceInr: 60,
-                    originalPriceInr: 100
+                    priceInr: pack200Data.priceInr || 60,
+                    originalPriceInr: Math.round((pack200Data.priceInr || 60) * 1.5)
                   })}
                     disabled={processingItem === "MINUTES_PACK_200"}
                   >
-                    Buy 200 Mins (Rs 60)
+                    Buy 200 Mins (Rs {pack200Data.priceInr || 60})
                   </Button>
                 </div>
               </div>
@@ -1757,7 +1842,7 @@ export function FlashStorePage() {
                     Comprehensive practice for entire placement season interviews.
                   </p>
                   <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-slate-900">Rs 90</span>
+                    <span className="text-3xl font-extrabold text-slate-900">Rs {pack300Data.priceInr || 90}</span>
                     <span className="text-xs text-slate-500">(all-inclusive)</span>
                   </div>
                 </div>
@@ -1773,12 +1858,12 @@ export function FlashStorePage() {
                     minutes: 300,
                     title: "300 AI Mock Interview Minutes",
                     description: "Deep interview mastery covering System Design, Coding, and behavioral rounds",
-                    priceInr: 90,
-                    originalPriceInr: 150
+                    priceInr: pack300Data.priceInr || 90,
+                    originalPriceInr: Math.round((pack300Data.priceInr || 90) * 1.5)
                   })}
                     disabled={processingItem === "MINUTES_PACK_300"}
                   >
-                    Buy 300 Mins (Rs 90)
+                    Buy 300 Mins (Rs {pack300Data.priceInr || 90})
                   </Button>
                 </div>
               </div>
@@ -1801,7 +1886,7 @@ export function FlashStorePage() {
                     10 hours of unconstrained AI interview practice. Never expires.
                   </p>
                   <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-white">Rs 150</span>
+                    <span className="text-3xl font-extrabold text-white">Rs {pack600Data.priceInr || 150}</span>
                     <span className="text-xs text-slate-400">(all-inclusive)</span>
                   </div>
                 </div>
@@ -1817,13 +1902,13 @@ export function FlashStorePage() {
                     minutes: 600,
                     title: "600 AI Mock Interview Minutes",
                     description: "Our best value bundle: 10 full hours of live AI placement mock practice",
-                    priceInr: 150,
-                    originalPriceInr: 250,
+                    priceInr: pack600Data.priceInr || 150,
+                    originalPriceInr: Math.round((pack600Data.priceInr || 150) * 1.5),
                     badge: "Best Value"
                   })}
                     disabled={processingItem === "MINUTES_PACK_600"}
                   >
-                    Buy 600 Mins (Rs 150)
+                    Buy 600 Mins (Rs {pack600Data.priceInr || 150})
                   </Button>
                 </div>
               </div>
