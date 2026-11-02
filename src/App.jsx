@@ -110,7 +110,7 @@ export function App() {
 
           <Route path="/interview" element={<MockInterviewPage />} />
           <Route path="/mock-interview" element={<Navigate to="/interview" replace />} />
-          <Route path="/resume" element={<ResumeOptimizerPage />} />
+          <Route path="/resume" element={<Navigate to="/profile" replace />} />
           <Route path="/store" element={<FlashStorePage />} />
           <Route path="/pricing" element={<FlashStorePage />} />
 

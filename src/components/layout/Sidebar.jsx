@@ -33,7 +33,6 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/gd", label: "GD Arena", icon: Users2, nonTechnicalOnly: true },
     { to: "/contests", label: "Assessments", icon: Trophy },
     { to: "/interview", label: "AI Mock Interview", icon: Mic },
-    { to: "/resume", label: "ATS Resume Optimizer", icon: FileText },
     { to: "/profile", label: "Candidate Profile", icon: User },
     { to: "/store", label: "Flash Store", icon: ShoppingBag }
   ];

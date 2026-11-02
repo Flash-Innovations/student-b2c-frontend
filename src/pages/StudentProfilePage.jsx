@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   FileText,
+  FileCheck2,
   Upload,
   CheckCircle2,
   RefreshCw,
@@ -208,6 +209,10 @@ export function StudentProfilePage() {
   // Resume Hub & Profile Synchronization State
   const resumeFileInputRef = useRef(null);
   const [uploadingResume, setUploadingResume] = useState(false);
+  const [isAtsReportModalOpen, setIsAtsReportModalOpen] = useState(false);
+  const [atsReportData, setAtsReportData] = useState(null);
+  const [loadingAtsReport, setLoadingAtsReport] = useState(false);
+  const [syncingAtsSkills, setSyncingAtsSkills] = useState(false);
   const [isSyncProfileModalOpen, setIsSyncProfileModalOpen] = useState(false);
   const [extractedProfileData, setExtractedProfileData] = useState(null);
   const [selectedSyncFields, setSelectedSyncFields] = useState({
@@ -240,6 +245,13 @@ export function StudentProfilePage() {
         const cleanLi = rawLi.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "").replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
         setLinkedinUrl(cleanLi);
         setCodingProfiles(Array.isArray(u.codingProfiles) ? u.codingProfiles : []);
+        if (u.resumeAtsAnalysis) {
+          setAtsReportData({
+            analysis: u.resumeAtsAnalysis,
+            detectedSkills: u.resumeAtsAnalysis.detectedSkills || u.resumeDetectedSkills || [],
+            filename: u.resumeUrl ? (u.resumeUrl.split("/").pop().replace(/^[\d-]+_/, "") || "Resume.pdf") : "Resume.pdf"
+          });
+        }
         setPublicProfileConfig(u.publicProfile || {});
         setProfileForm({
           name: u.name || "",
@@ -791,7 +803,8 @@ export function StudentProfilePage() {
     try {
       const res = await b2cApi.deleteResume();
       if (res && res.success) {
-        setStudent(prev => ({ ...prev, resumeUrl: null, resumeDetectedSkills: [] }));
+        setStudent(prev => ({ ...prev, resumeUrl: null, resumeDetectedSkills: [], resumeAtsAnalysis: null }));
+        setAtsReportData(null);
         setExtractedProfileData(null);
         showSuccess("Resume removed.");
       }
@@ -1810,12 +1823,18 @@ export function StudentProfilePage() {
                 <Button
                   variant="outline"
                   size="xs"
-                  icon={Upload}
-                  onClick={() => resumeFileInputRef.current?.click()}
-                  disabled={uploadingResume}
-                  className="text-xs"
+                  icon={FileCheck2}
+                  onClick={handleOpenAtsReport}
+                  disabled={loadingAtsReport}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
                 >
-                  Replace PDF Resume
+                  {loadingAtsReport ? (
+                    <span className="flex items-center gap-1.5">
+                      <RefreshCw className="w-3 h-3 animate-spin" /> Analyzing...
+                    </span>
+                  ) : (
+                    "ATS Report"
+                  )}
                 </Button>
                 <Button
                   variant="outline"
@@ -2965,6 +2984,220 @@ export function StudentProfilePage() {
           </div>
         </div>
       </Modal>
+
+      {/* MODAL: ATS Performance & Skill Set Report */}
+      <Modal
+        isOpen={isAtsReportModalOpen}
+        onClose={() => setIsAtsReportModalOpen(false)}
+        title="ATS Resume Performance Report"
+        maxWidth="max-w-3xl"
+      >
+        {loadingAtsReport && !atsReportData ? (
+          <div className="py-12 text-center space-y-4">
+            <RefreshCw className="w-8 h-8 animate-spin text-indigo-600 mx-auto" />
+            <p className="text-sm text-slate-600 font-medium">Scanning PDF and extracting verified skill set...</p>
+          </div>
+        ) : atsReportData?.analysis ? (
+          <div className="space-y-6">
+            {/* Header Banner & Score */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-50/80 via-white to-sky-50/50 border border-indigo-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    ATS Engine Verified
+                  </span>
+                  <span className="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-[300px]">
+                    {atsReportData.filename}
+                  </span>
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                  Placement Readiness & Compatibility
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Evaluated against enterprise hiring thresholds for campus technical & engineering roles.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 bg-white p-3.5 px-5 rounded-2xl border border-indigo-100 shadow-xs shrink-0">
+                <div className="text-right">
+                  <div className="text-3xl font-black text-indigo-600 font-mono leading-none">
+                    {atsReportData.analysis.atsScore}%
+                  </div>
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mt-0.5">ATS Match Score</div>
+                </div>
+                <div className={`p-2 rounded-xl ${
+                  atsReportData.analysis.atsScore >= 75
+                    ? "bg-emerald-50 text-emerald-600"
+                    : atsReportData.analysis.atsScore >= 50
+                    ? "bg-amber-50 text-amber-600"
+                    : "bg-rose-50 text-rose-600"
+                }`}>
+                  <Award className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Structural Checklist */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                <span>Structural Checklist</span>
+                <span className="text-[11px] font-normal lowercase text-slate-500">
+                  {Object.values(atsReportData.analysis.structuralReview || {}).filter(Boolean).length} / 6 passed
+                </span>
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {[
+                  { label: "Contact Info", passed: atsReportData.analysis.structuralReview?.hasContactInfo },
+                  { label: "GitHub / LinkedIn", passed: atsReportData.analysis.structuralReview?.hasSocialLinks },
+                  { label: "Education Section", passed: atsReportData.analysis.structuralReview?.hasEducationSection },
+                  { label: "Projects Section", passed: atsReportData.analysis.structuralReview?.hasProjectsSection },
+                  { label: "Work Experience", passed: atsReportData.analysis.structuralReview?.hasExperienceSection },
+                  {
+                    label: `${atsReportData.analysis.structuralReview?.actionVerbCount || 0} Action Verbs`,
+                    passed: (atsReportData.analysis.structuralReview?.actionVerbCount || 0) >= 3
+                  }
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all ${
+                      item.passed
+                        ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-900"
+                        : "bg-slate-50 border-slate-200 text-slate-500"
+                    }`}
+                  >
+                    {item.passed ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />
+                    )}
+                    <span className="text-xs font-semibold">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Detected Skill Set */}
+            <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                    Detected Skill Set ({atsReportData.detectedSkills?.length || 0})
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Skills accurately identified from your uploaded PDF resume.
+                  </p>
+                </div>
+                {atsReportData.detectedSkills?.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    icon={Sparkles}
+                    onClick={() => handleSyncAtsDetectedSkills(atsReportData.detectedSkills)}
+                    disabled={syncingAtsSkills}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 shrink-0"
+                  >
+                    {syncingAtsSkills ? "Syncing..." : "Sync Skills to Profile"}
+                  </Button>
+                )}
+              </div>
+
+              {atsReportData.detectedSkills && atsReportData.detectedSkills.length > 0 ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {atsReportData.detectedSkills.map((skill, i) => {
+                    const alreadyInProfile = skillsList.some(s => s.toLowerCase() === skill.toLowerCase());
+                    return (
+                      <span
+                        key={i}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                          alreadyInProfile
+                            ? "bg-white border-emerald-200 text-emerald-800 shadow-2xs"
+                            : "bg-white border-indigo-200 text-indigo-700 shadow-2xs"
+                        }`}
+                      >
+                        <Sparkles className={`w-3 h-3 ${alreadyInProfile ? "text-emerald-500" : "text-indigo-500"}`} />
+                        {skill}
+                        {alreadyInProfile && (
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded">
+                            in profile
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-white border border-slate-200 text-center text-xs text-slate-500">
+                  No recognizable technical skills were detected. Ensure your resume has a clear "Skills" section with canonical skill keywords.
+                </div>
+              )}
+            </div>
+
+            {/* Actionable Recommendations */}
+            {atsReportData.analysis.suggestions && atsReportData.analysis.suggestions.length > 0 && (
+              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2.5">
+                <h4 className="font-bold text-amber-950 text-xs uppercase tracking-wider flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600" /> Actionable Recommendations
+                </h4>
+                <ul className="space-y-1.5 text-xs text-amber-900">
+                  {atsReportData.analysis.suggestions.map((sug, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                      <span>{sug}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Upload}
+                onClick={() => {
+                  setIsAtsReportModalOpen(false);
+                  resumeFileInputRef.current?.click();
+                }}
+              >
+                Upload New PDF
+              </Button>
+              <div className="flex items-center gap-2">
+                {student?.resumeUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={ExternalLink}
+                    onClick={() => {
+                      if (student.resumeUrl.startsWith("data:")) {
+                        const win = window.open();
+                        win.document.write(`<iframe src="${student.resumeUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                      } else {
+                        window.open(student.resumeUrl, "_blank");
+                      }
+                    }}
+                  >
+                    View Resume
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setIsAtsReportModalOpen(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="py-8 text-center text-slate-500 text-sm">
+            No report available.
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 }

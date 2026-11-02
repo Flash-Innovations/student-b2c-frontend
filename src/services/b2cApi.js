@@ -134,6 +134,7 @@ export const b2cApi = {
 
   // Resume ATS Optimization
   analyzeResume: (formDataOrJson) => b2cRequest('/api/b2c/resume/analyze', { method: 'POST', body: formDataOrJson }),
+  getAtsReport: () => b2cRequest('/api/b2c/resume/ats-report', { method: 'GET' }),
 
   // Outcomes & B2B Cohort Insights
   logPlacementOffer: (offerData) => b2cRequest('/api/b2c/outcomes/offers', { method: 'POST', body: offerData }),

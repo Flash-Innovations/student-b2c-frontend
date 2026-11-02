@@ -32,7 +32,6 @@ export function Navbar() {
     { name: 'Practice MCQs', path: '/practice', icon: BrainCircuit },
     { name: 'Coding Arena', path: '/coding', icon: Code2 },
     { name: 'AI Mock Interview', path: '/interview', icon: Sparkles },
-    { name: 'Resume ATS', path: '/resume', icon: FileCheck2 },
     { name: 'Flash Store', path: '/store', icon: ShoppingBag }
   ];
 

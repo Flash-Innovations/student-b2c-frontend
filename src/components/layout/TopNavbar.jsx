@@ -85,7 +85,6 @@ export function TopNavbar() {
     links.push(
       { to: "/contests", label: "Assessments", icon: Trophy },
       { to: "/interview", label: "AI Mock Interview", icon: Mic },
-      { to: "/resume", label: "ATS Resume", icon: FileText },
       { to: "/store", label: "Flash Store", icon: ShoppingBag }
     );
 
