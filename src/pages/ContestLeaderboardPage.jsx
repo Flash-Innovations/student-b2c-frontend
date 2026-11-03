@@ -271,7 +271,7 @@ export function ContestLeaderboardPage() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-slate-900">
-                          {entry.name || (isMe ? user?.name : null) || `Candidate ${String(entry.studentId || "").slice(-4)}`}
+                          {(isMe && user?.name) || (entry.name && !entry.name.startsWith("Candidate ") ? entry.name : null) || entry.studentName || entry.userName || entry.name || (isMe ? user?.name : null) || `Candidate ${String(entry.studentId || "").slice(-4)}`}
                         </span>
                         {isMe && <Badge variant="primary" size="xs">You</Badge>}
                       </div>

@@ -1,5 +1,17 @@
 import { getAuthToken } from './b2cApi';
 
+function resolveB2cBaseUrl() {
+  const envUrl = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_B2C_API_URL;
+  if (!envUrl) {
+    return (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) ? '' : 'https://student-b2c-backend.onrender.com';
+  }
+  const trimmed = String(envUrl).trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
+    return trimmed;
+  }
+  return 'https://' + trimmed;
+}
+
 function resolvePracticeBaseUrl() {
   const envUrl = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PRACTICE_API_URL;
   if (!envUrl) return '/practice-api';
@@ -169,10 +181,38 @@ export const practiceApi = {
     const res = await practiceRequest(path, { method: 'GET' });
     return res?.data || res;
   },
-  getContestLeaderboard: (contestId, params = {}) => {
+  getContestLeaderboard: async (contestId, params = {}) => {
     const q = new URLSearchParams(params).toString();
-    return practiceRequest(`/api/contests/${contestId}/leaderboard${q ? `?${q}` : ''}`, { method: 'GET' });
+    const qs = q ? `?${q}` : '';
+    try {
+      const b2cUrl = resolveB2cBaseUrl();
+      const base = b2cUrl.replace(/\/+$/, '');
+      const token = getAuthToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(`${base}/api/contests/${contestId}/leaderboard${qs}`, { headers });
+      if (res.ok) {
+        const json = await res.json();
+        const entries = json?.entries || json?.data?.entries;
+        if (json && (Array.isArray(entries) || json.success)) {
+          return json;
+        }
+      }
+    } catch (_) {}
+    return practiceRequest(`/api/contests/${contestId}/leaderboard${qs}`, { method: 'GET' });
   },
-  getMyContestRank: (contestId) => practiceRequest(`/api/contests/${contestId}/leaderboard/me`, { method: 'GET' })
+  getMyContestRank: async (contestId) => {
+    try {
+      const b2cUrl = resolveB2cBaseUrl();
+      const base = b2cUrl.replace(/\/+$/, '');
+      const token = getAuthToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(`${base}/api/contests/${contestId}/leaderboard/me`, { headers });
+      if (res.ok) {
+        const json = await res.json();
+        if (json) return json?.data || json;
+      }
+    } catch (_) {}
+    return practiceRequest(`/api/contests/${contestId}/leaderboard/me`, { method: 'GET' });
+  }
 };
 
