@@ -361,7 +361,7 @@ export function PricingPage() {
             <div className="my-6">
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-black text-slate-900 font-mono">
-                  {billingCycle === "MONTHLY" ? "₹199" : "₹1,999"}
+                  {billingCycle === "MONTHLY" ? "₹299" : "₹2,999"}
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
                   {billingCycle === "MONTHLY" ? "/ month (incl. all taxes)" : "/ year (incl. all taxes)"}
@@ -369,7 +369,7 @@ export function PricingPage() {
               </div>
               <div className="flex items-center gap-1.5 mt-1 text-[11px] text-purple-700 font-semibold">
                 <RefreshCw className="w-3 h-3" />
-                <span>UPI AutoPay & Card e-Mandate • Flat {billingCycle === "MONTHLY" ? "₹199" : "₹1,999"}</span>
+                <span>UPI AutoPay & Card e-Mandate • Flat {billingCycle === "MONTHLY" ? "₹299" : "₹2,999"}</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">
                 1-Year Mandate • Cancel anytime with 1 click
