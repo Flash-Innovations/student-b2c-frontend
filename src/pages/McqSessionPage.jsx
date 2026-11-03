@@ -40,11 +40,12 @@ export function McqSessionPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, subscription, planTier, isPaid, refreshSubscription } = useAuth();
+  const { user, subscription, planTier, isPaid, isTopicEntitled, hasAptitudePass, hasSubjectMcqPass, hasSingleSubjectPass, hasCompanyPass, refreshSubscription } = useAuth();
   const { showSuccess, showError, showWarning } = useToast();
   
   const topicName = searchParams.get("name") || "Quantitative Aptitude";
   const topicId = searchParams.get("topic") || "QUANTITATIVE";
+  const companyName = searchParams.get("company");
   const isResultView = searchParams.get("view") === "result";
 
   // Recover session result if refreshed or navigated to on result view
@@ -190,10 +191,23 @@ export function McqSessionPage() {
     }
   }, [sessionCompleted, isResultView, questions.length, selectedAnswers]);
 
-  // Quota check
+  // Quota & Pass Entitlement Check
   const mcqCount = subscription?.mcqAttemptedCount || 0;
   const mcqLimit = subscription?.mcqLimit || 100;
-  const isExhausted = !isPaid && mcqCount >= mcqLimit;
+
+  const topicCategory = (() => {
+    const t = String(topicId).toUpperCase();
+    if (['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'DATA_INTERPRETATION', 'DI_ANALYTICS'].includes(t)) {
+      return 'Aptitude';
+    }
+    return 'Core CS';
+  })();
+
+  const isEntitled = typeof isTopicEntitled === 'function'
+    ? isTopicEntitled(topicCategory, topicId, companyName)
+    : (isPaid || (mcqCount < mcqLimit));
+
+  const isExhausted = !isEntitled;
 
   // Timer
   useEffect(() => {
@@ -443,19 +457,43 @@ export function McqSessionPage() {
     );
   }
   if (isExhausted) {
+    const isCompanyLocked = Boolean(companyName);
+    const isAptitude = topicCategory === 'Aptitude';
+
     return (
-      <Card className="p-8 text-center max-w-lg mx-auto space-y-4 my-8">
+      <Card className="p-8 text-center max-w-lg mx-auto space-y-4 my-8 shadow-sm border-slate-200">
         <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
-        <h3 className="text-xl font-bold text-slate-900">Free MCQ Quota Exhausted</h3>
+        <h3 className="text-xl font-bold text-slate-900">
+          {isCompanyLocked
+            ? `${companyName} Question Vault Locked`
+            : isAptitude
+              ? "Aptitude Practice Quota Exhausted"
+              : "Core CS MCQ Quota Exhausted"}
+        </h3>
         <p className="text-xs text-slate-500 leading-relaxed">
-          You have completed {mcqCount} of {mcqLimit} free MCQs included in the Free tier. Upgrade to Basic (₹99/mo) or Premium (₹199/mo) to unlock unlimited MCQs across all aptitude and computer science subjects.
+          {isCompanyLocked
+            ? `Accessing ${companyName} placement archives and pattern practice requires an active ${companyName} Pass (₹99/mo) or All-Company Placement Vault Pass (₹349/mo).`
+            : isAptitude
+              ? `You have completed ${mcqCount} of ${mcqLimit} free MCQs. Unlock the Aptitude Pass (₹49/mo) for unconstrained access, or upgrade your plan to Standard (₹99/mo).`
+              : `You have completed ${mcqCount} of ${mcqLimit} free MCQs. Unlock the Technical Subject Pass (₹79/mo), Single Subject Pass (₹29/mo), or upgrade to Standard (₹99/mo).`}
         </p>
-        <div className="flex justify-center gap-3 pt-2">
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
           <Link to="/practice">
             <Button variant="outline" size="sm">Back to Hub</Button>
           </Link>
-          <Link to="/pricing">
-            <Button variant="primary" size="sm">Upgrade Plan</Button>
+          {isCompanyLocked ? (
+            <Link to="/store?tab=COMPANIES">
+              <Button variant="primary" size="sm">Unlock {companyName} Pass</Button>
+            </Link>
+          ) : (
+            <Link to="/store?tab=PASSES">
+              <Button variant="primary" size="sm">
+                {isAptitude ? "Unlock Aptitude Pass (₹49)" : "Unlock Subject Pass (₹79)"}
+              </Button>
+            </Link>
+          )}
+          <Link to="/store?tab=SUBSCRIPTIONS">
+            <Button variant="outline" size="sm">View Plans</Button>
           </Link>
         </div>
       </Card>

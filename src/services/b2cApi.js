@@ -123,6 +123,8 @@ export const b2cApi = {
   cancelAutoPay: () => b2cRequest('/api/b2c/subscriptions/cancel-autopay', { method: 'POST' }),
   getMySubscription: () => b2cRequest('/api/b2c/subscriptions/my-subscription', { method: 'GET' }),
   getTransactions: () => b2cRequest('/api/b2c/subscriptions/transactions', { method: 'GET' }),
+  bookMentorship: (data) => b2cRequest('/api/b2c/subscriptions/mentorship/book', { method: 'POST', body: data }),
+  getMyMentorshipBookings: () => b2cRequest('/api/b2c/subscriptions/mentorship/my-bookings', { method: 'GET' }),
 
   // Quotas & Entitlements
   checkEntitlement: (query) => {

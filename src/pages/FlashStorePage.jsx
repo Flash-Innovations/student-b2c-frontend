@@ -90,6 +90,41 @@ export function FlashStorePage() {
   const [couponError, setCouponError] = useState(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
+  // Mentorship Booking State
+  const [bookingMentorshipOpen, setBookingMentorshipOpen] = useState(false);
+  const [mentorshipTopic, setMentorshipTopic] = useState("Resume & Portfolio Audit");
+  const [mentorshipCompany, setMentorshipCompany] = useState("");
+  const [mentorshipRole, setMentorshipRole] = useState("Software Development Engineer");
+  const [mentorshipDate, setMentorshipDate] = useState(() => {
+    const d = new Date(Date.now() + 86400000 * 3);
+    return d.toISOString().split("T")[0];
+  });
+  const [mentorshipSlot, setMentorshipSlot] = useState("18:00 - 18:30 IST");
+  const [mentorshipNotes, setMentorshipNotes] = useState("");
+  const [isBookingMentorship, setIsBookingMentorship] = useState(false);
+
+  const handleBookMentorship = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setIsBookingMentorship(true);
+    try {
+      const res = await b2cApi.bookMentorship({
+        topic: mentorshipTopic,
+        targetCompany: mentorshipCompany || "Tier-1 Product Firm",
+        targetRole: mentorshipRole,
+        preferredDate: mentorshipDate,
+        preferredTimeSlot: mentorshipSlot,
+        notes: mentorshipNotes
+      });
+      showSuccess(res?.message || "Mentorship session scheduled successfully!");
+      setBookingMentorshipOpen(false);
+      await refreshSubscription();
+    } catch (err) {
+      showError(err.message || "Failed to book mentorship session.");
+    } finally {
+      setIsBookingMentorship(false);
+    }
+  };
+
   // Fetch dynamic plans and festive offers from backend
   useEffect(() => {
     let mounted = true;
@@ -745,6 +780,39 @@ export function FlashStorePage() {
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Mentorship Entitlement Card */}
+          {(Number(subscription?.mentorshipSessionsRemaining || 0) > 0 || (subscription?.planTier && subscription.planTier !== "FREE")) && (
+            <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-purple-600 text-white shadow-xs">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-purple-950">
+                      1:1 Alumni Mentorship Sessions
+                    </p>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                      {subscription?.mentorshipSessionsRemaining || 0} of {subscription?.mentorshipSessionsQuota || 1} Remaining
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-800 mt-0.5">
+                    Schedule a scheduled 15-minute 1:1 strategy call, code audit, or resume review with Flash alumni mentors.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="primary"
+                className="bg-purple-600 hover:bg-purple-700 text-white whitespace-nowrap"
+                onClick={() => setBookingMentorshipOpen(true)}
+                disabled={Number(subscription?.mentorshipSessionsRemaining || 0) <= 0}
+              >
+                {Number(subscription?.mentorshipSessionsRemaining || 0) > 0 ? "Book 1:1 Session" : "Quota Exhausted"}
+              </Button>
             </div>
           )}
 
@@ -2213,6 +2281,132 @@ export function FlashStorePage() {
                 {cancellingAutoPay ? "Cancelling..." : "Confirm Cancellation"}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mentorship Booking Modal */}
+      {bookingMentorshipOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
+                <div className="p-2 rounded-xl bg-purple-100 text-purple-700">
+                  <Award className="w-5 h-5" />
+                </div>
+                Book 1:1 Mentorship Session
+              </div>
+              <button
+                onClick={() => setBookingMentorshipOpen(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleBookMentorship} className="py-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Session Focus Area</label>
+                <select
+                  value={mentorshipTopic}
+                  onChange={(e) => setMentorshipTopic(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-purple-600"
+                >
+                  <option value="Resume & Portfolio Audit">Resume & Portfolio Audit (ATS & Recruiter Perspective)</option>
+                  <option value="Technical Mock & Architecture Review">Technical Mock & System Architecture Review</option>
+                  <option value="Target Recruiter Placement Strategy">Target Recruiter Placement Strategy (FAANG / MNCs)</option>
+                  <option value="Offer Negotiation & Career Guidance">Offer Negotiation & Career Path Guidance</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Company</label>
+                  <input
+                    type="text"
+                    value={mentorshipCompany}
+                    onChange={(e) => setMentorshipCompany(e.target.value)}
+                    placeholder="e.g. Amazon, TCS, Google"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Role</label>
+                  <input
+                    type="text"
+                    value={mentorshipRole}
+                    onChange={(e) => setMentorshipRole(e.target.value)}
+                    placeholder="e.g. SDE-1, Cloud Engineer"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Preferred Date</label>
+                  <input
+                    type="date"
+                    value={mentorshipDate}
+                    onChange={(e) => setMentorshipDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-purple-600"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Time Slot</label>
+                  <select
+                    value={mentorshipSlot}
+                    onChange={(e) => setMentorshipSlot(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-purple-600"
+                  >
+                    <option value="17:00 - 17:30 IST">17:00 - 17:30 IST</option>
+                    <option value="18:00 - 18:30 IST">18:00 - 18:30 IST</option>
+                    <option value="19:00 - 19:30 IST">19:00 - 19:30 IST</option>
+                    <option value="20:00 - 20:30 IST">20:00 - 20:30 IST</option>
+                    <option value="21:00 - 21:30 IST">21:00 - 21:30 IST</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Specific Questions or Agenda (Optional)</label>
+                <textarea
+                  value={mentorshipNotes}
+                  onChange={(e) => setMentorshipNotes(e.target.value)}
+                  placeholder="Tell your mentor about your current preparation challenges or areas where you need guidance..."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-purple-600"
+                />
+              </div>
+
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 flex items-center justify-between text-xs text-purple-900">
+                <span>Session Balance after booking:</span>
+                <strong className="font-mono">{Math.max(0, (subscription?.mentorshipSessionsRemaining || 1) - 1)} sessions remaining</strong>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setBookingMentorshipOpen(false)}
+                  disabled={isBookingMentorship}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  disabled={isBookingMentorship}
+                >
+                  {isBookingMentorship ? "Scheduling..." : "Confirm Booking"}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { b2cApi, getAuthToken, setAuthToken } from '../services/b2cApi';
 import { practicePreloadService } from '../services/practicePreloadService';
 import { codingPreloadService } from '../services/codingPreloadService';
@@ -162,6 +162,54 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
+  const activePasses = useMemo(() => {
+    const list = Array.isArray(subscription?.activePasses) ? subscription.activePasses : [];
+    const now = new Date();
+    return list.filter(p => new Date(p.expiresAt) > now);
+  }, [subscription?.activePasses]);
+
+  const hasAptitudePass = Boolean(
+    subscription?.hasAptitudePass ||
+    activePasses.some(p => p.passType === 'PASS_APTITUDE')
+  );
+
+  const hasSubjectMcqPass = Boolean(
+    subscription?.hasSubjectMcqPass ||
+    activePasses.some(p => p.passType === 'PASS_SUBJECT_MCQ')
+  );
+
+  const hasCompanyPass = useCallback((companyName) => {
+    if (subscription?.planTier === 'PREMIUM' || subscription?.companySpecificProblems || subscription?.hasCompanyAllPass) return true;
+    if (!companyName) return false;
+    const target = String(companyName).toUpperCase().trim();
+    return activePasses.some(p =>
+      (p.passType === 'PASS_COMPANY_ALL' || (p.passType === 'PASS_COMPANY_INDIVIDUAL' && String(p.entityId).toUpperCase().trim() === target))
+    );
+  }, [subscription?.planTier, subscription?.companySpecificProblems, subscription?.hasCompanyAllPass, activePasses]);
+
+  const hasSingleSubjectPass = useCallback((subjectId) => {
+    if (!subjectId) return false;
+    const target = String(subjectId).toUpperCase().trim();
+    return activePasses.some(p =>
+      p.passType === 'PASS_SINGLE_SUBJECT' &&
+      String(p.entityId).toUpperCase().trim() === target
+    );
+  }, [activePasses]);
+
+  const isTopicEntitled = useCallback((category, topicId, company) => {
+    if (subscription?.planTier === 'BASIC' || subscription?.planTier === 'STANDARD' || subscription?.planTier === 'PREMIUM') {
+      return true;
+    }
+    const normCat = String(category || '').toUpperCase();
+    if (normCat === 'APTITUDE' && hasAptitudePass) return true;
+    if ((normCat === 'CORE CS' || normCat === 'TECHNICAL') && hasSubjectMcqPass) return true;
+    if (topicId && hasSingleSubjectPass(topicId)) return true;
+    if (company && hasCompanyPass(company)) return true;
+    const mcqCount = subscription?.mcqAttemptedCount || 0;
+    const mcqLimit = subscription?.mcqLimit || 100;
+    return mcqCount < mcqLimit;
+  }, [subscription?.planTier, subscription?.mcqAttemptedCount, subscription?.mcqLimit, hasAptitudePass, hasSubjectMcqPass, hasSingleSubjectPass, hasCompanyPass]);
+
   const value = {
     user,
     subscription,
@@ -174,6 +222,12 @@ export const AuthProvider = ({ children }) => {
     planTier: subscription?.planTier || 'FREE',
     isPaid: subscription?.planTier === 'BASIC' || subscription?.planTier === 'STANDARD' || subscription?.planTier === 'PREMIUM',
     isPremium: subscription?.planTier === 'PREMIUM',
+    activePasses,
+    hasAptitudePass,
+    hasSubjectMcqPass,
+    hasCompanyPass,
+    hasSingleSubjectPass,
+    isTopicEntitled,
     isTechnical,
     login,
     register,

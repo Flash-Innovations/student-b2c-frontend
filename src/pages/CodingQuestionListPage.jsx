@@ -16,7 +16,10 @@ import {
   Award,
   BookOpen,
   HelpCircle,
-  Filter
+  Filter,
+  Building2,
+  Lock,
+  ShieldCheck
 } from "lucide-react";
 import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
@@ -28,7 +31,7 @@ import { useAuth } from "../context/AuthContext";
 
 export function CodingQuestionListPage() {
   const navigate = useNavigate();
-  const { user, subscription, planTier, isPaid } = useAuth();
+  const { user, subscription, planTier, isPaid, hasCompanyPass } = useAuth();
 
   const initialCatalog = codingPreloadService.getCodingCatalog() || [];
   const [questions, setQuestions] = useState(initialCatalog);
@@ -40,6 +43,7 @@ export function CodingQuestionListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("ALL");
   const [selectedSubcategory, setSelectedSubcategory] = useState("ALL");
+  const [selectedCompany, setSelectedCompany] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL"); // ALL | SOLVED | UNSOLVED
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
@@ -129,14 +133,20 @@ export function CodingQuestionListPage() {
         selectedSubcategory === "ALL" ||
         (q.subcategory === selectedSubcategory || q.category === selectedSubcategory);
 
+      const matchesCompany =
+        selectedCompany === "ALL" ||
+        title.includes(selectedCompany.toLowerCase()) ||
+        subcat.includes(selectedCompany.toLowerCase()) ||
+        (Array.isArray(q.tags) && q.tags.some(t => String(t).toLowerCase().includes(selectedCompany.toLowerCase())));
+
       const matchesStatus =
         selectedStatus === "ALL" ||
         (selectedStatus === "SOLVED" && isSolved) ||
         (selectedStatus === "UNSOLVED" && !isSolved);
 
-      return matchesSearch && matchesDifficulty && matchesSubcategory && matchesStatus;
+      return matchesSearch && matchesDifficulty && matchesSubcategory && matchesCompany && matchesStatus;
     });
-  }, [questions, searchQuery, selectedDifficulty, selectedSubcategory, selectedStatus, solvedQuestionIds]);
+  }, [questions, searchQuery, selectedDifficulty, selectedSubcategory, selectedCompany, selectedStatus, solvedQuestionIds]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
@@ -148,7 +158,7 @@ export function CodingQuestionListPage() {
   // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedDifficulty, selectedSubcategory, selectedStatus]);
+  }, [searchQuery, selectedDifficulty, selectedSubcategory, selectedCompany, selectedStatus]);
 
   const getDifficultyBadge = (difficulty) => {
     switch ((difficulty || "").toUpperCase()) {
@@ -316,6 +326,22 @@ export function CodingQuestionListPage() {
             </select>
           )}
 
+          {/* Company Filter */}
+          <select
+            value={selectedCompany}
+            onChange={(e) => setSelectedCompany(e.target.value)}
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-600"
+          >
+            <option value="ALL">All Recruiters</option>
+            <option value="TCS NQT">TCS NQT</option>
+            <option value="Infosys">Infosys (DSE/SP)</option>
+            <option value="Accenture">Accenture</option>
+            <option value="Amazon">Amazon</option>
+            <option value="Google">Google</option>
+            <option value="Wipro">Wipro Elite</option>
+            <option value="Cognizant">Cognizant</option>
+          </select>
+
           {/* Status Filter */}
           <select
             value={selectedStatus}
@@ -328,6 +354,45 @@ export function CodingQuestionListPage() {
           </select>
         </div>
       </Card>
+
+      {/* Company Locked Notice Banner */}
+      {selectedCompany !== "ALL" && !isPaid && !(typeof hasCompanyPass === "function" && hasCompanyPass(selectedCompany)) && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-950">
+          <div className="flex items-center gap-2.5">
+            <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+            <p className="text-xs font-medium">
+              You are previewing coding archives calibrated for <strong>{selectedCompany}</strong>. Unlock the dedicated {selectedCompany} Pass (₹99) or All-Company Vault (₹349) to access all questions and solution walkthroughs.
+            </p>
+          </div>
+          <Button
+            size="xs"
+            variant="primary"
+            className="whitespace-nowrap bg-amber-600 hover:bg-amber-700 text-white"
+            onClick={() => navigate("/store?tab=COMPANIES")}
+          >
+            Unlock {selectedCompany} Pass
+          </Button>
+        </div>
+      )}
+
+      {/* Free Quota Notice Banner */}
+      {!isPaid && dsaCount >= dsaLimit && (
+        <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-blue-950">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-blue-700 shrink-0" />
+            <p className="text-xs font-medium">
+              Free Tier DSA Quota Reached ({dsaCount} / {dsaLimit} solved). Upgrade to Standard (250 problems) or Premium (750 problems) for unconstrained problem sets.
+            </p>
+          </div>
+          <Button
+            size="xs"
+            variant="primary"
+            onClick={() => navigate("/pricing")}
+          >
+            Upgrade Plan
+          </Button>
+        </div>
+      )}
 
       {/* Questions List */}
       {loading ? (
