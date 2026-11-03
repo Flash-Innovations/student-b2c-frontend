@@ -28,7 +28,6 @@ import {
   X,
   Plus,
   Trash2,
-  Layers,
   Briefcase,
   Cpu,
   Users,
@@ -1972,57 +1971,7 @@ export function MockInterviewPage() {
 
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-8">
               {/* ----------------------------------------------------- */}
-              {/* A. INTERVIEW FORMAT */}
-              {/* ----------------------------------------------------- */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
-                    <Layers className="w-5 h-5 text-blue-600" />
-                    <span>Interview Format</span>
-                  </div>
-                  <span className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 fill-current" /> Time-Based AI
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  {FORMAT_DEFINITIONS.map((fmt) => {
-                    const isSelected = selectedFormat === fmt.id;
-                    const IconComp = fmt.icon;
-                    return (
-                      <div
-                        key={fmt.id}
-                        className="relative rounded-xl p-5 border-2 border-blue-600 bg-blue-50/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                      >
-                        <div className="flex items-start gap-3.5">
-                          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                            <IconComp className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-bold text-slate-900 text-base">{fmt.title}</h3>
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white flex items-center gap-1 shadow-xs">
-                                <Sparkles className="w-3 h-3 fill-current" /> Recommended
-                              </span>
-                            </div>
-                            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                              {fmt.description}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-full shrink-0">
-                          <Check className="w-3.5 h-3.5 stroke-[3]" /> Selected Format
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <hr className="border-slate-100" />
-
-              {/* ----------------------------------------------------- */}
-              {/* B. INTERVIEW TRACK */}
+              {/* INTERVIEW TRACK */}
               {/* ----------------------------------------------------- */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
