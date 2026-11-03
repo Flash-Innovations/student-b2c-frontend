@@ -2549,11 +2549,6 @@ export function FlashStorePage() {
               </div>
             </div>
 
-            {/* Trust Banner */}
-            <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Official Razorpay Payment Gateway • 256-bit Bank Grade Encryption</span>
-            </div>
 
             {/* Modal Actions */}
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
