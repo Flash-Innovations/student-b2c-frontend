@@ -519,11 +519,7 @@ export function MockInterviewPage() {
     setSelectedTrack(trackId);
     setValidationError("");
     if (trackId === "HR") {
-      setSelectedSkills([
-        "STAR Method (Situation, Task, Action, Result)",
-        "Conflict Resolution & Teamwork",
-        "Leadership & Ownership"
-      ]);
+      setSelectedSkills([]);
       setShowSkillDropdown(false);
       setSkillSearchQuery("");
     } else if (trackId === "RESUME") {
@@ -787,11 +783,8 @@ export function MockInterviewPage() {
       return;
     }
 
-    if (selectedTrack !== "RESUME" && selectedSkills.length === 0) {
-      const msg =
-        selectedTrack === "HR"
-          ? "Please select at least one behavioral competency for your HR interview."
-          : "Please select at least one technical skill to focus the interview.";
+    if (selectedTrack === "TECHNICAL" && selectedSkills.length === 0) {
+      const msg = "Please select at least one technical skill to focus the interview.";
       setStartingInterview(false);
       setValidationError(msg);
       showError(msg);
@@ -2286,311 +2279,254 @@ export function MockInterviewPage() {
                 </div>
               </div>
 
-              <hr className="border-slate-100" />
-
               {/* ----------------------------------------------------- */}
-              {/* C. TECHNICAL SKILLS / RESUME IN FOCUS */}
-              <div className="space-y-4">
-                {selectedTrack === "RESUME" ? (
+              {/* C. TECHNICAL SKILLS / RESUME IN FOCUS (Only for Technical and Resume tracks) */}
+              {selectedTrack !== "HR" && (
+                <>
+                  <hr className="border-slate-100" />
                   <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                          <span>Student Profile & Resume Synchronization</span>
-                          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800">
-                            Automatic AI Analysis
-                          </span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                          Sarah will evaluate your actual projects, technologies, and achievements from your profile resume.
-                        </p>
-                      </div>
-                    </div>
-
-                    {!user?.resumeUrl ? (
-                      <div className="p-6 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-xs">
-                        <div className="flex items-start gap-3.5">
-                          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
-                            <AlertTriangle className="w-5 h-5" />
-                          </div>
+                    {selectedTrack === "RESUME" ? (
+                      <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <div>
-                            <h4 className="font-bold text-base text-amber-950">Resume Not Found</h4>
-                            <p className="text-xs sm:text-sm text-amber-900 mt-1">
-                              Please upload your resume to your profile before starting a resume-based interview.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="pt-2 flex items-center gap-3">
-                          <Link
-                            to="/profile"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-colors"
-                          >
-                            <FileText className="w-4 h-4" />
-                            <span>Go to Profile to Upload Resume</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Link>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-950 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
-                            <FileText className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="font-bold text-blue-950 flex items-center gap-2">
-                              <span>Profile Resume Connected</span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-200/80 text-blue-900 font-semibold">Active & Synced</span>
+                            <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
+                              <FileText className="w-5 h-5 text-blue-600" />
+                              <span>Student Profile & Resume Synchronization</span>
+                              <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800">
+                                Automatic AI Analysis
+                              </span>
                             </div>
-                            <p className="text-xs text-blue-700 truncate max-w-sm sm:max-w-md">
-                              {user.resumeUrl ? user.resumeUrl.split('/').pop() : 'Profile Resume on Cloudinary'}
+                            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                              Sarah will evaluate your actual projects, technologies, and achievements from your profile resume.
                             </p>
                           </div>
                         </div>
-                        <Link
-                          to="/profile"
-                          className="text-xs font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1 self-start sm:self-auto hover:underline"
-                        >
-                          <span>Manage resume in profile</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                ) : selectedTrack === "HR" ? (
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
-                      <Users className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-blue-950">Behavioral Competency Framework (STAR Method)</p>
-                        <p className="text-blue-700 mt-0.5">
-                          Select the behavioral competencies and communication aspects you want the AI interviewer to assess during this round.
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                        <span>Select Focus Competencies ({selectedSkills.length} selected):</span>
-                        {selectedSkills.length > 0 && (
-                          <button
-                            onClick={handleClearAllSkills}
-                            className="text-slate-500 hover:text-red-600 cursor-pointer flex items-center gap-1"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Clear selections</span>
-                          </button>
+                        {!user?.resumeUrl ? (
+                          <div className="p-6 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-xs">
+                            <div className="flex items-start gap-3.5">
+                              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                                <AlertTriangle className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-base text-amber-950">Resume Not Found</h4>
+                                <p className="text-xs sm:text-sm text-amber-900 mt-1">
+                                  Please upload your resume to your profile before starting a resume-based interview.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="pt-2 flex items-center gap-3">
+                              <Link
+                                to="/profile"
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-colors"
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span>Go to Profile to Upload Resume</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </Link>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-950 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <div className="font-bold text-blue-950 flex items-center gap-2">
+                                  <span>Profile Resume Connected</span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-200/80 text-blue-900 font-semibold">Active & Synced</span>
+                                </div>
+                                <p className="text-xs text-blue-700 truncate max-w-sm sm:max-w-md">
+                                  {user.resumeUrl ? user.resumeUrl.split('/').pop() : 'Profile Resume on Cloudinary'}
+                                </p>
+                              </div>
+                            </div>
+                            <Link
+                              to="/profile"
+                              className="text-xs font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1 self-start sm:self-auto hover:underline"
+                            >
+                              <span>Manage resume in profile</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
+                          </div>
                         )}
                       </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {CURATED_HR_COMPETENCIES.map((comp) => {
-                          const isSelected = selectedSkills.includes(comp);
-                          return (
-                            <button
-                              key={comp}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  removeSkill(comp);
-                                } else {
-                                  setSelectedSkills((prev) => [...prev, comp]);
-                                }
-                              }}
-                              className={`p-3 rounded-xl border text-left text-xs sm:text-sm transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                                isSelected
-                                  ? "bg-blue-50/80 border-blue-600 text-blue-950 font-semibold shadow-xs"
-                                  : "bg-white border-slate-200 hover:border-blue-300 text-slate-700 hover:bg-slate-50"
-                              }`}
-                            >
-                              <span>{comp}</span>
-                              <div
-                                className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                                  isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"
-                                }`}
-                              >
-                                {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {/* Quick Popular Skills Pills */}
-                    <div className="space-y-1.5">
-                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                        Quick Add Popular Skills:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {POPULAR_TECHNICAL_SKILLS.map((sk) => {
-                          const isSelected = selectedSkills.includes(sk);
-                          return (
-                            <button
-                              key={sk}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  removeSkill(sk);
-                                } else {
-                                  setSelectedSkills((prev) => [...prev, sk]);
-                                }
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
-                                isSelected
-                                  ? "bg-blue-100 text-blue-800 border-blue-300 font-semibold"
-                                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-                              }`}
-                            >
-                              {isSelected ? <Check className="w-3 h-3 text-blue-700" /> : <Plus className="w-3 h-3 text-slate-400" />}
-                              <span>{sk}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Filter Toolbar: Category Dropdown & Interactive Search Input */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
-                        <select
-                          value={activeSkillCategory}
-                          onChange={(e) => setActiveSkillCategory(e.target.value)}
-                          className="w-full rounded-xl border px-3 py-2 text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white border-slate-300 text-slate-700"
-                        >
-                          <option value="All Categories">All Categories ({Object.keys(CURATED_SKILL_CATEGORIES).length})</option>
-                          {Object.keys(CURATED_SKILL_CATEGORIES).map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="sm:col-span-2 relative" ref={searchContainerRef}>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Skill Search</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                          <input
-                            type="text"
-                            value={skillSearchQuery}
-                            onFocus={() => setShowSkillDropdown(true)}
-                            onChange={(e) => {
-                              setSkillSearchQuery(e.target.value);
-                              setShowSkillDropdown(true);
-                            }}
-                            placeholder="Search skills (e.g. Python, React.js, SQL, Arrays, Docker)..."
-                            className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                          />
-                          {skillSearchQuery && (
-                            <button
-                              onClick={() => {
-                                setSkillSearchQuery("");
-                                setShowSkillDropdown(false);
-                              }}
-                              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Dynamic Search Dropdown (Only appears on click/search) */}
-                        {showSkillDropdown && (
-                          <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-64 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
-                            {matchingSkills.map((item) => {
-                              const isAlreadySelected = selectedSkills.includes(item.name);
+                    ) : (
+                      <>
+                        {/* Quick Popular Skills Pills */}
+                        <div className="space-y-1.5">
+                          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                            Quick Add Popular Skills:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {POPULAR_TECHNICAL_SKILLS.map((sk) => {
+                              const isSelected = selectedSkills.includes(sk);
                               return (
                                 <button
-                                  key={item.name}
+                                  key={sk}
                                   type="button"
-                                  onClick={() => handleSelectSkillFromDropdown(item.name)}
-                                  className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm hover:bg-blue-50/70 flex items-center justify-between cursor-pointer transition-colors group"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      removeSkill(sk);
+                                    } else {
+                                      setSelectedSkills((prev) => [...prev, sk]);
+                                    }
+                                  }}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
+                                    isSelected
+                                      ? "bg-blue-100 text-blue-800 border-blue-300 font-semibold"
+                                      : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                                  }`}
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <span className={`font-medium ${isAlreadySelected ? "text-blue-700 font-bold" : "text-slate-800"}`}>
-                                      {item.name}
-                                    </span>
-                                    <span className="text-[11px] text-slate-400 font-normal">
-                                      ({item.category})
-                                    </span>
-                                  </div>
-                                  {isAlreadySelected ? (
-                                    <span className="text-[11px] font-bold text-blue-700 flex items-center gap-1 bg-blue-100 px-2 py-0.5 rounded-full">
-                                      <Check className="w-3 h-3 stroke-[3]" /> Selected
-                                    </span>
-                                  ) : (
-                                    <span className="text-[11px] font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      + Add
-                                    </span>
-                                  )}
+                                  {isSelected ? <Check className="w-3 h-3 text-blue-700" /> : <Plus className="w-3 h-3 text-slate-400" />}
+                                  <span>{sk}</span>
                                 </button>
                               );
                             })}
+                          </div>
+                        </div>
 
-                            {matchingSkills.length === 0 && (
-                              <div className="p-4 text-center space-y-2">
-                                <p className="text-xs text-slate-500">
-                                  No matching skills found for "{skillSearchQuery}".
-                                </p>
-                                {skillSearchQuery.trim() && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAddCustomSkill(skillSearchQuery)}
-                                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    <span>Add "{skillSearchQuery.trim()}" as custom skill</span>
-                                  </button>
+                        {/* Filter Toolbar: Category Dropdown & Interactive Search Input */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                            <select
+                              value={activeSkillCategory}
+                              onChange={(e) => setActiveSkillCategory(e.target.value)}
+                              className="w-full rounded-xl border px-3 py-2 text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white border-slate-300 text-slate-700"
+                            >
+                              <option value="All Categories">All Categories ({Object.keys(CURATED_SKILL_CATEGORIES).length})</option>
+                              {Object.keys(CURATED_SKILL_CATEGORIES).map((cat) => (
+                                <option key={cat} value={cat}>
+                                  {cat}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="sm:col-span-2 relative" ref={searchContainerRef}>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">Skill Search</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                              <input
+                                type="text"
+                                value={skillSearchQuery}
+                                onFocus={() => setShowSkillDropdown(true)}
+                                onChange={(e) => {
+                                  setSkillSearchQuery(e.target.value);
+                                  setShowSkillDropdown(true);
+                                }}
+                                placeholder="Search skills (e.g. Python, React.js, SQL, Arrays, Docker)..."
+                                className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                              />
+                              {skillSearchQuery && (
+                                <button
+                                  onClick={() => {
+                                    setSkillSearchQuery("");
+                                    setShowSkillDropdown(false);
+                                  }}
+                                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Dynamic Search Dropdown (Only appears on click/search) */}
+                            {showSkillDropdown && (
+                              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-64 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                                {matchingSkills.map((item) => {
+                                  const isAlreadySelected = selectedSkills.includes(item.name);
+                                  return (
+                                    <button
+                                      key={item.name}
+                                      type="button"
+                                      onClick={() => handleSelectSkillFromDropdown(item.name)}
+                                      className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm hover:bg-blue-50/70 flex items-center justify-between cursor-pointer transition-colors group"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className={`font-medium ${isAlreadySelected ? "text-blue-700 font-bold" : "text-slate-800"}`}>
+                                          {item.name}
+                                        </span>
+                                        <span className="text-[11px] text-slate-400 font-normal">
+                                          ({item.category})
+                                        </span>
+                                      </div>
+                                      {isAlreadySelected ? (
+                                        <span className="text-[11px] font-bold text-blue-700 flex items-center gap-1 bg-blue-100 px-2 py-0.5 rounded-full">
+                                          <Check className="w-3 h-3 stroke-[3]" /> Selected
+                                        </span>
+                                      ) : (
+                                        <span className="text-[11px] font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          + Add
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+
+                                {matchingSkills.length === 0 && (
+                                  <div className="p-4 text-center space-y-2">
+                                    <p className="text-xs text-slate-500">
+                                      No matching skills found for "{skillSearchQuery}".
+                                    </p>
+                                    {skillSearchQuery.trim() && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddCustomSkill(skillSearchQuery)}
+                                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        <span>Add "{skillSearchQuery.trim()}" as custom skill</span>
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Selected Skills Chips Display (Blue chips with remove icon) */}
-                    <div className="p-3.5 rounded-xl bg-blue-50/40 border border-blue-200/60 space-y-2">
-                      <div className="text-xs font-semibold text-blue-900 flex items-center justify-between">
-                        <span>Currently Selected for Interview ({selectedSkills.length})</span>
-                        {selectedSkills.length > 0 && (
-                          <span className="text-[11px] text-blue-700 font-normal">Click × to remove</span>
-                        )}
-                      </div>
-
-                      {selectedSkills.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic py-1">
-                          No skills selected. Use the quick pills or search above to choose technologies.
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {selectedSkills.map((skill) => (
-                            <span
-                              key={skill}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white shadow-xs animate-in zoom-in-95 duration-100"
-                            >
-                              <span>{skill}</span>
-                              <button
-                                type="button"
-                                onClick={() => removeSkill(skill)}
-                                className="p-0.5 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
-                                title={`Remove ${skill}`}
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
                         </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
+
+                        {/* Selected Skills Chips Display (Blue chips with remove icon) */}
+                        <div className="p-3.5 rounded-xl bg-blue-50/40 border border-blue-200/60 space-y-2">
+                          <div className="text-xs font-semibold text-blue-900 flex items-center justify-between">
+                            <span>Currently Selected for Interview ({selectedSkills.length})</span>
+                            {selectedSkills.length > 0 && (
+                              <span className="text-[11px] text-blue-700 font-normal">Click × to remove</span>
+                            )}
+                          </div>
+
+                          {selectedSkills.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic py-1">
+                              No skills selected. Use the quick pills or search above to choose technologies.
+                            </p>
+                          ) : (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {selectedSkills.map((skill) => (
+                                <span
+                                  key={skill}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white shadow-xs animate-in zoom-in-95 duration-100"
+                                >
+                                  <span>{skill}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeSkill(skill)}
+                                    className="p-0.5 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
+                                    title={`Remove ${skill}`}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
 
               <hr className="border-slate-100" />
 
@@ -2651,18 +2587,18 @@ export function MockInterviewPage() {
                 <button
                   type="button"
                   disabled={
-                  totalMockMinutes === 0 ||
-                  totalMockMinutes < selectedDuration ||
-                  startingInterview ||
-                  (selectedTrack === "RESUME" && !user?.resumeUrl) ||
-                  (selectedTrack !== "RESUME" && selectedSkills.length === 0)
-                }
+                    totalMockMinutes === 0 ||
+                    totalMockMinutes < selectedDuration ||
+                    startingInterview ||
+                    (selectedTrack === "RESUME" && !user?.resumeUrl) ||
+                    (selectedTrack === "TECHNICAL" && selectedSkills.length === 0)
+                  }
                   onClick={handleStartInterview}
                   className={`w-full py-4 px-6 rounded-xl font-bold text-base sm:text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${
                     totalMockMinutes === 0 ||
                     totalMockMinutes < selectedDuration ||
                     startingInterview ||
-                    (selectedTrack === "RESUME" ? !user?.resumeUrl : selectedSkills.length === 0)
+                    (selectedTrack === "RESUME" ? !user?.resumeUrl : selectedTrack === "TECHNICAL" ? selectedSkills.length === 0 : false)
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
                       : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 cursor-pointer hover:scale-[1.005] active:scale-[0.995]"
                   }`}
