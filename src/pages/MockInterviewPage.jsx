@@ -855,7 +855,7 @@ export function MockInterviewPage() {
     const sessionPayload = {
       interviewType: resolvedType,
       roleTitle: `${resolvedType} Placement Mock`,
-      selectedSkills: selectedSkills,
+      selectedSkills: selectedTrack === "RESUME" ? (resumeData?.detectedSkills || user?.resumeDetectedSkills || user?.skills || selectedSkills) : selectedSkills,
       resumeData: resumeData,
       mode: selectedFormat,
       durationMinutes: selectedDuration,
@@ -2092,65 +2092,28 @@ export function MockInterviewPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-950 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
-                              <FileText className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-blue-950 flex items-center gap-2">
-                                <span>Profile Resume Connected</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-200/80 text-blue-900 font-semibold">Active & Synced</span>
-                              </div>
-                              <p className="text-xs text-blue-700 truncate max-w-sm sm:max-w-md">
-                                {user.resumeUrl ? user.resumeUrl.split('/').pop() : 'Profile Resume on Cloudinary'}
-                              </p>
-                            </div>
+                      <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-950 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
+                            <FileText className="w-5 h-5" />
                           </div>
-                          <Link
-                            to="/profile"
-                            className="text-xs font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1 self-start sm:self-auto hover:underline"
-                          >
-                            <span>Manage resume in profile</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </Link>
-                        </div>
-
-                        {/* Skills detected from profile resume */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-700">
-                              Detected Skills & Core Focus Areas ({selectedSkills.length} active):
-                            </span>
-                            {selectedSkills.length > 0 && (
-                              <button
-                                onClick={handleClearAllSkills}
-                                className="text-xs font-semibold text-slate-500 hover:text-red-600 flex items-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>Clear all</span>
-                              </button>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {selectedSkills.map((sk) => (
-                              <span
-                                key={sk}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-900 border border-blue-300"
-                              >
-                                <span>{sk}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => removeSkill(sk)}
-                                  className="hover:text-red-600 cursor-pointer"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            ))}
+                          <div>
+                            <div className="font-bold text-blue-950 flex items-center gap-2">
+                              <span>Profile Resume Connected</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-200/80 text-blue-900 font-semibold">Active & Synced</span>
+                            </div>
+                            <p className="text-xs text-blue-700 truncate max-w-sm sm:max-w-md">
+                              {user.resumeUrl ? user.resumeUrl.split('/').pop() : 'Profile Resume on Cloudinary'}
+                            </p>
                           </div>
                         </div>
+                        <Link
+                          to="/profile"
+                          className="text-xs font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1 self-start sm:self-auto hover:underline"
+                        >
+                          <span>Manage resume in profile</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
                       </div>
                     )}
                   </div>
@@ -2455,7 +2418,10 @@ export function MockInterviewPage() {
                 }
                   onClick={handleStartInterview}
                   className={`w-full py-4 px-6 rounded-xl font-bold text-base sm:text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${
-                    totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview || selectedSkills.length === 0
+                    totalMockMinutes === 0 ||
+                    totalMockMinutes < selectedDuration ||
+                    startingInterview ||
+                    (selectedTrack === "RESUME" ? !user?.resumeUrl : selectedSkills.length === 0)
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
                       : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 cursor-pointer hover:scale-[1.005] active:scale-[0.995]"
                   }`}
