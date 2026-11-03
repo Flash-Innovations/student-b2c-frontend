@@ -266,11 +266,9 @@ export function normalizeTranscript(rawText) {
 export async function getOptimalAudioStream() {
   const constraints = {
     audio: {
-      echoCancellation: { ideal: true },
-      noiseSuppression: { ideal: true },
-      autoGainControl: { ideal: true },
-      channelCount: { ideal: 1 },
-      sampleRate: { ideal: 16000 }
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true
     }
   };
   try {
@@ -316,11 +314,19 @@ export function MockInterviewPage() {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [interviewState, setInterviewState] = useState(INTERVIEW_STATES.INITIALIZING);
   const interviewStateRef = useRef(INTERVIEW_STATES.INITIALIZING);
+  const isRecordingIntentRef = useRef(false);
+  const isRecognitionRunningRef = useRef(false);
+  const recognitionRestartTimeoutRef = useRef(null);
   const accumulatedTranscriptRef = useRef("");
   const currentSessionFinalRef = useRef("");
   const interimTranscriptRef = useRef("");
   const speechSafetyTimerRef = useRef(null);
   const [speechLanguage, setSpeechLanguage] = useState("en-IN"); // Default Indian English with en-US toggle
+  const speechLanguageRef = useRef("en-IN");
+
+  useEffect(() => {
+    speechLanguageRef.current = speechLanguage;
+  }, [speechLanguage]);
 
   useEffect(() => {
     interviewStateRef.current = interviewState;
@@ -416,9 +422,27 @@ export function MockInterviewPage() {
 
   useEffect(() => {
     return () => {
+      isRecordingIntentRef.current = false;
+      isRecognitionRunningRef.current = false;
+      if (recognitionRestartTimeoutRef.current) {
+        clearTimeout(recognitionRestartTimeoutRef.current);
+        recognitionRestartTimeoutRef.current = null;
+      }
+      if (recognitionWatchdogTimerRef.current) {
+        clearInterval(recognitionWatchdogTimerRef.current);
+        recognitionWatchdogTimerRef.current = null;
+      }
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) {}
+        recognitionRef.current = null;
+      }
       if (cameraStreamRef.current) {
         cameraStreamRef.current.getTracks().forEach((t) => t.stop());
         cameraStreamRef.current = null;
+      }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach((t) => t.stop());
+        micStreamRef.current = null;
       }
     };
   }, []);
@@ -958,32 +982,10 @@ export function MockInterviewPage() {
     }
     setStartingInterview(false);
 
-    // 6. Initialize Web Speech Recognition
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRec) {
-      try {
-        const rec = new SpeechRec();
-        rec.continuous = true;
-        rec.interimResults = true;
-        rec.lang = "en-US";
-        rec.onresult = (event) => {
-          let currentTranscript = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            currentTranscript += event.results[i][0].transcript;
-          }
-          if (currentTranscript.trim()) {
-            setCandidateDraft(currentTranscript);
-          }
-        };
-        rec.onerror = (e) => {
-          console.warn("Speech recognition event notice:", e.error);
-        };
-        // Recognition will start when candidate clicks Start Speaking
-        recognitionRef.current = rec;
-      } catch (recErr) {
-        console.warn("Speech recognition initialization note:", recErr);
-      }
-    }
+    // 6. Reset Speech Recognition Engine Ready for Speaking
+    recognitionRef.current = null;
+    isRecognitionRunningRef.current = false;
+    isRecordingIntentRef.current = false;
 
     // 7. Connect Live WebSocket
     try {
@@ -1141,42 +1143,53 @@ export function MockInterviewPage() {
   // VOICE-BASED INTERVIEW FLOW HANDLERS (SARAH - PRINCIPAL)
   // Continuous & Resilient Speech Recognition loop
   // ==========================================
-  const startRecognitionSession = () => {
+  const startSpeechEngine = () => {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRec || interviewStateRef.current !== INTERVIEW_STATES.RECORDING) return;
+    if (!SpeechRec || !isRecordingIntentRef.current || interviewStateRef.current !== INTERVIEW_STATES.RECORDING) {
+      return;
+    }
+
+    // If already active and running, avoid duplicate starts
+    if (isRecognitionRunningRef.current && recognitionRef.current) {
+      return;
+    }
 
     try {
       if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (_) {}
+        try { recognitionRef.current.stop(); } catch (_) {}
         recognitionRef.current = null;
       }
 
       const rec = new SpeechRec();
       rec.continuous = true;
       rec.interimResults = true;
-      rec.lang = speechLanguage || "en-IN";
+      rec.lang = speechLanguageRef.current || speechLanguage || "en-IN";
       if ("maxAlternatives" in rec) {
         rec.maxAlternatives = 3;
       }
 
+      rec.onstart = () => {
+        isRecognitionRunningRef.current = true;
+      };
+
       rec.onresult = (event) => {
-        let sessionFinal = "";
-        let sessionInterim = "";
+        let segFinal = "";
+        let segInterim = "";
         for (let i = 0; i < event.results.length; i++) {
           const res = event.results[i];
           if (res.isFinal) {
-            sessionFinal += res[0].transcript + " ";
+            segFinal += res[0].transcript + " ";
           } else {
-            sessionInterim += res[0].transcript;
+            segInterim += res[0].transcript;
           }
         }
-        currentSessionFinalRef.current = sessionFinal;
-        interimTranscriptRef.current = sessionInterim;
+        currentSessionFinalRef.current = segFinal;
+        interimTranscriptRef.current = segInterim;
 
         const rawCombined = [
           accumulatedTranscriptRef.current,
-          sessionFinal,
-          sessionInterim
+          segFinal,
+          segInterim
         ].filter(Boolean).join(" ").trim();
 
         const normalized = normalizeTranscript(rawCombined);
@@ -1188,38 +1201,54 @@ export function MockInterviewPage() {
 
       rec.onerror = (e) => {
         console.warn("Speech recognition notice:", e.error);
-        // Non-fatal pauses (e.g. 'no-speech') will trigger onend, which seamlessly creates a fresh recognition instance
+        if (e.error === "not-allowed") {
+          isRecordingIntentRef.current = false;
+          showError("Microphone access was denied or revoked. Please allow mic permissions in your browser.");
+        }
+        // Non-fatal errors ('no-speech', 'network', 'aborted') naturally trigger onend, where restart is handled
       };
 
       rec.onend = () => {
-        if (interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
-          const flushed = [currentSessionFinalRef.current, interimTranscriptRef.current].filter(Boolean).join(" ").trim();
-          if (flushed) {
-            accumulatedTranscriptRef.current = [accumulatedTranscriptRef.current, flushed].filter(Boolean).join(" ").trim();
+        isRecognitionRunningRef.current = false;
+        recognitionRef.current = null;
+
+        // Flush any text from this segment into accumulatedTranscript
+        const flushed = [currentSessionFinalRef.current, interimTranscriptRef.current].filter(Boolean).join(" ").trim();
+        if (flushed) {
+          accumulatedTranscriptRef.current = [accumulatedTranscriptRef.current, flushed].filter(Boolean).join(" ").trim();
+        }
+        currentSessionFinalRef.current = "";
+        interimTranscriptRef.current = "";
+
+        // If candidate is still intending to record, safely restart after cooldown
+        if (isRecordingIntentRef.current && interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
+          if (recognitionRestartTimeoutRef.current) {
+            clearTimeout(recognitionRestartTimeoutRef.current);
           }
-          currentSessionFinalRef.current = "";
-          interimTranscriptRef.current = "";
-
-          try { rec.abort(); } catch (_) {}
-
-          // Start a brand new SpeechRecognition instance to bypass Chrome session caps
-          setTimeout(() => {
-            if (interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
-              startRecognitionSession();
+          recognitionRestartTimeoutRef.current = setTimeout(() => {
+            if (isRecordingIntentRef.current && interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
+              startSpeechEngine();
             }
-          }, 50);
+          }, 200);
         }
       };
 
       rec.start();
       recognitionRef.current = rec;
     } catch (recErr) {
-      console.warn("Speech recognition start failed:", recErr);
-      setTimeout(() => {
-        if (interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
-          startRecognitionSession();
+      console.warn("Speech recognition start notice:", recErr);
+      isRecognitionRunningRef.current = false;
+      recognitionRef.current = null;
+      if (isRecordingIntentRef.current && interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
+        if (recognitionRestartTimeoutRef.current) {
+          clearTimeout(recognitionRestartTimeoutRef.current);
         }
-      }, 250);
+        recognitionRestartTimeoutRef.current = setTimeout(() => {
+          if (isRecordingIntentRef.current && interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
+            startSpeechEngine();
+          }
+        }, 300);
+      }
     }
   };
 
@@ -1256,34 +1285,41 @@ export function MockInterviewPage() {
     currentSessionFinalRef.current = "";
     interimTranscriptRef.current = "";
 
+    isRecordingIntentRef.current = true;
     setInterviewState(INTERVIEW_STATES.RECORDING);
     interviewStateRef.current = INTERVIEW_STATES.RECORDING;
     setAiStatus("listening");
 
-    startRecognitionSession();
+    startSpeechEngine();
 
-    // Active Watchdog: Ensures recording never stops unexpectedly while student is speaking
+    // Active Watchdog: Ensures recording stays alive without racing
     if (recognitionWatchdogTimerRef.current) {
       clearInterval(recognitionWatchdogTimerRef.current);
     }
     recognitionWatchdogTimerRef.current = setInterval(() => {
-      if (interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
-        if (!recognitionRef.current) {
-          startRecognitionSession();
+      if (isRecordingIntentRef.current && interviewStateRef.current === INTERVIEW_STATES.RECORDING) {
+        if (!isRecognitionRunningRef.current && !recognitionRestartTimeoutRef.current) {
+          startSpeechEngine();
         }
       } else {
         clearInterval(recognitionWatchdogTimerRef.current);
         recognitionWatchdogTimerRef.current = null;
       }
-    }, 2000);
+    }, 2500);
   };
 
   const handleStopRecording = () => {
     if (interviewStateRef.current !== INTERVIEW_STATES.RECORDING) return;
 
+    isRecordingIntentRef.current = false;
+
     if (recognitionWatchdogTimerRef.current) {
       clearInterval(recognitionWatchdogTimerRef.current);
       recognitionWatchdogTimerRef.current = null;
+    }
+    if (recognitionRestartTimeoutRef.current) {
+      clearTimeout(recognitionRestartTimeoutRef.current);
+      recognitionRestartTimeoutRef.current = null;
     }
 
     setInterviewState(INTERVIEW_STATES.TRANSCRIBING);
@@ -1294,6 +1330,7 @@ export function MockInterviewPage() {
       try { recognitionRef.current.stop(); } catch (_) {}
       recognitionRef.current = null;
     }
+    isRecognitionRunningRef.current = false;
 
     if (micStreamRef.current) {
       micStreamRef.current.getAudioTracks().forEach((track) => {
@@ -1621,6 +1658,12 @@ export function MockInterviewPage() {
 
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
+    }
+    isRecordingIntentRef.current = false;
+    isRecognitionRunningRef.current = false;
+    if (recognitionRestartTimeoutRef.current) {
+      clearTimeout(recognitionRestartTimeoutRef.current);
+      recognitionRestartTimeoutRef.current = null;
     }
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch (_) {}
