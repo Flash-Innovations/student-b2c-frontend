@@ -39,8 +39,22 @@ export function ContestLeaderboardPage() {
         page,
         limit: pageSize
       });
-      if (data && (data.entries || data.leaderboard)) {
-        setLeaderboardData(data);
+      const resolved = data?.data || data;
+      const rawEntries = Array.isArray(resolved?.entries)
+        ? resolved.entries
+        : (Array.isArray(resolved?.leaderboard)
+            ? resolved.leaderboard
+            : (Array.isArray(data?.entries) ? data.entries : []));
+
+      if (resolved || rawEntries.length > 0) {
+        setLeaderboardData({
+          ...resolved,
+          contestTitle: resolved?.contestTitle || data?.contestTitle || "Assessment Leaderboard",
+          contestStatus: resolved?.contestStatus || data?.contestStatus || "LIVE",
+          totalEntries: resolved?.totalEntries ?? (resolved?.pagination?.totalEntries ?? rawEntries.length),
+          myRank: resolved?.myRank || data?.myRank || null,
+          entries: rawEntries
+        });
       } else {
         setLeaderboardData({ entries: [], totalEntries: 0 });
       }
@@ -124,7 +138,7 @@ export function ContestLeaderboardPage() {
             </Badge>
           </div>
           <p className="text-xs text-slate-500">
-            Official institutional leaderboard • Standard competition ranking (1224)
+            Official institutional leaderboard • Standard competition ranking
           </p>
         </div>
 
@@ -256,7 +270,9 @@ export function ContestLeaderboardPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-900">{entry.name || "Candidate"}</span>
+                        <span className="font-semibold text-slate-900">
+                          {entry.name || (isMe ? user?.name : null) || `Candidate ${String(entry.studentId || "").slice(-4)}`}
+                        </span>
                         {isMe && <Badge variant="primary" size="xs">You</Badge>}
                       </div>
                       <span className="text-[10px] text-slate-400 font-mono block">{entry.studentId}</span>
