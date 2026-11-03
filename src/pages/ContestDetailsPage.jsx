@@ -476,7 +476,7 @@ export function ContestDetailsPage() {
                 onClick={handleBuyPass}
                 className="bg-amber-600 hover:bg-amber-700 text-white"
               >
-                Pay to Join ({isPremiumContest ? (planTier === "BASIC" ? "₹50" : "₹100") : "₹50"} all-incl.)
+                Pay to Join ({contest.entryFee > 0 ? `₹${contest.entryFee}` : (isPremiumContest ? (planTier === "BASIC" ? "₹50" : "₹100") : "₹50")} all-incl.)
               </Button>
               <Button
                 variant="outline"
