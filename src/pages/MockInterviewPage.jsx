@@ -158,13 +158,6 @@ export const FORMAT_DEFINITIONS = [
     description: "Experience a realistic interview with dynamic follow-up questions, adaptive pacing, and automatic evaluation.",
     isRecommended: true,
     icon: Clock
-  },
-  {
-    id: "QUESTION_BASED",
-    title: "Question-Based Voice Test",
-    description: "Practice with a fixed set of questions across your selected skills and topics.",
-    isRecommended: false,
-    icon: ListChecks
   }
 ];
 
@@ -1982,58 +1975,43 @@ export function MockInterviewPage() {
               {/* A. INTERVIEW FORMAT */}
               {/* ----------------------------------------------------- */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
-                  <Layers className="w-5 h-5 text-blue-600" />
-                  <span>Interview Format</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
+                    <Layers className="w-5 h-5 text-blue-600" />
+                    <span>Interview Format</span>
+                  </div>
+                  <span className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 fill-current" /> Time-Based AI
+                  </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {FORMAT_DEFINITIONS.map((fmt) => {
                     const isSelected = selectedFormat === fmt.id;
                     const IconComp = fmt.icon;
                     return (
                       <div
                         key={fmt.id}
-                        onClick={() => setSelectedFormat(fmt.id)}
-                        className={`relative rounded-xl p-5 border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                          isSelected
-                            ? "border-blue-600 bg-blue-50/40 shadow-xs"
-                            : "border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50/50"
-                        }`}
+                        className="relative rounded-xl p-5 border-2 border-blue-600 bg-blue-50/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                       >
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2.5">
-                              <div
-                                className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                                  isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
-                                }`}
-                              >
-                                <IconComp className="w-5 h-5" />
-                              </div>
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                            <IconComp className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-bold text-slate-900 text-base">{fmt.title}</h3>
-                            </div>
-                            {fmt.isRecommended && (
                               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white flex items-center gap-1 shadow-xs">
                                 <Sparkles className="w-3 h-3 fill-current" /> Recommended
                               </span>
-                            )}
+                            </div>
+                            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                              {fmt.description}
+                            </p>
                           </div>
-                          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2 pl-11">
-                            {fmt.description}
-                          </p>
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-slate-100/80 flex items-center justify-between text-xs font-semibold">
-                          <span className={isSelected ? "text-blue-700" : "text-slate-400"}>
-                            {isSelected ? "Selected Format" : "Click to select"}
-                          </span>
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white"
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                          </div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-full shrink-0">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" /> Selected Format
                         </div>
                       </div>
                     );
@@ -2509,9 +2487,7 @@ export function MockInterviewPage() {
                 </div>
 
                 <p className="text-xs text-slate-500 italic mt-1">
-                  {selectedFormat === "TIME_BASED"
-                    ? `* The AI interviewer dynamically manages pace across ${selectedDuration} minutes with continuous follow-up probing and automatic evaluation on expiry.`
-                    : `* Generates a calibrated set of questions across your focus skills to be answered sequentially.`}
+                  * The AI interviewer dynamically manages pace across {selectedDuration} minutes with continuous follow-up probing and automatic evaluation on expiry.
                 </p>
               </div>
 
