@@ -134,17 +134,19 @@ export const TRACK_DEFINITIONS = [
     ]
   },
   {
-    id: "COMBINED",
-    title: "Combined",
-    subtitle: "Dual-round simulation: Technical deep-dive + HR behavioral",
-    icon: Sparkles,
-    badge: "Placement Comprehensive",
+    id: "RESUME",
+    title: "Based on Resume",
+    subtitle: "Get a personalized placement interview based on your resume, projects, technical skills, and experience.",
+    icon: FileText,
+    badge: "AI Resume Analysis",
     isRecommended: true,
     highlights: [
-      "Technical questions",
-      "HR and behavioural questions",
-      "Communication assessment",
-      "Realistic placement interview experience"
+      "Resume-based technical questions",
+      "Questions about personal projects",
+      "Questions about selected skills and technologies",
+      "Questions about internships and experience, if mentioned",
+      "HR and behavioural questions based on the candidate's profile",
+      "Project explanation and real-world scenario questions"
     ]
   }
 ];
@@ -299,7 +301,7 @@ export function MockInterviewPage() {
   // CONFIGURATION STATE
   // ==========================================
   const [selectedFormat, setSelectedFormat] = useState("TIME_BASED");
-  const [selectedTrack, setSelectedTrack] = useState("COMBINED");
+  const [selectedTrack, setSelectedTrack] = useState("RESUME");
   const [selectedSkills, setSelectedSkills] = useState(["Python", "React.js", "SQL", "DBMS"]);
   const [selectedDuration, setSelectedDuration] = useState(15);
 
@@ -499,6 +501,14 @@ export function MockInterviewPage() {
         "Conflict Resolution & Teamwork",
         "Leadership & Ownership"
       ]);
+      setShowSkillDropdown(false);
+      setSkillSearchQuery("");
+    } else if (trackId === "RESUME") {
+      if (Array.isArray(user?.resumeDetectedSkills) && user.resumeDetectedSkills.length > 0) {
+        setSelectedSkills(user.resumeDetectedSkills);
+      } else if (selectedSkills.length === 0 || selectedSkills.some((s) => CURATED_HR_COMPETENCIES.includes(s))) {
+        setSelectedSkills(["Python", "React.js", "SQL", "DBMS"]);
+      }
       setShowSkillDropdown(false);
       setSkillSearchQuery("");
     } else {
@@ -746,11 +756,20 @@ export function MockInterviewPage() {
     setStartingInterview(true);
 
     // 2. Validate track & skill requirements
-    if (selectedSkills.length === 0) {
+    if (selectedTrack === "RESUME" && !user?.resumeUrl) {
+      const msg = "Please upload your resume to your profile before starting a resume-based interview.";
+      setStartingInterview(false);
+      setValidationError(msg);
+      showError(msg);
+      return;
+    }
+
+    if (selectedTrack !== "RESUME" && selectedSkills.length === 0) {
       const msg =
         selectedTrack === "HR"
           ? "Please select at least one behavioral competency for your HR interview."
           : "Please select at least one technical skill to focus the interview.";
+      setStartingInterview(false);
       setValidationError(msg);
       showError(msg);
       return;
@@ -784,9 +803,48 @@ export function MockInterviewPage() {
     }
 
     // 4. Resolve Interview Parameters
+    // Retrieve resume details if Based on Resume track
+    let resumeData = null;
+    if (selectedTrack === "RESUME") {
+      try {
+        const atsRes = await b2cApi.getAtsReport();
+        if (atsRes && atsRes.success) {
+          resumeData = {
+            resumeUrl: atsRes.resumeUrl || user?.resumeUrl,
+            detectedSkills: atsRes.detectedSkills || user?.resumeDetectedSkills || user?.skills || [],
+            projects: atsRes.extractedProfile?.projects || atsRes.analysis?.extractedProfile?.projects || user?.projects || [],
+            experience: atsRes.extractedProfile?.experience || atsRes.analysis?.extractedProfile?.experience || [],
+            certifications: atsRes.extractedProfile?.certifications || atsRes.analysis?.extractedProfile?.certifications || [],
+            education: atsRes.extractedProfile?.education || {
+              degree: user?.degree || user?.course,
+              branch: user?.branch,
+              collegeName: user?.collegeName
+            },
+            rawText: atsRes.rawText || atsRes.analysis?.rawText || ''
+          };
+        }
+      } catch (atsErr) {
+        console.warn("Could not fetch ATS report, using profile fallback:", atsErr);
+      }
+
+      if (!resumeData) {
+        resumeData = {
+          resumeUrl: user?.resumeUrl,
+          detectedSkills: user?.resumeDetectedSkills || user?.skills || [],
+          projects: user?.projects || [],
+          education: {
+            degree: user?.degree || user?.course,
+            branch: user?.branch,
+            collegeName: user?.collegeName
+          },
+          rawText: user?.resumeAtsAnalysis?.rawText || ''
+        };
+      }
+    }
+
     const resolvedType =
-      selectedTrack === "COMBINED"
-        ? "Combined (Tech + HR)"
+      selectedTrack === "RESUME"
+        ? "Based on Resume"
         : selectedTrack === "HR"
         ? "HR Interview"
         : "Technical Interview";
@@ -806,6 +864,7 @@ export function MockInterviewPage() {
       interviewType: resolvedType,
       roleTitle: `${resolvedType} Placement Mock`,
       selectedSkills: selectedSkills,
+      resumeData: resumeData,
       mode: selectedFormat,
       durationMinutes: selectedDuration,
       totalQuestions: totalQuestionsTarget,
@@ -1026,8 +1085,8 @@ export function MockInterviewPage() {
     const openingQuestion =
       selectedTrack === "HR"
         ? `Hello ${candidateFirstName}! Welcome to your HR & Culture placement mock interview. Let's begin: ${firstCoreQuestion}`
-        : selectedTrack === "COMBINED"
-        ? `Hello ${candidateFirstName}! Welcome to your Combined Technical & HR mock interview focusing on ${selectedSkills.slice(0, 3).join(", ")}. Let's start with our technical round: ${firstCoreQuestion}`
+        : selectedTrack === "RESUME"
+        ? `Hello ${candidateFirstName}! Welcome to your Resume-Based placement mock interview. I've reviewed your resume and projects. Let's begin: ${firstCoreQuestion}`
         : `Hello ${candidateFirstName}! Welcome to your Technical placement mock interview focusing on ${selectedSkills.slice(0, 3).join(", ")}. Let's begin: ${firstCoreQuestion}`;
 
     setCurrentQuestion({
@@ -2062,38 +2121,113 @@ export function MockInterviewPage() {
               <hr className="border-slate-100" />
 
               {/* ----------------------------------------------------- */}
-              {/* C. TECHNICAL SKILLS IN FOCUS (REDESIGNED COMPACT) */}
-              {/* ----------------------------------------------------- */}
+              {/* C. TECHNICAL SKILLS / RESUME IN FOCUS */}
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
-                      <Cpu className="w-5 h-5 text-blue-600" />
-                      <span>Technical Skills in Focus</span>
-                      {selectedTrack !== "HR" && (
-                        <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800">
-                          {selectedSkills.length} Selected
-                        </span>
-                      )}
+                {selectedTrack === "RESUME" ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                          <span>Student Profile & Resume Synchronization</span>
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-800">
+                            Automatic AI Analysis
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                          Sarah will evaluate your actual projects, technologies, and achievements from your profile resume.
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                      Select the skills and technologies you want the AI interviewer to evaluate.
-                    </p>
+
+                    {!user?.resumeUrl ? (
+                      <div className="p-6 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-xs">
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                            <AlertTriangle className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-base text-amber-950">Resume Not Found</h4>
+                            <p className="text-xs sm:text-sm text-amber-900 mt-1">
+                              Please upload your resume to your profile before starting a resume-based interview.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="pt-2 flex items-center gap-3">
+                          <Link
+                            to="/profile"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-colors"
+                          >
+                            <FileText className="w-4 h-4" />
+                            <span>Go to Profile to Upload Resume</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-950 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="font-bold text-blue-950 flex items-center gap-2">
+                                <span>Profile Resume Connected</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-200/80 text-blue-900 font-semibold">Active & Synced</span>
+                              </div>
+                              <p className="text-xs text-blue-700 truncate max-w-sm sm:max-w-md">
+                                {user.resumeUrl ? user.resumeUrl.split('/').pop() : 'Profile Resume on Cloudinary'}
+                              </p>
+                            </div>
+                          </div>
+                          <Link
+                            to="/profile"
+                            className="text-xs font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1 self-start sm:self-auto hover:underline"
+                          >
+                            <span>Manage resume in profile</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+
+                        {/* Skills detected from profile resume */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-700">
+                              Detected Skills & Core Focus Areas ({selectedSkills.length} active):
+                            </span>
+                            {selectedSkills.length > 0 && (
+                              <button
+                                onClick={handleClearAllSkills}
+                                className="text-xs font-semibold text-slate-500 hover:text-red-600 flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Clear all</span>
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedSkills.map((sk) => (
+                              <span
+                                key={sk}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-900 border border-blue-300"
+                              >
+                                <span>{sk}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeSkill(sk)}
+                                  className="hover:text-red-600 cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  {selectedTrack !== "HR" && selectedSkills.length > 0 && (
-                    <button
-                      onClick={handleClearAllSkills}
-                      className="text-xs font-semibold text-slate-500 hover:text-red-600 flex items-center gap-1 self-start sm:self-auto cursor-pointer transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Clear all selections</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* HR & Culture Behavioral Competencies or Technical Skill Search */}
-                {selectedTrack === "HR" ? (
+                ) : selectedTrack === "HR" ? (
                   <div className="space-y-4">
                     <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
                       <Users className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
@@ -2387,7 +2521,13 @@ export function MockInterviewPage() {
               <div className="pt-4 space-y-3">
                 <button
                   type="button"
-                  disabled={totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview || selectedSkills.length === 0}
+                  disabled={
+                  totalMockMinutes === 0 ||
+                  totalMockMinutes < selectedDuration ||
+                  startingInterview ||
+                  (selectedTrack === "RESUME" && !user?.resumeUrl) ||
+                  (selectedTrack !== "RESUME" && selectedSkills.length === 0)
+                }
                   onClick={handleStartInterview}
                   className={`w-full py-4 px-6 rounded-xl font-bold text-base sm:text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${
                     totalMockMinutes === 0 || totalMockMinutes < selectedDuration || startingInterview || selectedSkills.length === 0
@@ -2431,80 +2571,12 @@ export function MockInterviewPage() {
                 <div className="text-left">
                   <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <span>
-                      {selectedTrack === "COMBINED"
-                        ? "Combined Placement Round"
+                      {selectedTrack === "RESUME"
+                        ? "Based on Resume Placement Round"
                         : selectedTrack === "HR"
                         ? "HR & Culture Round"
                         : "Technical Round"}
                     </span>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-blue-600 font-extrabold">{selectedDuration} Mins</span>
-                  </div>
-                  <div className="text-xs text-slate-500 truncate max-w-xs sm:max-w-md">
-                    {selectedSkills.length > 0
-                      ? `${selectedSkills.length} selected: ${selectedSkills.slice(0, 4).join(", ")}${
-                          selectedSkills.length > 4 ? ` +${selectedSkills.length - 4} more` : ""
-                        }`
-                      : "Please select focus skills/competencies"}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                disabled={
-                  totalMockMinutes === 0 ||
-                  totalMockMinutes < selectedDuration ||
-                  startingInterview ||
-                  selectedSkills.length === 0
-                }
-                onClick={handleStartInterview}
-                className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  totalMockMinutes === 0 ||
-                  totalMockMinutes < selectedDuration ||
-                  startingInterview ||
-                  selectedSkills.length === 0
-                    ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25 hover:scale-[1.01] active:scale-[0.99]"
-                }`}
-              >
-                {startingInterview ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Initializing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 fill-current" />
-                    <span>Start Interview ({selectedDuration}m)</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* VIEW: LIVE INTERVIEW INTERFACE */}
-        {/* ========================================================= */}
-        {viewMode === "LIVE" && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            {/* Top Live Bar */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 text-base">Sarah</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">Principal</span>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800">
-                      {selectedTrack} Round
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-                    <span>Format: {selectedFormat === "TIME_BASED" ? "Timed Interview" : "Voice Test"}</span>
                     {selectedSkills.length > 0 && selectedTrack !== "HR" && (
                       <>
                         <span>•</span>
