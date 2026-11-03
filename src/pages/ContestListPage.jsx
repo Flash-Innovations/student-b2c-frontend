@@ -50,7 +50,7 @@ export function ContestListPage() {
       const addonType = isPremium ? "CONTEST_PREMIUM_PASS" : "CONTEST_REGULAR_PASS";
 
       const orderData = await b2cApi.createOrder({
-        orderType: addonType,
+        orderType: isPremium ? "PREMIUM_CONTEST" : "REGULAR_CONTEST",
         addonType,
         contestId
       });

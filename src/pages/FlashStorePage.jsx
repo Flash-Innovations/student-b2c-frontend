@@ -1322,7 +1322,7 @@ export function FlashStorePage() {
                       billingCycle: "MONTHLY",
                       title: "Aptitude Pass (Monthly)",
                       description: "Full access to Quantitative Aptitude, Logical Reasoning, and Verbal Ability banks",
-                      priceInr: contestPassData.monthlyPrice || 59,
+                      priceInr: aptiPassData.monthlyPrice || 59,
                       originalPriceInr: 99
                     })}
                     disabled={processingItem === "PASS_PASS_APTITUDE_MONTHLY"}
@@ -1339,7 +1339,7 @@ export function FlashStorePage() {
                       billingCycle: "YEARLY",
                       title: "Aptitude Pass (Yearly)",
                       description: "Full 1-year access to Quants, LR, and Verbal Ability placement banks",
-                      priceInr: contestPassData.yearlyPrice || 599,
+                      priceInr: aptiPassData.yearlyPrice || 599,
                       originalPriceInr: 708
                     })}
                     disabled={processingItem === "PASS_PASS_APTITUDE_YEARLY"}
@@ -1384,7 +1384,7 @@ export function FlashStorePage() {
                       billingCycle: "MONTHLY",
                       title: "Core CS Pass (Monthly)",
                       description: "Complete coverage of OS, DBMS, CN, and OOPs concepts",
-                      priceInr: 79,
+                      priceInr: coreCsPassData.monthlyPrice || 79,
                       originalPriceInr: 129
                     })}
                     disabled={processingItem === "PASS_PASS_SUBJECT_MCQ_MONTHLY"}
@@ -1401,7 +1401,7 @@ export function FlashStorePage() {
                       billingCycle: "YEARLY",
                       title: "Core CS Pass (Yearly)",
                       description: "Full 1-year access to all technical core CS placement question banks",
-                      priceInr: 799,
+                      priceInr: coreCsPassData.yearlyPrice || 799,
                       originalPriceInr: 948
                     })}
                     disabled={processingItem === "PASS_PASS_SUBJECT_MCQ_YEARLY"}
@@ -1458,14 +1458,18 @@ export function FlashStorePage() {
                     variant="primary"
                     className="w-full"
                     onClick={() =>
-                      handlePurchasePass(
-                        "PASS_SINGLE_SUBJECT",
-                        selectedSubject,
-                        "MONTHLY",
-                        `Single Subject Pass (${selectedSubject})`
-                      )
+                      openCheckoutModal({
+                        orderType: "PASS",
+                        passType: "PASS_SINGLE_SUBJECT",
+                        entityId: selectedSubject,
+                        billingCycle: "MONTHLY",
+                        title: `Single Subject Pass (${selectedSubject})`,
+                        description: "100 MCQs dedicated to your selected subject with concept notes & instant metrics",
+                        priceInr: singleSubjectPassData.priceInr || 29,
+                        originalPriceInr: 49,
+                        badge: "Subject Pass"
+                      })
                     }
-                    disabled={processingItem === `PASS_PASS_SINGLE_SUBJECT_${selectedSubject}`}
                   >
                     Purchase for Rs {singleSubjectPassData.priceInr || 29}
                   </Button>
@@ -1563,14 +1567,17 @@ export function FlashStorePage() {
                     variant="primary"
                     className="w-full"
                     onClick={() =>
-                      handlePurchasePass(
-                        "PASS_FLASH_CODING_SERIES",
-                        null,
-                        "ONE_TIME",
-                        "Flash Coding Series Tournament Ticket"
-                      )
+                      openCheckoutModal({
+                        orderType: "PASS",
+                        passType: "PASS_FLASH_CODING_SERIES",
+                        billingCycle: "ONE_TIME",
+                        title: "Flash Coding Series Tournament Ticket",
+                        description: "Premier competitive coding tournament with 10,000 XP prize pool giveaway",
+                        priceInr: codingSeriesData.priceInr || 150,
+                        originalPriceInr: 250,
+                        badge: "Tournament Pass"
+                      })
                     }
-                    disabled={processingItem === "PASS_PASS_FLASH_CODING_SERIES_ONE_TIME"}
                   >
                     Enter Series for Rs {codingSeriesData.priceInr || 150}
                   </Button>
@@ -1606,14 +1613,17 @@ export function FlashStorePage() {
                     variant="primary"
                     className="w-full"
                     onClick={() =>
-                      handlePurchasePass(
-                        "PASS_CAT_GATE_SERIES",
-                        null,
-                        "WEEKLY",
-                        "CAT / GATE Weekly Test Series Pass"
-                      )
+                      openCheckoutModal({
+                        orderType: "PASS",
+                        passType: "PASS_CAT_GATE_SERIES",
+                        billingCycle: "WEEKLY",
+                        title: "CAT / GATE Weekly Test Series Pass",
+                        description: "Weekly full-length mock assessment series for GATE CS and CAT Aptitude with national benchmarking",
+                        priceInr: catGateSeriesData.priceInr || 29,
+                        originalPriceInr: 49,
+                        badge: "Weekly Series"
+                      })
                     }
-                    disabled={processingItem === "PASS_PASS_CAT_GATE_SERIES_WEEKLY"}
                   >
                     Join Series for Rs {catGateSeriesData.priceInr || 29}
                   </Button>
@@ -1631,7 +1641,7 @@ export function FlashStorePage() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Option A: Individual Target Company Pass */}
-              {isItemPublished("PASS_COMPANY_SINGLE") && isItemPublished("PASS_COMPANY_INDIVIDUAL") && (
+              {(isItemPublished("PASS_COMPANY_SINGLE") || isItemPublished("PASS_COMPANY_INDIVIDUAL")) && (
                 <div className={cn("bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between", !isItemPublished("PASS_COMPANY_ALL") && "lg:col-span-2 max-w-xl mx-auto w-full")}>
                   <div>
                     <div className="flex items-center justify-between">
@@ -1691,14 +1701,18 @@ export function FlashStorePage() {
                       variant="primary"
                       className="w-full"
                       onClick={() =>
-                        handlePurchasePass(
-                          "PASS_COMPANY_INDIVIDUAL",
-                          selectedCompany,
-                          "MONTHLY",
-                          `${selectedCompany} Company Pass`
-                        )
+                        openCheckoutModal({
+                          orderType: "PASS",
+                          passType: "PASS_COMPANY_INDIVIDUAL",
+                          entityId: selectedCompany,
+                          billingCycle: "MONTHLY",
+                          title: `${selectedCompany} Target Company Pass`,
+                          description: `Curated question banks, aptitude patterns, and coding interview archives for ${selectedCompany}`,
+                          priceInr: companySingleData.priceInr || companySingleData.monthlyPrice || 99,
+                          originalPriceInr: 149,
+                          badge: "Target Company"
+                        })
                       }
-                      disabled={processingItem === `PASS_PASS_COMPANY_INDIVIDUAL_${selectedCompany}`}
                     >
                       Unlock {selectedCompany} Pass for Rs {companySingleData.priceInr || companySingleData.monthlyPrice || 99}
                     </Button>
@@ -1781,14 +1795,17 @@ export function FlashStorePage() {
                       variant="primary"
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white border-transparent"
                       onClick={() =>
-                        handlePurchasePass(
-                          "PASS_COMPANY_ALL",
-                          null,
-                          companyPassCycle,
-                          `All-Company Placement Pass (${companyPassCycle})`
-                        )
+                        openCheckoutModal({
+                          orderType: "PASS",
+                          passType: "PASS_COMPANY_ALL",
+                          billingCycle: companyPassCycle,
+                          title: `All-Company Placement Pass (${companyPassCycle === "YEARLY" ? "Yearly" : "Monthly"})`,
+                          description: "Unconstrained access to all 50+ company placement question banks, archives, and coding test suites",
+                          priceInr: companyPassCycle === "YEARLY" ? (companyAllData.yearlyPrice || 999) : (companyAllData.monthlyPrice || 349),
+                          originalPriceInr: companyPassCycle === "YEARLY" ? 4188 : 499,
+                          badge: "Company Vault"
+                        })
                       }
-                      disabled={processingItem === `PASS_PASS_COMPANY_ALL_${companyPassCycle}`}
                     >
                       Unlock All 50+ Companies (Rs {companyAllPrice})
                     </Button>
@@ -2410,6 +2427,162 @@ export function FlashStorePage() {
           </div>
         </div>
       )}
+
+      {/* Universal Checkout & Coupon Modal */}
+      {checkoutItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 relative my-8">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={closeCheckoutModal}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                {checkoutItem.badge || "Flash Store"}
+              </span>
+              <h3 className="text-xl font-bold text-slate-900 mt-2">{checkoutItem.title}</h3>
+              {checkoutItem.description && (
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">{checkoutItem.description}</p>
+              )}
+            </div>
+
+            {/* Item Pricing & Billing Overview */}
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+              <div>
+                <span className="text-xs text-slate-500 block font-medium">Standard Price</span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-2xl font-black text-slate-900">₹{checkoutItem.priceInr}</span>
+                  {checkoutItem.originalPriceInr && checkoutItem.originalPriceInr > checkoutItem.priceInr && (
+                    <span className="text-xs text-slate-400 line-through">₹{checkoutItem.originalPriceInr}</span>
+                  )}
+                </div>
+              </div>
+              <span className="text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                {checkoutItem.billingCycle === "YEARLY"
+                  ? "Annual"
+                  : checkoutItem.billingCycle === "WEEKLY"
+                  ? "Weekly"
+                  : checkoutItem.billingCycle === "ONE_TIME"
+                  ? "One-Time"
+                  : "Monthly"}
+              </span>
+            </div>
+
+            {/* Promo / Coupon Box */}
+            <div className="p-3.5 bg-indigo-50/40 rounded-xl border border-indigo-100 space-y-2.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Apply Promo / Coupon Code</span>
+              </label>
+
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-emerald-900 font-mono">{appliedCoupon.code}</span>
+                      <span className="text-[11px] text-emerald-700 block">
+                        Saved ₹{appliedCoupon.discountAmount}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-xs font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. FLASH50"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    className="flex-1 px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono tracking-wider"
+                  />
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="primary"
+                    onClick={handleApplyCoupon}
+                    disabled={validatingCoupon || !couponInput.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-3"
+                  >
+                    {validatingCoupon ? "Checking..." : "Apply"}
+                  </Button>
+                </div>
+              )}
+              {couponError && <p className="text-[11px] text-rose-600 font-medium">{couponError}</p>}
+            </div>
+
+            {/* Payment Summary */}
+            <div className="space-y-2 text-xs border-t border-slate-100 pt-3">
+              <div className="flex justify-between text-slate-600">
+                <span>Subtotal</span>
+                <span>₹{checkoutItem.priceInr}</span>
+              </div>
+              {appliedCoupon && (
+                <div className="flex justify-between text-emerald-600 font-semibold">
+                  <span>Coupon Discount</span>
+                  <span>-₹{appliedCoupon.discountAmount}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-slate-500 text-[11px]">
+                <span>Taxes & GST (18%)</span>
+                <span>Included</span>
+              </div>
+              <div className="flex justify-between items-baseline text-base font-extrabold text-slate-900 border-t border-slate-200 pt-2.5">
+                <span>Total Amount</span>
+                <span className="text-xl text-indigo-700">
+                  ₹{appliedCoupon ? appliedCoupon.finalAmount : checkoutItem.priceInr}
+                </span>
+              </div>
+            </div>
+
+            {/* Trust Banner */}
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Official Razorpay Payment Gateway • 256-bit Bank Grade Encryption</span>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={closeCheckoutModal}
+                disabled={isCheckingOut}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5"
+                onClick={handleExecuteCheckout}
+                loading={isCheckingOut}
+              >
+                {isCheckingOut
+                  ? "Initializing..."
+                  : `Proceed to Pay ₹${appliedCoupon ? appliedCoupon.finalAmount : checkoutItem.priceInr}`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

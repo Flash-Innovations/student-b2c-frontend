@@ -173,8 +173,9 @@ export function ContestDetailsPage() {
       const addonType = isPremiumContest ? "CONTEST_PREMIUM_PASS" : "CONTEST_REGULAR_PASS";
 
       const orderData = await b2cApi.createOrder({
+        orderType: isPremiumContest ? "PREMIUM_CONTEST" : "REGULAR_CONTEST",
         addonType,
-        contestId: contest?.id
+        contestId: contest?.id || contest?._id
       });
 
       if (!orderData || !orderData.orderId) {
