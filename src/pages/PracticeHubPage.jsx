@@ -23,6 +23,7 @@ import {
 import { Card, CardHeader } from "../components/common/Card";
 import { Button } from "../components/common/Button";
 import { Badge } from "../components/common/Badge";
+import { Modal } from "../components/common/Modal";
 import { useAuth } from "../context/AuthContext";
 import { practiceApi } from "../services/practiceApi";
 
@@ -128,74 +129,127 @@ export const COMPANY_PACKS = [
   {
     id: "TCS_NQT",
     code: "TCS NQT",
+    mockContestId: "TCS_NQT_MOCK",
     name: "TCS NQT Placement Vault",
     company: "TCS NQT",
     difficulty: "Moderate",
     badge: "Mass Recruiter",
+    examDuration: "80 Mins",
+    totalMarks: 100,
     description: "Curated aptitude, numerical reasoning, verbal ability, and hands-on coding problems following the latest TCS NQT National Qualifier test pattern.",
     topics: ["Numerical Ability", "Verbal Reasoning", "Advanced Coding", "Cognitive Assessment"],
     questionCount: 180,
-    priceInr: 99
+    priceInr: 99,
+    rounds: [
+      { id: "r1", name: "Numerical Ability", topic: "QUANTITATIVE", category: "Aptitude", count: "26 Qs", desc: "Percentages, Profit & Loss, Speed & Distance, Number Systems" },
+      { id: "r2", name: "Verbal Ability", topic: "VERBAL", category: "Verbal", count: "24 Qs", desc: "Sentence completion, Error spotting, Reading comprehension" },
+      { id: "r3", name: "Reasoning Ability", topic: "LOGICAL", category: "Logical", count: "30 Qs", desc: "Syllogisms, Blood relations, Direction sense, Seating" },
+      { id: "r4", name: "Hands-on Coding", topic: "CODING", category: "Coding", count: "2 Problems", isCoding: true, desc: "Arrays, String manipulation, Matrix transformations" }
+    ]
   },
   {
     id: "INFOSYS",
     code: "Infosys",
+    mockContestId: "INFOSYS_SP_MOCK",
     name: "Infosys DSE & SP Archive",
     company: "Infosys",
     difficulty: "Medium-Hard",
     badge: "Specialist Programmer",
+    examDuration: "54 Mins",
+    totalMarks: 100,
     description: "Cryptarithmetic, mathematical critical thinking, data structures, and algorithmic problems for Infosys Specialist Programmer and DSE recruitment drives.",
     topics: ["Cryptarithmetic", "Critical Reasoning", "Advanced DSA", "Data Interpretation"],
     questionCount: 140,
-    priceInr: 99
+    priceInr: 99,
+    rounds: [
+      { id: "r1", name: "Mathematical Critical Thinking", topic: "QUANTITATIVE", category: "Aptitude", count: "10 Qs", desc: "Cryptarithmetic puzzles, Permutations, Probability, Series" },
+      { id: "r2", name: "Logical Reasoning", topic: "LOGICAL", category: "Logical", count: "15 Qs", desc: "Critical thinking, Deductive logic, Data interpretation" },
+      { id: "r3", name: "Verbal Ability", topic: "VERBAL", category: "Verbal", count: "20 Qs", desc: "Contextual vocabulary, Sentence correction, Grammar" },
+      { id: "r4", name: "Hands-on Coding", topic: "CODING", category: "Coding", count: "3 Problems", isCoding: true, desc: "Dynamic programming, Graph traversal, Algorithms" }
+    ]
   },
   {
     id: "ACCENTURE",
     code: "Accenture",
+    mockContestId: "ACCENTURE_MOCK",
     name: "Accenture Assessment Pack",
     company: "Accenture",
     difficulty: "Medium",
     badge: "Cognitive & Technical",
+    examDuration: "90 Mins",
+    totalMarks: 100,
     description: "Cognitive ability, English reasoning, abstract thinking, and MS Office / pseudo-code assessment modules for Accenture campus hiring.",
     topics: ["Cognitive Assessment", "Pseudocode Debugging", "Technical Essentials", "Networking Basics"],
     questionCount: 160,
-    priceInr: 99
+    priceInr: 99,
+    rounds: [
+      { id: "r1", name: "Cognitive Assessment", topic: "LOGICAL", category: "Logical", count: "50 Qs", desc: "Abstract reasoning, Analytical ability, Spatial patterns" },
+      { id: "r2", name: "Pseudo-code & Technical", topic: "OOP", category: "Core CS", count: "40 Qs", desc: "Code snippet execution, Loop tracing, MS Office, Networks" },
+      { id: "r3", name: "English Ability", topic: "VERBAL", category: "Verbal", count: "20 Qs", desc: "Grammar, Prepositions, Spotting errors, Synonyms" },
+      { id: "r4", name: "Coding Assessment", topic: "CODING", category: "Coding", count: "2 Problems", isCoding: true, desc: "Array transformations, String hashing, Bitwise logic" }
+    ]
   },
   {
     id: "AMAZON",
     code: "Amazon",
+    mockContestId: "AMAZON_SDE_MOCK",
     name: "Amazon SDE Vault",
     company: "Amazon",
     difficulty: "Hard",
     badge: "Product / FAANG",
+    examDuration: "90 Mins",
+    totalMarks: 100,
     description: "Core algorithms, trees & dynamic programming, system architecture concepts, and Amazon Leadership Principles interview questions.",
     topics: ["Dynamic Programming", "Trees & Graphs", "System Design", "Leadership Principles"],
     questionCount: 220,
-    priceInr: 99
+    priceInr: 99,
+    rounds: [
+      { id: "r1", name: "Data Structures & Algorithms", topic: "OOP", category: "Core CS", count: "20 Qs", desc: "Binary Trees, Stacks, Queues, Heaps, Graph algorithms" },
+      { id: "r2", name: "System Concepts & Architecture", topic: "OS", category: "Core CS", count: "20 Qs", desc: "Operating Systems (Paging, Threads), DBMS, System Design" },
+      { id: "r3", name: "Hands-on Coding", topic: "CODING", category: "Coding", count: "2 Problems", isCoding: true, desc: "Two Pointers, Sliding Window, BFS/DFS, DP" }
+    ]
   },
   {
     id: "WIPRO",
     code: "Wipro",
+    mockContestId: "WIPRO_ELITE_MOCK",
     name: "Wipro Elite NTH Archive",
     company: "Wipro",
     difficulty: "Easy-Medium",
     badge: "National Talent Hunt",
+    examDuration: "60 Mins",
+    totalMarks: 100,
     description: "Quantitative aptitude, logical reasoning, written communication evaluation, and basic coding modules for Wipro Elite hiring rounds.",
     topics: ["Quantitative Aptitude", "Logical Reasoning", "Basic Coding", "Grammar & Comprehension"],
     questionCount: 130,
-    priceInr: 99
+    priceInr: 99,
+    rounds: [
+      { id: "r1", name: "Quantitative Aptitude", topic: "QUANTITATIVE", category: "Aptitude", count: "16 Qs", desc: "Number series, Percentages, Profit and Loss, Work & Time" },
+      { id: "r2", name: "Logical Reasoning", topic: "LOGICAL", category: "Logical", count: "14 Qs", desc: "Blood relations, Coding-decoding, Analogy, Syllogisms" },
+      { id: "r3", name: "Verbal English", topic: "VERBAL", category: "Verbal", count: "22 Qs", desc: "Prepositions, Articles, Sentence correction, Comprehension" },
+      { id: "r4", name: "Basic Coding", topic: "CODING", category: "Coding", count: "2 Problems", isCoding: true, desc: "Array sorting, Palindrome checks, Number patterns" }
+    ]
   },
   {
     id: "COGNIZANT",
     code: "Cognizant",
+    mockContestId: "COGNIZANT_GENC_MOCK",
     name: "Cognizant GenC & GenC Next",
     company: "Cognizant",
     difficulty: "Medium",
     badge: "GenC Series",
+    examDuration: "75 Mins",
+    totalMarks: 100,
     description: "Analytical ability, code analysis, debugging testcases, and data structures calibrated for Cognizant GenC and GenC Next tests.",
     topics: ["Analytical Reasoning", "Code Debugging", "Automata Fix", "Data Structures"],
     questionCount: 150,
-    priceInr: 99
+    priceInr: 99,
+    rounds: [
+      { id: "r1", name: "Quantitative & Analytical", topic: "QUANTITATIVE", category: "Aptitude", count: "25 Qs", desc: "Arithmetic reasoning, Data arrangement, Number series, Ratios" },
+      { id: "r2", name: "Automata Fix & Debugging", topic: "OOP", category: "Core CS", count: "20 Qs", desc: "Bug fixing in loops, Pointer errors, Logic correction" },
+      { id: "r3", name: "Verbal & Critical", topic: "VERBAL", category: "Verbal", count: "20 Qs", desc: "Vocabulary, Sentence correction, Error detection" },
+      { id: "r4", name: "Coding Test", topic: "CODING", category: "Coding", count: "2 Problems", isCoding: true, desc: "Dynamic programming, Array manipulation, String parsing" }
+    ]
   }
 ];
 
@@ -215,6 +269,26 @@ export function PracticeHubPage() {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [topicCounts, setTopicCounts] = useState({});
+  const [selectedCompanyVault, setSelectedCompanyVault] = useState(null);
+  const [isStartingSimulation, setIsStartingSimulation] = useState(false);
+
+  const handleStartSimulation = async (comp) => {
+    if (!comp) return;
+    setIsStartingSimulation(true);
+    try {
+      const contestId = comp.mockContestId || `${comp.id}_MOCK`;
+      const res = await practiceApi.startContestAttempt(contestId);
+      const attemptId = res?.attemptId || res?.attempt?.id || res?.data?.id || `att_${Date.now()}`;
+      navigate(`/contests/${contestId}/attempt/${attemptId}`);
+    } catch (err) {
+      console.error("Failed to start mock simulation:", err);
+      const contestId = comp.mockContestId || `${comp.id}_MOCK`;
+      const fallbackAttemptId = `att_local_${Date.now()}`;
+      navigate(`/contests/${contestId}/attempt/${fallbackAttemptId}`);
+    } finally {
+      setIsStartingSimulation(false);
+    }
+  };
 
   const mcqCount = subscription?.mcqAttemptedCount || 0;
   const mcqLimit = subscription?.mcqLimit || 100;
@@ -467,7 +541,7 @@ export function PracticeHubPage() {
                           size="sm"
                           variant="primary"
                           className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                          onClick={() => navigate(`/practice/mcq?company=${encodeURIComponent(comp.code)}&name=${encodeURIComponent(comp.name)}`)}
+                          onClick={() => setSelectedCompanyVault(comp)}
                         >
                           Practice Vault <ArrowRight className="w-3.5 h-3.5 ml-1" />
                         </Button>
@@ -574,6 +648,164 @@ export function PracticeHubPage() {
             })}
           </div>
         )
+      )}
+
+
+      {/* Company Dual-Mode Practice Modal */}
+      {selectedCompanyVault && (
+        <Modal
+          isOpen={Boolean(selectedCompanyVault)}
+          onClose={() => setSelectedCompanyVault(null)}
+          maxWidth="max-w-3xl"
+          className="p-6 sm:p-8"
+        >
+          <div className="space-y-6">
+            {/* Recruiter Header */}
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200">
+                  <Building2 className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-slate-900">{selectedCompanyVault.name}</h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Unlocked Vault
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-xl">
+                    {selectedCompanyVault.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Option A: Full Recruiter Exam Simulation (Real Test Mode) */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-md relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                    <Clock className="w-3 h-3" /> Option A • Real Exam Simulation
+                  </div>
+                  <h3 className="text-lg font-bold text-white">Full Recruiter Placement Simulation</h3>
+                  <p className="text-xs text-slate-300 leading-relaxed max-w-lg">
+                    Experience {selectedCompanyVault.code} test conditions under real recruiter constraints ({selectedCompanyVault.examDuration || "80 Mins"}, sectional timing, multi-round proctoring, and comprehensive accuracy scorecards).
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {selectedCompanyVault.rounds?.map((r) => (
+                      <span key={r.id} className="text-[10px] px-2 py-0.5 rounded-md bg-white/10 text-slate-200 border border-white/10 font-mono">
+                        {r.name} ({r.count})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="shrink-0">
+                  <Button
+                    size="md"
+                    variant="primary"
+                    disabled={isStartingSimulation}
+                    onClick={() => handleStartSimulation(selectedCompanyVault)}
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-500/20 whitespace-nowrap"
+                  >
+                    {isStartingSimulation ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Launching...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5">
+                        Start Full Simulation <ArrowRight className="w-4 h-4" />
+                      </span>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Option B: Practice Tested Topics Individually (Topic Vault Mode) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Option B • Topic-by-Topic Practice
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900">
+                    Practice Assessed Rounds Individually
+                  </h4>
+                </div>
+                <span className="text-xs text-slate-400">
+                  {selectedCompanyVault.rounds?.length || 4} Rounds Tested
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {selectedCompanyVault.rounds?.map((round, idx) => (
+                  <div
+                    key={round.id || idx}
+                    className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-blue-200 hover:shadow-xs transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-1.5 mb-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
+                          {round.category}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {round.count}
+                        </span>
+                      </div>
+                      <h5 className="text-xs font-bold text-slate-900">{round.name}</h5>
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        {round.desc}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                      {round.isCoding ? (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="w-full text-blue-700 border-blue-200 hover:bg-blue-50"
+                          onClick={() => {
+                            setSelectedCompanyVault(null);
+                            navigate(`/practice/coding?recruiter=${encodeURIComponent(selectedCompanyVault.code)}`);
+                          }}
+                        >
+                          <Terminal className="w-3.5 h-3.5 mr-1" />
+                          Solve Coding Problems
+                        </Button>
+                      ) : (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="w-full text-slate-700 border-slate-200 hover:bg-slate-100"
+                          onClick={() => {
+                            setSelectedCompanyVault(null);
+                            navigate(`/practice/mcq?topic=${round.topic}&company=${encodeURIComponent(selectedCompanyVault.code)}&round=${encodeURIComponent(round.name)}`);
+                          }}
+                        >
+                          <BrainCircuit className="w-3.5 h-3.5 mr-1" />
+                          Practice Round MCQs
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer Notice */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+              <span>Recruiter Pattern: Updated for 2025-2026 Hiring Season</span>
+              <button
+                onClick={() => setSelectedCompanyVault(null)}
+                className="text-slate-500 hover:text-slate-800 font-semibold cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
     </div>

@@ -46,6 +46,7 @@ export function McqSessionPage() {
   const topicName = searchParams.get("name") || "Quantitative Aptitude";
   const topicId = searchParams.get("topic") || "QUANTITATIVE";
   const companyName = searchParams.get("company");
+  const roundName = searchParams.get("round");
   const isResultView = searchParams.get("view") === "result";
 
   // Recover session result if refreshed or navigated to on result view
@@ -128,7 +129,7 @@ export function McqSessionPage() {
     // Cache miss: perform fetch via preloadSubject
     setLoading(true);
     try {
-      const valid = await practicePreloadService.preloadSubject(topicId);
+      const valid = await practicePreloadService.preloadSubject(topicId, companyName);
       const sessionQuestions = (valid && valid.length > 0 ? valid : []).slice(0, 10);
       setQuestions(sessionQuestions);
 
@@ -569,9 +570,20 @@ export function McqSessionPage() {
               {formatTimer(timerSeconds)}
             </div>
           )}
-          <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 border border-slate-200/80">
-            {topicName}
-          </span>
+          {companyName ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                {companyName}
+              </span>
+              <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 border border-slate-200/80">
+                {roundName || topicName}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700 border border-slate-200/80">
+              {topicName}
+            </span>
+          )}
         </div>
       </div>
 

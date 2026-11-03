@@ -76,7 +76,7 @@ export const practicePreloadService = {
   /**
    * Preload 10 randomized, unattempted MCQs for a specific topic
    */
-  async preloadSubject(topicId) {
+  async preloadSubject(topicId, company = null) {
     const topicConfig = TOPIC_TYPE_MAP[topicId] || { type: "MCQ", category: topicId };
     const categoryParam = topicConfig.category || topicId;
 
@@ -85,12 +85,14 @@ export const practicePreloadService = {
 
       // 1. Try PostgreSQL student practice endpoint first
       try {
-        const res = await practiceApi.getPracticeQuestions({
+        const queryParams = {
           topic: categoryParam,
           category: categoryParam,
           type: topicConfig.type || "MCQ",
           limit: 30
-        });
+        };
+        if (company) queryParams.company = company;
+        const res = await practiceApi.getPracticeQuestions(queryParams);
         const list = (res && (res.questions || res.data)) || [];
         if (Array.isArray(list) && list.length > 0) {
           rawList = list;
@@ -100,11 +102,13 @@ export const practicePreloadService = {
       // 2. Fallback to catalog questions
       if (rawList.length === 0) {
         try {
-          const res = await practiceApi.getQuestions({
+          const queryParams = {
             type: topicConfig.type || "MCQ",
             category: categoryParam,
             limit: 30
-          });
+          };
+          if (company) queryParams.company = company;
+          const res = await practiceApi.getQuestions(queryParams);
           const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : Array.isArray(res?.questions) ? res.questions : [];
           if (list.length > 0) {
             rawList = list;

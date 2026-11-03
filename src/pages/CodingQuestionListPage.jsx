@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
   Code2,
   Terminal,
@@ -31,6 +31,7 @@ import { useAuth } from "../context/AuthContext";
 
 export function CodingQuestionListPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, subscription, planTier, isPaid, hasCompanyPass } = useAuth();
 
   const initialCatalog = codingPreloadService.getCodingCatalog() || [];
@@ -43,7 +44,7 @@ export function CodingQuestionListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("ALL");
   const [selectedSubcategory, setSelectedSubcategory] = useState("ALL");
-  const [selectedCompany, setSelectedCompany] = useState("ALL");
+  const [selectedCompany, setSelectedCompany] = useState(searchParams.get("recruiter") || searchParams.get("company") || "ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL"); // ALL | SOLVED | UNSOLVED
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
