@@ -162,16 +162,23 @@ export function PublicProfilePage() {
 
             {/* Social & Resume Links */}
             <div className="flex flex-wrap items-center gap-2">
-              {profile.github && (
-                <a
-                  href={`https://github.com/${profile.github}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
-                >
-                  <GithubIcon className="w-3.5 h-3.5" /> GitHub
-                </a>
-              )}
+              {profile.github && (() => {
+                const cleanGithub = String(profile.github)
+                  .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "")
+                  .replace(/^@+/, "")
+                  .replace(/\/+$/, "")
+                  .trim();
+                return (
+                  <a
+                    href={`https://github.com/${cleanGithub}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+                  >
+                    <GithubIcon className="w-3.5 h-3.5" /> GitHub
+                  </a>
+                );
+              })()}
               {profile.linkedin && (() => {
                 const cleanLinkedin = String(profile.linkedin)
                   .replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "")

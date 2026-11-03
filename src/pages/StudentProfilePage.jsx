@@ -240,7 +240,9 @@ export function StudentProfilePage() {
         const u = res.user;
         setStudent(u);
         setSkillsList(u.skills || []);
-        setGithubHandle(u.github || "");
+        const rawGh = u.github || "";
+        const cleanGh = rawGh.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+        setGithubHandle(cleanGh);
         const rawLi = u.linkedin || "";
         const cleanLi = rawLi.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "").replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
         setLinkedinUrl(cleanLi);
@@ -488,7 +490,9 @@ export function StudentProfilePage() {
 
   // 6. Featured GitHub Projects Handlers
   const handleOpenProjectsModal = async () => {
-    if (!student?.github || !student.github.trim()) {
+    const rawGh = student?.github || "";
+    const cleanGh = rawGh.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+    if (!cleanGh) {
       showWarning("Please connect your GitHub profile handle first.");
       setIsEditingHandles(true);
       return;
@@ -500,7 +504,7 @@ export function StudentProfilePage() {
     setRepoSearchFilter("");
 
     try {
-      const res = await b2cApi.fetchGithubRepositories(student.github);
+      const res = await b2cApi.fetchGithubRepositories(cleanGh);
       setGithubRepos(res?.repositories || []);
     } catch (e) {
       showError(e.message || "Could not fetch repositories from GitHub. Please try again.");
@@ -825,6 +829,12 @@ export function StudentProfilePage() {
         showSuccess("Placement resume uploaded and parsed successfully.");
 
         const extracted = res.extractedProfile || {};
+        if (extracted.github) {
+          extracted.github = String(extracted.github).replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+        }
+        if (extracted.linkedin) {
+          extracted.linkedin = String(extracted.linkedin).replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "").replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
+        }
         const detectedSkills = res.detectedSkills || [];
 
         setExtractedProfileData(extracted);
@@ -919,10 +929,10 @@ export function StudentProfilePage() {
       payload.collegeName = extractedProfileData.collegeName;
     }
     if (selectedSyncFields.linkedin && extractedProfileData.linkedin) {
-      payload.linkedin = extractedProfileData.linkedin;
+      payload.linkedin = String(extractedProfileData.linkedin).replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, "").replace(/^(https?:\/\/)?(www\.)?linkedin\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
     }
     if (selectedSyncFields.github && extractedProfileData.github) {
-      payload.github = extractedProfileData.github;
+      payload.github = String(extractedProfileData.github).replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim();
     }
     if (selectedSyncFields.targetRoles && Array.isArray(extractedProfileData.targetRoles) && extractedProfileData.targetRoles.length > 0) {
       payload.targetRoles = extractedProfileData.targetRoles;
@@ -1291,19 +1301,26 @@ export function StudentProfilePage() {
                 </div>
               ) : (
                 <div className="mt-2 text-xs text-slate-600 flex items-center justify-between">
-                  {student?.github ? (
-                    <>
-                      <span className="font-semibold text-slate-900">@{student.github}</span>
-                      <a
-                        href={`https://github.com/${student.github}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        View Profile <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </>
-                  ) : (
+                  {student?.github ? (() => {
+                    const cleanGh = String(student.github)
+                      .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "")
+                      .replace(/^@+/, "")
+                      .replace(/\/+$/, "")
+                      .trim();
+                    return (
+                      <>
+                        <span className="font-semibold text-slate-900">@{cleanGh}</span>
+                        <a
+                          href={`https://github.com/${cleanGh}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold"
+                        >
+                          View Profile <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </>
+                    );
+                  })() : (
                     <span className="text-slate-400">No GitHub handle linked yet</span>
                   )}
                 </div>
@@ -1543,7 +1560,7 @@ export function StudentProfilePage() {
             <FolderGit2 className="w-8 h-8 text-indigo-500 mx-auto mb-2" />
             <p className="text-sm font-semibold text-slate-800">No Featured Projects Selected Yet</p>
             <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto mb-4">
-              Select up to 3 of your best public repositories from <span className="font-semibold text-indigo-600">@{student.github}</span> to highlight on your placement portfolio.
+              Select up to 3 of your best public repositories from <span className="font-semibold text-indigo-600">@{String(student.github).replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/^@+/, "").replace(/\/+$/, "").trim()}</span> to highlight on your placement portfolio.
             </p>
             <Button
               variant="primary"
