@@ -2562,21 +2562,30 @@ export function MockInterviewPage() {
               </div>
             </div>
 
-            {/* Sticky Pre-Flight Summary Bar */}
-            <div className="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-bottom-2 duration-200">
+                      </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* VIEW: LIVE INTERVIEW INTERFACE */}
+        {/* ========================================================= */}
+        {viewMode === "LIVE" && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Top Live Bar */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
                   <Bot className="w-5 h-5" />
                 </div>
-                <div className="text-left">
-                  <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <span>
-                      {selectedTrack === "RESUME"
-                        ? "Based on Resume Placement Round"
-                        : selectedTrack === "HR"
-                        ? "HR & Culture Round"
-                        : "Technical Round"}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 text-base">Sarah</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">Principal</span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800">
+                      {selectedTrack === "RESUME" ? "Based on Resume" : (selectedTrack === "HR" ? "HR & Culture" : "Technical")} Round
                     </span>
+                  </div>
+                  <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+                    <span>Format: {selectedFormat === "TIME_BASED" ? "Timed Interview" : "Voice Test"}</span>
                     {selectedSkills.length > 0 && selectedTrack !== "HR" && (
                       <>
                         <span>•</span>
@@ -2589,12 +2598,6 @@ export function MockInterviewPage() {
 
               {/* Status and Countdown Timer */}
               <div className="flex items-center gap-3 sm:gap-4">
-                {/* Live Remaining Balance Badge */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/90 border border-blue-200 text-xs font-semibold text-slate-700 shadow-xs">
-                  <Clock className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Balance: <strong className="text-slate-900 font-bold">{totalMockMinutes}m</strong></span>
-                </div>
-
                 {/* Live Countdown Timer */}
                 <div
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm sm:text-base font-bold shadow-xs transition-colors ${
