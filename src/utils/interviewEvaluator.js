@@ -391,9 +391,14 @@ export function calculateOverallReport({ questions = [], track = 'Technical Inte
     };
   }
 
-  // Overall Score is strictly the average of question scores
-  const totalScoreSum = evaluatedQuestions.reduce((sum, q) => sum + (q.score || 0), 0);
-  const overallScore = Math.round(totalScoreSum / evaluatedQuestions.length);
+  // Strict mathematical average of answered question scores
+  const answeredOnly = evaluatedQuestions.filter(q => {
+    const txt = (q.studentTranscript || q.answerText || '').trim();
+    return txt.length > 0 && !txt.startsWith('[') && txt !== 'No answer provided' && txt !== 'Interview time completed before response';
+  });
+  const questionsToAverage = answeredOnly.length > 0 ? answeredOnly : evaluatedQuestions;
+  const totalScoreSum = questionsToAverage.reduce((sum, q) => sum + (typeof q.score === 'number' ? q.score : 0), 0);
+  const overallScore = Math.round(totalScoreSum / Math.max(1, questionsToAverage.length));
 
   // Technical Score: average of technical turns that were not skipped
   const techTurns = evaluatedQuestions.filter(q => q.track !== 'HR Interview' && q.track !== 'HR' && typeof q.technicalAccuracy === 'number');
