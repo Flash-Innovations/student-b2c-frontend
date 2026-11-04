@@ -158,6 +158,12 @@ export const b2cApi = {
   getContests: () => b2cRequest('/api/b2c/contests', { method: 'GET' }),
   getContestById: (id) => b2cRequest(`/api/b2c/contests/${id}`, { method: 'GET' }),
 
+  // Personalization & Adaptive Roadmap Engine
+  getPersonalizationProfile: () => b2cRequest('/api/b2c/personalization/profile', { method: 'GET' }),
+  updatePersonalizationTarget: (data) => b2cRequest('/api/b2c/personalization/target', { method: 'PUT', body: data }),
+  submitDiagnosticAssessment: (data) => b2cRequest('/api/b2c/personalization/diagnostic/submit', { method: 'POST', body: data }),
+  getPersonalizationBlueprints: () => b2cRequest('/api/b2c/personalization/blueprints', { method: 'GET' }),
+
   // Health
   getHealth: () => b2cRequest('/api/b2c/gateway/health', { method: 'GET' })
 };
