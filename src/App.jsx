@@ -14,6 +14,7 @@ import { FlashStorePage } from "./pages/FlashStorePage";
 
 // Authenticated Student Pages
 import { DashboardPage } from "./pages/DashboardPage";
+import { PersonalizedRoadmapPage } from "./pages/PersonalizedRoadmapPage";
 import { PracticeHubPage } from "./pages/PracticeHubPage";
 import { McqSessionPage } from "./pages/McqSessionPage";
 import { CodingArenaPage } from "./pages/CodingArenaPage";
@@ -83,6 +84,8 @@ export function App() {
           }
         >
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/roadmap" element={<PersonalizedRoadmapPage />} />
+          <Route path="/practice/roadmap" element={<Navigate to="/roadmap" replace />} />
           <Route path="/practice" element={<PracticeHubPage />} />
           <Route path="/practice/mcq" element={<McqSessionPage />} />
           <Route

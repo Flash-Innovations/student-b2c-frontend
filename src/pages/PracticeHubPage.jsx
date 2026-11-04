@@ -389,6 +389,33 @@ export function PracticeHubPage() {
         </div>
       </div>
 
+      {/* AI Placement Roadmap Quick Launch Card */}
+      <Card className="p-5 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white shadow-xs border-purple-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 rounded-2xl bg-white/10 border border-white/20 text-purple-300">
+              <BrainCircuit className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                Personalized Placement Roadmap &amp; AI Coach
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/30 text-purple-200 border border-purple-400/30 font-semibold">Adaptive ELO</span>
+              </h3>
+              <p className="text-xs text-purple-200 mt-0.5">
+                Calibrated against TCS NQT, Infosys, Amazon, and Accenture. Track your readiness index and daily focus quests.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="bg-white text-slate-900 hover:bg-slate-100 whitespace-nowrap self-start sm:self-auto cursor-pointer font-bold"
+            onClick={() => navigate("/roadmap")}
+          >
+            Open AI Roadmap <ArrowRight className="w-3.5 h-3.5 ml-1" />
+          </Button>
+        </div>
+      </Card>
+
       {/* Coding Arena Quick Launch Card for Technical Students */}
       {isTechnical && (
         <Card className="p-5 bg-white text-slate-900 border-slate-200 shadow-xs">

@@ -12,7 +12,9 @@ import {
   Zap,
   Target,
   Flame,
-  ArrowRight
+  ArrowRight,
+  BrainCircuit,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { practiceApi } from "../services/practiceApi";
@@ -227,6 +229,38 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* AI Placement Roadmap Focus Card */}
+        <div className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/20">
+              <BrainCircuit className="w-5 h-5 text-purple-300" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider font-mono text-purple-200">
+                  Target Blueprint Active
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 font-semibold">
+                  Personalized Roadmap
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-white mt-0.5">
+                AI Placement Roadmap &amp; Diagnostic Calibration
+              </h4>
+              <p className="text-xs text-purple-200">
+                Track your recruiter readiness index across TCS NQT, Infosys, and Amazon with daily adaptive quests.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate("/roadmap")}
+            className="px-4 py-2 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <span>Open AI Roadmap</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* 3-Pillar Daily Sprint Grid */}

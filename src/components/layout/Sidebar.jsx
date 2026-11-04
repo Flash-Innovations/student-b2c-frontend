@@ -28,6 +28,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
 
   const allNavLinks = [
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
+    { to: "/roadmap", label: "AI Roadmap", icon: Sparkles },
     { to: "/practice", label: isTechnical ? "Practice Hub" : "Aptitude Practice", icon: isTechnical ? Code2 : BookOpen },
     { to: "/coding", label: "Coding Arena", icon: Terminal, technicalOnly: true },
     { to: "/gd", label: "GD Arena", icon: Users2, nonTechnicalOnly: true },
