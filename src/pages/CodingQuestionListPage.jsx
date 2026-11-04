@@ -202,9 +202,9 @@ export function CodingQuestionListPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
-              <div className="text-[10px] font-bold uppercase text-slate-500">DSA Quota</div>
-              <div className="text-sm font-bold text-slate-900 font-mono mt-0.5">
-                {isPaid ? "Unlimited" : `${dsaCount} / ${dsaLimit} Solved`}
+              <div className="text-[10px] font-bold uppercase text-slate-500">DSA Practice</div>
+              <div className="text-sm font-bold text-emerald-600 font-mono mt-0.5 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Free &amp; Unlimited
               </div>
             </div>
 
@@ -356,41 +356,22 @@ export function CodingQuestionListPage() {
         </div>
       </Card>
 
-      {/* Company Locked Notice Banner */}
-      {selectedCompany !== "ALL" && !isPaid && !(typeof hasCompanyPass === "function" && hasCompanyPass(selectedCompany)) && (
-        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-950">
+      {/* Target Company Focus Banner */}
+      {selectedCompany !== "ALL" && (
+        <div className="p-4 rounded-xl bg-blue-50/80 border border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-blue-950">
           <div className="flex items-center gap-2.5">
-            <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+            <Building2 className="w-4 h-4 text-blue-700 shrink-0" />
             <p className="text-xs font-medium">
-              You are previewing coding archives calibrated for <strong>{selectedCompany}</strong>. Unlock the dedicated {selectedCompany} Pass (₹99) or All-Company Vault (₹349) to access all questions and solution walkthroughs.
+              Practicing coding challenges calibrated for <strong>{selectedCompany}</strong>. All coding questions are 100% free! Want an AI-calibrated placement roadmap and readiness score?
             </p>
           </div>
           <Button
             size="xs"
-            variant="primary"
-            className="whitespace-nowrap bg-amber-600 hover:bg-amber-700 text-white"
-            onClick={() => navigate("/store?tab=COMPANIES")}
-          >
-            Unlock {selectedCompany} Pass
-          </Button>
-        </div>
-      )}
-
-      {/* Free Quota Notice Banner */}
-      {!isPaid && dsaCount >= dsaLimit && (
-        <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-blue-950">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-blue-700 shrink-0" />
-            <p className="text-xs font-medium">
-              Free Tier DSA Quota Reached ({dsaCount} / {dsaLimit} solved). Upgrade to Standard (250 problems) or Premium (750 problems) for unconstrained problem sets.
-            </p>
-          </div>
-          <Button
-            size="xs"
-            variant="primary"
+            variant="outline"
+            className="whitespace-nowrap border-blue-300 text-blue-700 hover:bg-blue-100"
             onClick={() => navigate("/pricing")}
           >
-            Upgrade Plan
+            Explore AI Roadmap
           </Button>
         </div>
       )}

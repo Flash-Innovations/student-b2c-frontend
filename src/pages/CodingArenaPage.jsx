@@ -127,6 +127,7 @@ export function CodingArenaPage() {
   const [useCustomInput, setUseCustomInput] = useState(false);
   const [executionResult, setExecutionResult] = useState(null);
   const [copied, setCopied] = useState(false);
+  const pageLoadedAtRef = useRef(Date.now());
 
   const solvedQuestionIds = useMemo(() => {
     return new Set(user?.solvedQuestions || []);
@@ -139,6 +140,7 @@ export function CodingArenaPage() {
 
   // Load real problem by questionId from PostgreSQL Question Bank
   useEffect(() => {
+    pageLoadedAtRef.current = Date.now();
     let isMounted = true;
     async function loadQuestion() {
       if (!questionId) {
@@ -357,24 +359,37 @@ export function CodingArenaPage() {
 
       if (res && (res.testsPassed > 0 || res.status === "ACCEPTED")) {
         try {
-          await b2cApi.recordQuestionAttempt({
+          const durationSeconds = Math.max(1, Math.round((Date.now() - pageLoadedAtRef.current) / 1000));
+          const recRes = await b2cApi.recordQuestionAttempt({
             questionType: "DSA",
             type: "DSA",
             passed: res.status === "ACCEPTED",
             questionId: problem?.id || questionId,
             topicId: problem?.id || questionId,
+            difficulty: problem?.difficulty || "MEDIUM",
             testsPassed: res.testsPassed || 0,
-            testsTotal: res.testsTotal || 0
+            testsTotal: res.testsTotal || 0,
+            durationSeconds
           });
           if (typeof refreshSubscription === "function") {
             await refreshSubscription();
           }
+          if (res.status === "ACCEPTED") {
+            if (recRes?.earnedXp > 0) {
+              showSuccess(`Solution Accepted! (+${recRes.earnedXp} XP earned)`);
+            } else if (recRes?.dsaXpDescription) {
+              showSuccess(recRes.dsaXpDescription);
+            } else {
+              showSuccess("Solution Accepted! All test cases passed successfully.");
+            }
+          }
         } catch (telemetryErr) {
           console.warn("Could not update telemetry/subscription:", telemetryErr);
+          if (res.status === "ACCEPTED") {
+            showSuccess("Solution Accepted! All test cases passed successfully.");
+          }
         }
-      }
-
-      if (res.status === "ACCEPTED") {
+      } else if (res.status === "ACCEPTED") {
         showSuccess("Solution Accepted! All test cases passed successfully.");
       } else if (res.status === "PARTIAL") {
         showWarning(`Partially Accepted: ${res.testsPassed || 0}/${res.testsTotal || 0} tests passed.`);

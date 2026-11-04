@@ -299,7 +299,7 @@ export function DashboardPage() {
                     Data Structures & Algorithms
                   </h5>
                   <p className="text-xs text-slate-500 mt-1">
-                    {dsaAttempted} of {dsaLimit} problems completed
+                    {dsaAttempted} problems solved • Free & Unlimited
                   </p>
                   <div className="mt-3">
                     <div className="flex items-center justify-between text-[11px] mb-1">
