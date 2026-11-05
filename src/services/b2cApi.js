@@ -164,6 +164,11 @@ export const b2cApi = {
   submitDiagnosticAssessment: (data) => b2cRequest('/api/b2c/personalization/diagnostic/submit', { method: 'POST', body: data }),
   getPersonalizationBlueprints: () => b2cRequest('/api/b2c/personalization/blueprints', { method: 'GET' }),
 
+  // Closed Beta Launch & Feedback Engine
+  getBetaConfig: () => b2cRequest('/api/b2c/beta/config', { method: 'GET' }),
+  validateBetaInvite: (code) => b2cRequest(`/api/b2c/beta/validate-invite?code=${encodeURIComponent(code)}`, { method: 'GET' }),
+  submitBetaFeedback: (data) => b2cRequest('/api/b2c/beta/feedback', { method: 'POST', body: data }),
+
   // Health
   getHealth: () => b2cRequest('/api/b2c/gateway/health', { method: 'GET' })
 };
