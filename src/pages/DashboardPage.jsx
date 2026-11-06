@@ -14,12 +14,18 @@ import {
   Flame,
   ArrowRight,
   BrainCircuit,
-  Sparkles
+  Sparkles,
+  Lock,
+  ShieldCheck,
+  MessageSquare
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { practiceApi } from "../services/practiceApi";
+import { b2cApi } from "../services/b2cApi";
 import { DailyTrendChart } from "../components/dashboard/DailyTrendChart";
 import { calculateXp } from "../utils/xpCalculator";
+import PhaseTeaserModal from "../components/common/PhaseTeaserModal";
+import BetaFeedbackModal from "../components/common/BetaFeedbackModal";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -29,8 +35,12 @@ export function DashboardPage() {
   const [streakData, setStreakData] = useState({ streak: 0, currentStreak: 0, streakBreaks: 0 });
   const [upcomingContest, setUpcomingContest] = useState(null);
   const [historyData, setHistoryData] = useState([]);
+  const [betaConfig, setBetaConfig] = useState(null);
+  const [isTeaserOpen, setIsTeaserOpen] = useState(false);
+  const [teaserFeature, setTeaserFeature] = useState("ROADMAP");
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
-  // Fetch real telemetry and contest data (Option A: Zero Fake Data)
+  // Fetch real telemetry, contest data, and beta config
   useEffect(() => {
     let isMounted = true;
 
@@ -62,6 +72,15 @@ export function DashboardPage() {
       .then((res) => {
         if (isMounted && res && Array.isArray(res.history)) {
           setHistoryData(res.history);
+        }
+      })
+      .catch(() => {});
+
+    // 4. Fetch Beta Config
+    b2cApi.getBetaConfig?.()
+      .then((res) => {
+        if (isMounted && res && res.success) {
+          setBetaConfig(res);
         }
       })
       .catch(() => {});
@@ -100,7 +119,7 @@ export function DashboardPage() {
   // Telemetry Counts (Real from subscription state)
   const mcqAttempted = subscription?.mcqAttemptedCount || 0;
   const dsaAttempted = subscription?.dsaAttemptedCount || 0;
-  const mcqLimit = subscription?.mcqLimit ?? 100;
+  const mcqLimit = subscription?.mcqLimit ?? 250;
   const dsaLimit = subscription?.dsaLimit ?? 50;
 
   // Real Dynamic Practice XP (Authoritative 6-factor formula)
@@ -113,15 +132,10 @@ export function DashboardPage() {
     if (user?.readinessScore && user.readinessScore > 0) {
       return Math.min(100, Math.round(user.readinessScore));
     }
-    // Dynamic calculation from actual candidate activity:
-    // MCQ: up to 25 pts (targets 100 solved)
     const mcqPart = Math.min(25, (mcqAttempted / 100) * 25);
-    // DSA / Practical: up to 35 pts (targets 50 solved)
     const dsaPart = Math.min(35, (dsaAttempted / 50) * 35);
-    // ATS Resume readiness baseline: up to 15 pts
     const atsScore = user?.cgpa && user.cgpa > 7 ? 80 : 55;
     const atsPart = (atsScore / 100) * 15;
-    // Interview component
     const interviewPart = (subscription?.purchasedMinutesBalance || 0) > 0 ? 10 : 0;
 
     const total = Math.round(mcqPart + dsaPart + atsPart + interviewPart);
@@ -179,6 +193,15 @@ export function DashboardPage() {
     };
   }, [historyData, totalSolved]);
 
+  const isRoadmapUnlocked = Boolean(betaConfig?.featureFlags?.roadmap);
+  const isInterviewUnlocked = Boolean(betaConfig?.featureFlags?.mockInterviews);
+  const isGdUnlocked = Boolean(betaConfig?.featureFlags?.groupDiscussion);
+
+  const openTeaser = (feature) => {
+    setTeaserFeature(feature);
+    setIsTeaserOpen(true);
+  };
+
   return (
     <div className="space-y-6 select-none animate-in fade-in duration-200">
       
@@ -231,6 +254,74 @@ export function DashboardPage() {
           </div>
         </div>
 
+        {/* Closed Beta Phase 1 Command Deck Banner */}
+        <div className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-900/60 text-white shadow-md relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1.5 max-w-xl">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold font-mono">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                  Closed Beta • Phase 1
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">
+                  Cohort 1 (100 Spots) • Nov 15 – Nov 30
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                VIP Beta Access Active: Practice Hub, Coding Arena & Assessments
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                You are in our founding 100-tester cohort. Enjoy 250 free practice MCQs, unrestricted Coding Arena, and zero-fee assessments while we test system stability before our commercial launch.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                onClick={() => setIsFeedbackOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Submit Beta Feedback</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Release Roadmap Timeline Bar */}
+          <div className="mt-4 pt-3.5 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+              <div className="text-[10px] uppercase font-bold text-emerald-400 font-mono">Phase 1 (Live Now)</div>
+              <div className="font-semibold text-white text-[11px] mt-0.5">250 MCQ + DSA + Contests</div>
+            </div>
+            <div
+              onClick={() => openTeaser('ROADMAP')}
+              className="p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 cursor-pointer transition-colors"
+            >
+              <div className="text-[10px] uppercase font-bold text-amber-400 font-mono flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5" /> Phase 2 (Dec 1)
+              </div>
+              <div className="font-semibold text-white text-[11px] mt-0.5">AI Career Roadmap</div>
+            </div>
+            <div
+              onClick={() => openTeaser('INTERVIEW')}
+              className="p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 cursor-pointer transition-colors"
+            >
+              <div className="text-[10px] uppercase font-bold text-purple-400 font-mono flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5" /> Phase 3 (Dec 16)
+              </div>
+              <div className="font-semibold text-white text-[11px] mt-0.5">Gemini Live Mocks & GD</div>
+            </div>
+            <div
+              onClick={() => openTeaser('STORE')}
+              className="p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 cursor-pointer transition-colors"
+            >
+              <div className="text-[10px] uppercase font-bold text-indigo-400 font-mono flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5" /> Phase 4 (Jan 1)
+              </div>
+              <div className="font-semibold text-white text-[11px] mt-0.5">Full Commercial Launch</div>
+            </div>
+          </div>
+        </div>
+
         {/* AI Placement Roadmap Focus Card */}
         <div className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -245,6 +336,11 @@ export function DashboardPage() {
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 font-semibold">
                   Personalized Roadmap
                 </span>
+                {!isRoadmapUnlocked && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40 font-bold flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" /> Phase 2 • Dec 1
+                  </span>
+                )}
               </div>
               <h4 className="text-sm font-bold text-white mt-0.5">
                 AI Placement Roadmap &amp; Diagnostic Calibration
@@ -255,11 +351,26 @@ export function DashboardPage() {
             </div>
           </div>
           <button
-            onClick={() => navigate("/roadmap")}
+            onClick={() => {
+              if (isRoadmapUnlocked) {
+                navigate("/roadmap");
+              } else {
+                openTeaser("ROADMAP");
+              }
+            }}
             className="px-4 py-2 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <span>Open AI Roadmap</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            {isRoadmapUnlocked ? (
+              <>
+                <span>Open AI Roadmap</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            ) : (
+              <>
+                <Lock className="w-3.5 h-3.5 text-amber-600" />
+                <span>Preview Dec 1 Release</span>
+              </>
+            )}
           </button>
         </div>
 
@@ -279,26 +390,26 @@ export function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             
-            {/* Module 1: Aptitude Track */}
+            {/* Module 1: Aptitude Track (250 Quota for Beta) */}
             <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
                     <BookOpen className="w-4.5 h-4.5 text-slate-800" />
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                    Aptitude Track
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    250 Free Beta Quota
                   </span>
                 </div>
                 <h5 className="text-sm font-bold text-slate-900">
                   Quantitative & Verbal Reasoning
                 </h5>
                 <p className="text-xs text-slate-500 mt-1">
-                  {mcqAttempted} of {mcqLimit} problems completed
+                  {mcqAttempted} of {mcqLimit} questions attempted
                 </p>
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-slate-500 font-medium">Daily Quota</span>
+                    <span className="text-slate-500 font-medium">Beta Quota Usage</span>
                     <span className="font-bold text-emerald-600">{mcqPercent}%</span>
                   </div>
                   <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
@@ -325,8 +436,8 @@ export function DashboardPage() {
                     <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
                       <Code2 className="w-4.5 h-4.5 text-slate-800" />
                     </div>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                      Coding Arena
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                      100% Free DSA
                     </span>
                   </div>
                   <h5 className="text-sm font-bold text-slate-900">
@@ -362,8 +473,8 @@ export function DashboardPage() {
                     <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
                       <Users className="w-4.5 h-4.5 text-slate-800" />
                     </div>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                      Executive GD
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Dec 16
                     </span>
                   </div>
                   <h5 className="text-sm font-bold text-slate-900">
@@ -374,19 +485,25 @@ export function DashboardPage() {
                   </p>
                   <div className="mt-3">
                     <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-slate-500 font-medium">Room Availability</span>
-                      <span className="font-bold text-blue-600">Active</span>
+                      <span className="text-slate-500 font-medium">Phase 3 Release</span>
+                      <span className="font-bold text-amber-600">Unlocks Dec 16</span>
                     </div>
                     <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-blue-600 h-full rounded-full" style={{ width: "100%" }} />
+                      <div className="bg-amber-500 h-full rounded-full" style={{ width: "100%" }} />
                     </div>
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate("/gd")}
+                  onClick={() => {
+                    if (isGdUnlocked) {
+                      navigate("/gd");
+                    } else {
+                      openTeaser("GD");
+                    }
+                  }}
                   className="mt-4 w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer"
                 >
-                  Launch GD Lobby
+                  {isGdUnlocked ? "Launch GD Lobby" : "Preview Phase 3 Drop"}
                 </button>
               </div>
             )}
@@ -398,31 +515,37 @@ export function DashboardPage() {
                   <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
                     <Bot className="w-4.5 h-4.5 text-slate-800" />
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                    AI Interview
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" /> Dec 16
                   </span>
                 </div>
                 <h5 className="text-sm font-bold text-slate-900">
                   AI Mock Interview Simulator
                 </h5>
                 <p className="text-xs text-slate-500 mt-1">
-                  {(subscription?.includedMinutesRemaining || 0) + (subscription?.purchasedMinutesBalance || 0)} mins practice available
+                  Gemini Live bidirectional voice interview
                 </p>
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-slate-500 font-medium">Speech & Feedback</span>
-                    <span className="font-bold text-blue-600">AI Powered</span>
+                    <span className="text-slate-500 font-medium">Phase 3 Release</span>
+                    <span className="font-bold text-amber-600">Unlocks Dec 16</span>
                   </div>
                   <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full rounded-full" style={{ width: "100%" }} />
+                    <div className="bg-amber-500 h-full rounded-full" style={{ width: "100%" }} />
                   </div>
                 </div>
               </div>
               <button
-                onClick={() => navigate("/interview")}
+                onClick={() => {
+                  if (isInterviewUnlocked) {
+                    navigate("/interview");
+                  } else {
+                    openTeaser("INTERVIEW");
+                  }
+                }}
                 className="mt-4 w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer"
               >
-                Launch Interview
+                {isInterviewUnlocked ? "Launch Interview" : "Preview Phase 3 Drop"}
               </button>
             </div>
 
@@ -437,7 +560,7 @@ export function DashboardPage() {
             <div className="p-5 rounded-xl border border-slate-200 bg-white">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-blue-600" /> Daily Accuracy & Practice Trend
+                  <TrendingUp className="w-4 h-4 text-blue-600" /> Daily Accuracy &amp; Practice Trend
                 </span>
                 <span className="text-[11px] font-semibold text-slate-500">
                   {avgAccuracy > 0 ? `Last 7 Days (Avg: ${avgAccuracy}%)` : "Last 7 Days"}
@@ -453,30 +576,24 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* Right Column (5 cols): Goal Tracker & Targeted Improvement */}
+          {/* Right Column (5 cols): Goal Progress & Targeted Improvement Focus */}
           <div className="lg:col-span-5 space-y-4">
             
-            {/* Goal Tracker Card */}
-            <div className="p-5 rounded-xl bg-white border border-slate-200 text-slate-900 shadow-xs relative">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Goal Tracker
+            {/* Goal Progress Card */}
+            <div className="p-5 rounded-xl border border-slate-200 bg-white shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Target className="w-4 h-4 text-slate-700" /> Placement Benchmark
                 </span>
-                <Flag className="w-4 h-4 text-slate-400" />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  {targetGoal} Target
+                </span>
               </div>
-              <h4 className="text-sm font-bold text-slate-900">
-                Target Role: {targetRoleDisplay}
-              </h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {upcomingContest ? (
-                  <>Next Assessment: <span className="font-semibold text-slate-800">{upcomingContest.title}</span></>
-                ) : (
-                  "No timed assessments scheduled this week"
-                )}
+              <p className="text-xs text-slate-500 mb-3">
+                Complete questions across MCQs and coding challenges to reach full placement readiness.
               </p>
-              
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 mt-3">
-                <div className="flex items-center justify-between text-xs text-slate-700 font-medium">
+              <div>
+                <div className="flex items-center justify-between text-xs text-slate-600">
                   <span>Questions Solved: <strong className="text-slate-900">{totalSolved} / {targetGoal}</strong></span>
                   <span className="font-bold text-blue-600">{goalPercent}%</span>
                 </div>
@@ -517,6 +634,23 @@ export function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Feature Teaser Modal */}
+      <PhaseTeaserModal
+        isOpen={isTeaserOpen}
+        onClose={() => setIsTeaserOpen(false)}
+        featureKey={teaserFeature}
+        onOpenFeedback={() => {
+          setIsTeaserOpen(false);
+          setIsFeedbackOpen(true);
+        }}
+      />
+
+      {/* Beta Feedback Modal */}
+      <BetaFeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+      />
 
     </div>
   );

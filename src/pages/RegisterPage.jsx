@@ -177,20 +177,54 @@ export function RegisterPage() {
       : TECHNICAL_ROLES;
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password || !formData.collegeName.trim()) {
-      setErrorMsg("Please fill in all required fields including your college name.");
+    if (e && e.preventDefault) e.preventDefault();
+
+    if (!formData.name.trim()) {
+      const msg = "Please enter your full name.";
+      setErrorMsg(msg);
+      showError(msg);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      const msg = "Please enter your student email address.";
+      setErrorMsg(msg);
+      showError(msg);
       return;
     }
 
     if (!EMAIL_REGEX.test(formData.email.trim())) {
-      setErrorMsg("Please enter a valid email address.");
+      const msg = "Please enter a valid email address.";
+      setErrorMsg(msg);
+      showError(msg);
+      return;
+    }
+
+    if (!formData.password) {
+      const msg = "Please create a password.";
+      setErrorMsg(msg);
+      showError(msg);
       return;
     }
 
     const passwordError = validatePasswordStrength(formData.password);
     if (passwordError) {
       setErrorMsg(passwordError);
+      showError(passwordError);
+      return;
+    }
+
+    if (!formData.collegeName.trim()) {
+      const msg = "Please enter your college or institution name.";
+      setErrorMsg(msg);
+      showError(msg);
+      return;
+    }
+
+    if (!formData.inviteCode || !formData.inviteCode.trim()) {
+      const msg = "Please enter your VIP Beta Invite Code (e.g. FLASH100).";
+      setErrorMsg(msg);
+      showError(msg);
       return;
     }
 
@@ -200,8 +234,12 @@ export function RegisterPage() {
     try {
       await register({
         ...formData,
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        collegeName: formData.collegeName.trim(),
         degree: formData.course,
-        graduationYear: Number(formData.graduationYear)
+        graduationYear: Number(formData.graduationYear),
+        inviteCode: formData.inviteCode.trim().toUpperCase()
       });
       showSuccess("Account created successfully! Welcome to Flash.");
       navigate(redirectTarget, { replace: true });
@@ -438,14 +476,23 @@ export function RegisterPage() {
               </p>
             </div>
 
+            {errorMsg && (
+              <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span className="leading-snug font-medium">{errorMsg}</span>
+              </div>
+            )}
+
             <Button
               type="submit"
               variant="primary"
               size="md"
               loading={loading}
-              className="w-full mt-2"
+              onClick={handleSubmit}
+              className="w-full mt-2 flex items-center justify-center gap-2"
             >
-              Complete Registration & Start Practicing <ArrowRight className="w-4 h-4 ml-1" />
+              <span>Complete Registration & Start Practicing</span>
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </Button>
 
           </form>
