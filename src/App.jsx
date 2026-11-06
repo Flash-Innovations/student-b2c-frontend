@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
+import { PhaseGuardRoute } from "./components/layout/PhaseGuardRoute";
 import { useAuth } from "./context/AuthContext";
 import { OfflineBanner } from "./components/common/OfflineBanner";
 
@@ -75,7 +76,7 @@ export function App() {
           }
         />
 
-        {/* Authenticated Student Portal Routes wrapped in DashboardLayout (Sidebar + TopNavbar) */}
+        {/* Authenticated Student Portal Routes wrapped in DashboardLayout (TopNavbar) */}
         <Route
           element={
             <ProtectedRoute>
@@ -84,8 +85,8 @@ export function App() {
           }
         >
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/roadmap" element={<PersonalizedRoadmapPage />} />
-          <Route path="/practice/roadmap" element={<Navigate to="/roadmap" replace />} />
+          
+          {/* Phase 1 Unlocked Placement Modules */}
           <Route path="/practice" element={<PracticeHubPage />} />
           <Route path="/practice/mcq" element={<McqSessionPage />} />
           <Route
@@ -111,18 +112,65 @@ export function App() {
           <Route path="/contests/:contestId/result/:attemptId" element={<ContestResultPage />} />
           <Route path="/contests/:contestId/leaderboard" element={<ContestLeaderboardPage />} />
 
-          <Route path="/interview" element={<MockInterviewPage />} />
-          <Route path="/mock-interview" element={<Navigate to="/interview" replace />} />
-          <Route path="/resume" element={<Navigate to="/profile" replace />} />
-          <Route path="/store" element={<FlashStorePage />} />
-          <Route path="/pricing" element={<FlashStorePage />} />
-
           {/* Student Career Profile */}
           <Route path="/profile" element={<StudentProfilePage />} />
 
-          {/* Group Discussion Arena */}
-          <Route path="/gd" element={<GdLobbyPage />} />
-          <Route path="/gd/:roomId" element={<GdRoomPage />} />
+          {/* Phase 2 Guarded: AI Roadmap (Unlocks Dec 1) */}
+          <Route
+            path="/roadmap"
+            element={
+              <PhaseGuardRoute featureKey="ROADMAP">
+                <PersonalizedRoadmapPage />
+              </PhaseGuardRoute>
+            }
+          />
+          <Route path="/practice/roadmap" element={<Navigate to="/roadmap" replace />} />
+
+          {/* Phase 3 Guarded: AI Mock Interview & GD Arena (Unlocks Dec 16) */}
+          <Route
+            path="/interview"
+            element={
+              <PhaseGuardRoute featureKey="INTERVIEW">
+                <MockInterviewPage />
+              </PhaseGuardRoute>
+            }
+          />
+          <Route path="/mock-interview" element={<Navigate to="/interview" replace />} />
+          <Route path="/resume" element={<Navigate to="/profile" replace />} />
+          <Route
+            path="/gd"
+            element={
+              <PhaseGuardRoute featureKey="GD">
+                <GdLobbyPage />
+              </PhaseGuardRoute>
+            }
+          />
+          <Route
+            path="/gd/:roomId"
+            element={
+              <PhaseGuardRoute featureKey="GD">
+                <GdRoomPage />
+              </PhaseGuardRoute>
+            }
+          />
+
+          {/* Phase 4 Guarded: Store & Subscriptions (Unlocks Jan 1) */}
+          <Route
+            path="/store"
+            element={
+              <PhaseGuardRoute featureKey="STORE">
+                <FlashStorePage />
+              </PhaseGuardRoute>
+            }
+          />
+          <Route
+            path="/pricing"
+            element={
+              <PhaseGuardRoute featureKey="STORE">
+                <FlashStorePage />
+              </PhaseGuardRoute>
+            }
+          />
         </Route>
 
         {/* Public Shareable Candidate Career Portfolios */}
