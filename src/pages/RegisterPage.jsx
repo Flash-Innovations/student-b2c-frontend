@@ -13,11 +13,14 @@ import {
   EyeOff,
   Ticket,
   Key,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck,
+  X
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Button } from "../components/common/Button";
+import { GoogleAuthButton } from "../components/common/GoogleAuthButton";
 import { b2cApi } from "../services/b2cApi";
 import { validatePasswordStrength } from "../utils/passwordPolicy";
 import { PasswordRequirements } from "../components/common/PasswordRequirements";
@@ -93,7 +96,7 @@ const OTHER_ROLES = [
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
 export function RegisterPage() {
-  const { register } = useAuth();
+  const { register, googleSignIn, googleRegister } = useAuth();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,10 +104,20 @@ export function RegisterPage() {
   const searchParams = new URLSearchParams(location.search);
   const redirectTarget = searchParams.get("redirect") || location.state?.from?.pathname || "/dashboard";
 
+  const [googleAuthData, setGoogleAuthData] = useState(() => {
+    if (location.state?.googleUser && location.state?.credential) {
+      return {
+        googleUser: location.state.googleUser,
+        credential: location.state.credential
+      };
+    }
+    return null;
+  });
+
   const initialCode = searchParams.get("code") || searchParams.get("invite") || "FLASH100";
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: location.state?.googleUser?.name || "",
+    email: location.state?.googleUser?.email || "",
     password: "",
     collegeName: "",
     course: COURSES[0].label,
@@ -118,6 +131,60 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Populate Google Auth data if navigated from login or external state
+  React.useEffect(() => {
+    if (location.state?.googleUser && location.state?.credential) {
+      setGoogleAuthData({
+        googleUser: location.state.googleUser,
+        credential: location.state.credential
+      });
+      setFormData((prev) => ({
+        ...prev,
+        name: location.state.googleUser.name || prev.name,
+        email: location.state.googleUser.email || prev.email
+      }));
+    }
+  }, [location.state]);
+
+  const handleGoogleSuccess = async (credential) => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      // First check if the user is already registered!
+      const data = await googleSignIn(credential);
+      if (data?.token && !data?.isNewUser) {
+        showSuccess(`Welcome back, ${data.user?.name || "Student"}!`);
+        navigate(redirectTarget, { replace: true });
+        return;
+      }
+
+      // New Google student: pre-fill verified name and email, ask for missing placement credentials
+      const gUser = data?.googleUser || {};
+      setGoogleAuthData({
+        googleUser: gUser,
+        credential
+      });
+      setFormData((prev) => ({
+        ...prev,
+        name: gUser.name || prev.name,
+        email: gUser.email || prev.email
+      }));
+      showSuccess("Google account linked! Please enter your academic details below.");
+    } catch (err) {
+      const msg = err.message || "Failed to authenticate with Google.";
+      setErrorMsg(msg);
+      showError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = (err) => {
+    const msg = err?.message || "Google authentication was cancelled or could not be completed.";
+    setErrorMsg(msg);
+    showError(msg);
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -200,18 +267,21 @@ export function RegisterPage() {
       return;
     }
 
-    if (!formData.password) {
-      const msg = "Please create a password.";
-      setErrorMsg(msg);
-      showError(msg);
-      return;
-    }
+    // Password is only required when signing up with standard email/password
+    if (!googleAuthData) {
+      if (!formData.password) {
+        const msg = "Please create a password.";
+        setErrorMsg(msg);
+        showError(msg);
+        return;
+      }
 
-    const passwordError = validatePasswordStrength(formData.password);
-    if (passwordError) {
-      setErrorMsg(passwordError);
-      showError(passwordError);
-      return;
+      const passwordError = validatePasswordStrength(formData.password);
+      if (passwordError) {
+        setErrorMsg(passwordError);
+        showError(passwordError);
+        return;
+      }
     }
 
     if (!formData.collegeName.trim()) {
@@ -232,16 +302,32 @@ export function RegisterPage() {
     setErrorMsg("");
 
     try {
-      await register({
-        ...formData,
-        name: formData.name.trim(),
-        email: formData.email.trim().toLowerCase(),
-        collegeName: formData.collegeName.trim(),
-        degree: formData.course,
-        graduationYear: Number(formData.graduationYear),
-        inviteCode: formData.inviteCode.trim().toUpperCase()
-      });
-      showSuccess("Account created successfully! Welcome to Flash.");
+      if (googleAuthData) {
+        await googleRegister({
+          credential: googleAuthData.credential,
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          collegeName: formData.collegeName.trim(),
+          course: formData.course,
+          degree: formData.course,
+          branch: formData.branch,
+          graduationYear: Number(formData.graduationYear),
+          targetRole: formData.targetRole,
+          inviteCode: formData.inviteCode.trim().toUpperCase()
+        });
+        showSuccess(`Account created successfully! Welcome to Flash, ${formData.name.trim()}!`);
+      } else {
+        await register({
+          ...formData,
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          collegeName: formData.collegeName.trim(),
+          degree: formData.course,
+          graduationYear: Number(formData.graduationYear),
+          inviteCode: formData.inviteCode.trim().toUpperCase()
+        });
+        showSuccess("Account created successfully! Welcome to Flash.");
+      }
       navigate(redirectTarget, { replace: true });
     } catch (err) {
       const msg = err.message || "Registration failed. Please try again.";
@@ -276,9 +362,82 @@ export function RegisterPage() {
               <GraduationCap className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Create Free Student Account</h2>
+              <h2 className="text-sm font-bold text-slate-900">
+                {googleAuthData ? "Complete Student Registration" : "Create Free Student Account"}
+              </h2>
             </div>
           </div>
+
+          {/* Connected Google Account Banner */}
+          {googleAuthData ? (
+            <div className="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 mb-4 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {googleAuthData.googleUser?.avatar ? (
+                    <img
+                      src={googleAuthData.googleUser.avatar}
+                      alt="Google Avatar"
+                      className="w-10 h-10 rounded-full border border-emerald-300 object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                      {(googleAuthData.googleUser?.name || "G")[0]}
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">
+                        {googleAuthData.googleUser?.name || formData.name}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Google Verified
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 font-medium">
+                      {googleAuthData.googleUser?.email || formData.email}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoogleAuthData(null);
+                    setFormData((prev) => ({ ...prev, name: "", email: "" }));
+                  }}
+                  className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 underline decoration-slate-300 cursor-pointer"
+                >
+                  Use other email
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] text-emerald-800 font-medium">
+                Verified via Google. Complete the remaining academic fields below to activate your account.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Google Sign Up Button */}
+              <div className="mb-3">
+                <GoogleAuthButton
+                  mode="signup"
+                  label="Sign up with Google"
+                  disabled={loading}
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                />
+              </div>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase">
+                  <span className="bg-white px-2.5 text-slate-400 font-semibold tracking-wider">
+                    Or register with student email
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             
@@ -292,7 +451,7 @@ export function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Full Name *
+                  Full Name * {googleAuthData && <span className="text-emerald-600 font-normal lowercase">(from Google)</span>}
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -310,7 +469,7 @@ export function RegisterPage() {
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Student Email *
+                  Student Email * {googleAuthData && <span className="text-emerald-600 font-normal lowercase">(Google verified)</span>}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -318,40 +477,50 @@ export function RegisterPage() {
                     type="email"
                     name="email"
                     required
+                    readOnly={Boolean(googleAuthData)}
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="e.g. harsh@college.edu"
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400"
+                    className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400 ${googleAuthData ? "bg-slate-50 cursor-not-allowed text-slate-600" : ""}`}
                   />
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Password *
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="8-16 characters (upper, lower, num, special)"
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="p-1 text-slate-400 hover:text-slate-600 absolute right-3 top-1/2 -translate-y-1/2"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+            {!googleAuthData ? (
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Password *
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    required
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="8-16 characters (upper, lower, num, special)"
+                    className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900 placeholder:text-slate-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 text-slate-400 hover:text-slate-600 absolute right-3 top-1/2 -translate-y-1/2"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <PasswordRequirements password={formData.password} />
               </div>
-              <PasswordRequirements password={formData.password} />
-            </div>
+            ) : (
+              <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 flex items-center gap-2.5 text-xs text-indigo-900">
+                <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span>
+                  <strong>Google Authentication Active:</strong> Sign in securely with your Google account. No separate password needed.
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -491,7 +660,7 @@ export function RegisterPage() {
               onClick={handleSubmit}
               className="w-full mt-2 flex items-center justify-center gap-2"
             >
-              <span>Complete Registration & Start Practicing</span>
+              <span>{googleAuthData ? "Complete Registration with Google" : "Complete Registration & Start Practicing"}</span>
               <ArrowRight className="w-4 h-4 shrink-0" />
             </Button>
 

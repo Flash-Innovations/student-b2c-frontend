@@ -19,13 +19,14 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { b2cApi } from "../services/b2cApi";
 import { Button } from "../components/common/Button";
+import { GoogleAuthButton } from "../components/common/GoogleAuthButton";
 import { validatePasswordStrength } from "../utils/passwordPolicy";
 import { PasswordRequirements } from "../components/common/PasswordRequirements";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
 export function LoginPage() {
-  const { login, setSession } = useAuth();
+  const { login, googleSignIn, setSession } = useAuth();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,6 +80,43 @@ export function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credential) => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const data = await googleSignIn(credential);
+      if (data?.isNewUser) {
+        showSuccess("Google account connected! Please enter your academic credentials to complete registration.");
+        navigate(
+          redirectTarget !== "/dashboard"
+            ? `/register?redirect=${encodeURIComponent(redirectTarget)}`
+            : "/register",
+          {
+            state: {
+              googleUser: data.googleUser,
+              credential
+            }
+          }
+        );
+      } else {
+        showSuccess(`Welcome back, ${data.user?.name || "Student"}!`);
+        navigate(redirectTarget, { replace: true });
+      }
+    } catch (err) {
+      const msg = err.message || "Google sign-in failed. Please try again.";
+      setErrorMsg(msg);
+      showError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = (err) => {
+    const msg = err?.message || "Google authentication was cancelled or could not be completed.";
+    setErrorMsg(msg);
+    showError(msg);
   };
 
   const openForgotModal = () => {
@@ -204,6 +242,28 @@ export function LoginPage() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900">Student Portal Sign In</h2>
+            </div>
+          </div>
+
+          {/* Google Sign In Option */}
+          <div className="mb-3">
+            <GoogleAuthButton
+              mode="signin"
+              label="Continue with Google"
+              disabled={loading}
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+            />
+          </div>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase">
+              <span className="bg-white px-2.5 text-slate-400 font-semibold tracking-wider">
+                Or continue with student email
+              </span>
             </div>
           </div>
 

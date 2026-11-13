@@ -31,12 +31,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (token) {
-      fetchProfile();
-    } else {
-      setLoading(false);
-    }
-  }, [token, fetchProfile]);
+    fetchProfile();
+  }, [fetchProfile]);
 
   const login = async (email, password) => {
     const data = await b2cApi.login({ email, password });
@@ -51,6 +47,28 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     const data = await b2cApi.register(userData);
+    if (data.token) {
+      setAuthToken(data.token);
+      setTokenState(data.token);
+      setUser(data.user);
+      await fetchProfile();
+    }
+    return data;
+  };
+
+  const googleSignIn = async (credential) => {
+    const data = await b2cApi.googleSignIn({ credential });
+    if (data.token) {
+      setAuthToken(data.token);
+      setTokenState(data.token);
+      setUser(data.user);
+      await fetchProfile();
+    }
+    return data;
+  };
+
+  const googleRegister = async (registerData) => {
+    const data = await b2cApi.googleRegister(registerData);
     if (data.token) {
       setAuthToken(data.token);
       setTokenState(data.token);
@@ -231,6 +249,8 @@ export const AuthProvider = ({ children }) => {
     isTechnical,
     login,
     register,
+    googleSignIn,
+    googleRegister,
     logout,
     updateToken,
     setSession,
