@@ -60,6 +60,28 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const googleSignIn = async (credential) => {
+    const data = await b2cApi.googleSignIn({ credential });
+    if (data.token) {
+      setAuthToken(data.token);
+      setTokenState(data.token);
+      setUser(data.user);
+      await fetchProfile();
+    }
+    return data;
+  };
+
+  const googleRegister = async (registerData) => {
+    const data = await b2cApi.googleRegister(registerData);
+    if (data.token) {
+      setAuthToken(data.token);
+      setTokenState(data.token);
+      setUser(data.user);
+      await fetchProfile();
+    }
+    return data;
+  };
+
   const logout = () => {
     codingPreloadService.clearCache();
     setAuthToken(null);
@@ -231,6 +253,8 @@ export const AuthProvider = ({ children }) => {
     isTechnical,
     login,
     register,
+    googleSignIn,
+    googleRegister,
     logout,
     updateToken,
     setSession,
