@@ -31,12 +31,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (token) {
-      fetchProfile();
-    } else {
-      setLoading(false);
-    }
-  }, [token, fetchProfile]);
+    fetchProfile();
+  }, [fetchProfile]);
 
   const login = async (email, password) => {
     const data = await b2cApi.login({ email, password });

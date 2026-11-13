@@ -43,7 +43,7 @@ async function b2cRequest(endpoint, options = {}) {
   }
 
   try {
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, { credentials: 'include', ...options, headers });
     const contentType = response.headers.get('content-type');
     let data = null;
     if (contentType && contentType.includes('application/json')) {
