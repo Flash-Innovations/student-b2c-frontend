@@ -33,75 +33,91 @@ export function GoogleAuthButton({
   className = ""
 }) {
   const buttonRef = useRef(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [gisRendered, setGisRendered] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [demoEmail, setDemoEmail] = useState("student.candidate@college.edu");
 
-  const clientId = (typeof import.meta !== "undefined" && import.meta.env?.VITE_GOOGLE_CLIENT_ID) || "";
+  const clientId =
+    (typeof import.meta !== "undefined" &&
+      (import.meta.env?.VITE_GOOGLE_CLIENT_ID ||
+        import.meta.env?.VITE_PUBLIC_GOOGLE_CLIENT_ID ||
+        import.meta.env?.GOOGLE_CLIENT_ID)) ||
+    (typeof window !== "undefined" && window.__FLASH_GOOGLE_CLIENT_ID__) ||
+    "";
 
+  // Initialize Google Identity Services
   useEffect(() => {
-    if (!clientId) return;
+    let checkInterval = null;
 
-    // Load Google Identity Services script if not already present
-    if (window.google?.accounts?.id) {
-      setScriptLoaded(true);
-      return;
-    }
+    const setupGis = () => {
+      if (!clientId || !window.google?.accounts?.id || !buttonRef.current) return false;
 
-    const existingScript = document.getElementById("google-gsi-client");
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.id = "google-gsi-client";
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setScriptLoaded(true);
-      script.onerror = () => {
-        console.warn("Failed to load Google Identity Services SDK");
-      };
-      document.head.appendChild(script);
-    } else {
-      existingScript.addEventListener("load", () => setScriptLoaded(true));
-    }
-  }, [clientId]);
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response) => {
+            if (response && response.credential) {
+              onSuccess?.(response.credential);
+            } else {
+              onError?.(new Error("No credential received from Google."));
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true
+        });
 
-  useEffect(() => {
-    if (!scriptLoaded || !clientId || !buttonRef.current || !window.google?.accounts?.id) return;
+        // Clear any previous child before rendering
+        buttonRef.current.innerHTML = "";
 
-    try {
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: (response) => {
-          if (response && response.credential) {
-            onSuccess?.(response.credential);
-          } else {
-            onError?.(new Error("No credential received from Google."));
+        window.google.accounts.id.renderButton(buttonRef.current, {
+          theme: "outline",
+          size: "large",
+          type: "standard",
+          text: mode === "signup" ? "signup_with" : "signin_with",
+          shape: "rectangular",
+          logo_alignment: "left",
+          width: Math.max(240, Math.min(380, buttonRef.current.offsetWidth || 340))
+        });
+
+        setGisRendered(true);
+        return true;
+      } catch (err) {
+        console.warn("Failed to render Google Identity Services button:", err);
+        return false;
+      }
+    };
+
+    if (clientId) {
+      if (!setupGis()) {
+        // Poll briefly in case the script tag finishes loading in the background
+        let attempts = 0;
+        checkInterval = setInterval(() => {
+          attempts++;
+          if (setupGis() || attempts > 20) {
+            clearInterval(checkInterval);
           }
-        },
-        auto_select: false,
-        cancel_on_tap_outside: true
-      });
-
-      // Clear any prior content in container
-      buttonRef.current.innerHTML = "";
-
-      window.google.accounts.id.renderButton(buttonRef.current, {
-        theme: "outline",
-        size: "large",
-        type: "standard",
-        text: mode === "signup" ? "signup_with" : "signin_with",
-        shape: "rectangular",
-        logo_alignment: "left",
-        width: buttonRef.current.offsetWidth || 340
-      });
-    } catch (err) {
-      console.warn("Error initializing Google Identity Services:", err);
+        }, 150);
+      }
     }
-  }, [scriptLoaded, clientId, mode, onSuccess, onError]);
 
-  const handleManualClick = () => {
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+    };
+  }, [clientId, mode, onSuccess, onError]);
+
+  const handleCustomButtonClick = () => {
     if (clientId && window.google?.accounts?.id) {
-      window.google.accounts.id.prompt();
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // If Google One-Tap is suppressed or blocked by origin, open demo modal
+            setShowConfigModal(true);
+          }
+        });
+        return;
+      } catch (e) {
+        setShowConfigModal(true);
+      }
     } else {
       setShowConfigModal(true);
     }
@@ -116,14 +132,19 @@ export function GoogleAuthButton({
   const defaultLabel = label || (mode === "signup" ? "Sign up with Google" : "Continue with Google");
 
   return (
-    <div className={`w-full ${className}`}>
-      {clientId ? (
-        <div ref={buttonRef} className="w-full flex justify-center min-h-[42px]" />
-      ) : (
+    <div className={`w-full relative ${className}`}>
+      {/* 1. Official Google Identity Services container if available and active */}
+      <div
+        ref={buttonRef}
+        className={`w-full flex justify-center min-h-[42px] ${gisRendered ? "block" : "hidden"}`}
+      />
+
+      {/* 2. Resilient Branded Button: Always rendered when GIS is not actively displayed */}
+      {!gisRendered && (
         <button
           type="button"
           disabled={disabled}
-          onClick={handleManualClick}
+          onClick={handleCustomButtonClick}
           className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium text-sm rounded-xl border border-slate-300 shadow-sm transition-all hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <GoogleIcon className="w-4 h-4 shrink-0" />
@@ -131,14 +152,14 @@ export function GoogleAuthButton({
         </button>
       )}
 
-      {/* Developer Configuration & Demo Mode Modal (Shown if VITE_GOOGLE_CLIENT_ID is unset) */}
+      {/* Developer Configuration & Demo Mode Modal (Shown if GIS fails or VITE_GOOGLE_CLIENT_ID is unset) */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
             <div className="px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <GoogleIcon className="w-5 h-5" />
-                <h3 className="text-sm font-bold text-slate-900">Google OAuth Ready</h3>
+                <h3 className="text-sm font-bold text-slate-900">Google OAuth Sign-In</h3>
               </div>
               <button
                 type="button"
@@ -153,20 +174,20 @@ export function GoogleAuthButton({
               <div className="flex items-start gap-3 p-3 bg-indigo-50/80 rounded-xl border border-indigo-100 text-xs text-indigo-900 leading-relaxed">
                 <ShieldCheck className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold mb-1">Google Single Sign-On (GIS) is Active</p>
+                  <p className="font-semibold mb-1">Google Single Sign-On (GIS) Ready</p>
                   <p className="text-slate-600">
-                    To connect your live Google Cloud accounts, add your Google Web Client ID to{" "}
+                    To connect your live Google accounts, ensure{" "}
                     <code className="bg-white px-1.5 py-0.5 rounded border border-indigo-200 font-mono text-[11px] text-indigo-700">
                       VITE_GOOGLE_CLIENT_ID
                     </code>{" "}
-                    in <code className="text-slate-800">.env</code>.
+                    is present in your frontend <code className="text-slate-800">.env</code> and that your current port (e.g. http://localhost:5180) is added to Authorized JavaScript Origins in Google Cloud Console.
                   </p>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-slate-100">
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Test with Verified Google Student Profile (Local Dev)
+                  Sign in with Test Student Profile (Instant Verification)
                 </label>
                 <input
                   type="email"
@@ -176,7 +197,7 @@ export function GoogleAuthButton({
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-900"
                 />
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Simulates a cryptographically verified Google identity response with this student email.
+                  Simulates a verified Google identity response for this student email.
                 </p>
               </div>
 
@@ -187,7 +208,7 @@ export function GoogleAuthButton({
                   className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-indigo-600/20"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Continue with Demo Google Account
+                  Continue with Verified Profile
                 </button>
                 <button
                   type="button"
@@ -205,3 +226,4 @@ export function GoogleAuthButton({
   );
 }
 
+export default GoogleAuthButton;
