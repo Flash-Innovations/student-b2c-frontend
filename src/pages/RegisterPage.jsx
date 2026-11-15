@@ -114,7 +114,6 @@ export function RegisterPage() {
     return null;
   });
 
-  const initialCode = searchParams.get("code") || searchParams.get("invite") || "FLASH100";
   const [formData, setFormData] = useState({
     name: location.state?.googleUser?.name || "",
     email: location.state?.googleUser?.email || "",
@@ -123,10 +122,8 @@ export function RegisterPage() {
     course: COURSES[0].label,
     branch: COURSES[0].label,
     graduationYear: new Date().getFullYear() + 1,
-    targetRole: TECHNICAL_ROLES[0],
-    inviteCode: initialCode
+    targetRole: TECHNICAL_ROLES[0]
   });
-  const [inviteStatus, setInviteStatus] = useState({ valid: true, message: "Phase 1 Beta Pass: 250 MCQs + Free Contests" });
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -189,31 +186,6 @@ export function RegisterPage() {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrorMsg("");
-  };
-
-  const handleInviteChange = (e) => {
-    const val = e.target.value.toUpperCase();
-    setFormData((prev) => ({ ...prev, inviteCode: val }));
-    setInviteStatus(null);
-    setErrorMsg("");
-  };
-
-  const validateCode = async () => {
-    if (!formData.inviteCode.trim()) {
-      setInviteStatus({ valid: false, message: "Please enter an invite code." });
-      return;
-    }
-    try {
-      const res = await b2cApi.validateBetaInvite(formData.inviteCode.trim());
-      if (res && res.success) {
-        setInviteStatus({
-          valid: true,
-          message: `Spot verified! Spot #${res.data.claimedCount + 1} of ${res.data.maxSpots} reserved.`
-        });
-      }
-    } catch (err) {
-      setInviteStatus({ valid: false, message: err.message || "Invalid or expired invite code." });
-    }
   };
 
   const handleCourseChange = (e) => {
@@ -291,13 +263,6 @@ export function RegisterPage() {
       return;
     }
 
-    if (!formData.inviteCode || !formData.inviteCode.trim()) {
-      const msg = "Please enter your VIP Beta Invite Code (e.g. FLASH100).";
-      setErrorMsg(msg);
-      showError(msg);
-      return;
-    }
-
     setLoading(true);
     setErrorMsg("");
 
@@ -312,8 +277,7 @@ export function RegisterPage() {
           degree: formData.course,
           branch: formData.branch,
           graduationYear: Number(formData.graduationYear),
-          targetRole: formData.targetRole,
-          inviteCode: formData.inviteCode.trim().toUpperCase()
+          targetRole: formData.targetRole
         });
         showSuccess(`Account created successfully! Welcome to Flash, ${formData.name.trim()}!`);
       } else {
@@ -323,8 +287,7 @@ export function RegisterPage() {
           email: formData.email.trim().toLowerCase(),
           collegeName: formData.collegeName.trim(),
           degree: formData.course,
-          graduationYear: Number(formData.graduationYear),
-          inviteCode: formData.inviteCode.trim().toUpperCase()
+          graduationYear: Number(formData.graduationYear)
         });
         showSuccess("Account created successfully! Welcome to Flash.");
       }
@@ -602,47 +565,6 @@ export function RegisterPage() {
                   ))}
                 </select>
               </div>
-            </div>
-
-            {/* VIP Beta Invite Code */}
-            <div className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-[11px] font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
-                  <Key className="w-3.5 h-3.5 text-indigo-600" />
-                  VIP Closed Beta Invite Code *
-                </label>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-200/60 text-indigo-800 font-bold">
-                  Cohort 1: 100 Spots
-                </span>
-              </div>
-              <div className="relative">
-                <Ticket className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  name="inviteCode"
-                  required
-                  value={formData.inviteCode}
-                  onChange={handleInviteChange}
-                  placeholder="e.g. FLASH100"
-                  className="w-full pl-9 pr-20 py-2 rounded-lg border border-indigo-200 bg-white text-xs uppercase tracking-wider font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-indigo-950 placeholder:text-slate-400 placeholder:normal-case placeholder:font-sans"
-                />
-                <button
-                  type="button"
-                  onClick={validateCode}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors shadow-xs"
-                >
-                  Verify
-                </button>
-              </div>
-              {inviteStatus && (
-                <div className={`text-xs flex items-center gap-1.5 ${inviteStatus.valid ? "text-emerald-700 font-medium" : "text-rose-600"}`}>
-                  {inviteStatus.valid ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-                  <span>{inviteStatus.message}</span>
-                </div>
-              )}
-              <p className="text-[10px] text-indigo-900/75 leading-relaxed">
-                Phase 1 Beta includes 250 Practice MCQs, 100% Free Coding Hub, and Zero Contest Entry Fees.
-              </p>
             </div>
 
             {errorMsg && (

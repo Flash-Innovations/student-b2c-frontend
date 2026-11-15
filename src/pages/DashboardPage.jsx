@@ -24,8 +24,6 @@ import { practiceApi } from "../services/practiceApi";
 import { b2cApi } from "../services/b2cApi";
 import { DailyTrendChart } from "../components/dashboard/DailyTrendChart";
 import { calculateXp } from "../utils/xpCalculator";
-import PhaseTeaserModal from "../components/common/PhaseTeaserModal";
-import BetaFeedbackModal from "../components/common/BetaFeedbackModal";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -35,12 +33,8 @@ export function DashboardPage() {
   const [streakData, setStreakData] = useState({ streak: 0, currentStreak: 0, streakBreaks: 0 });
   const [upcomingContest, setUpcomingContest] = useState(null);
   const [historyData, setHistoryData] = useState([]);
-  const [betaConfig, setBetaConfig] = useState(null);
-  const [isTeaserOpen, setIsTeaserOpen] = useState(false);
-  const [teaserFeature, setTeaserFeature] = useState("ROADMAP");
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
-  // Fetch real telemetry, contest data, and beta config
+  // Fetch real telemetry and contest data
   useEffect(() => {
     let isMounted = true;
 
@@ -72,15 +66,6 @@ export function DashboardPage() {
       .then((res) => {
         if (isMounted && res && Array.isArray(res.history)) {
           setHistoryData(res.history);
-        }
-      })
-      .catch(() => {});
-
-    // 4. Fetch Beta Config
-    b2cApi.getBetaConfig?.()
-      .then((res) => {
-        if (isMounted && res && res.success) {
-          setBetaConfig(res);
         }
       })
       .catch(() => {});
@@ -193,15 +178,6 @@ export function DashboardPage() {
     };
   }, [historyData, totalSolved]);
 
-  const isRoadmapUnlocked = Boolean(betaConfig?.featureFlags?.roadmap);
-  const isInterviewUnlocked = Boolean(betaConfig?.featureFlags?.mockInterviews);
-  const isGdUnlocked = Boolean(betaConfig?.featureFlags?.groupDiscussion);
-
-  const openTeaser = (feature) => {
-    setTeaserFeature(feature);
-    setIsTeaserOpen(true);
-  };
-
   return (
     <div className="space-y-6 select-none animate-in fade-in duration-200">
       
@@ -254,72 +230,29 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Closed Beta Phase 1 Command Deck Banner */}
-        <div className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-900/60 text-white shadow-md relative overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1.5 max-w-xl">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold font-mono">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                  Closed Beta • Phase 1
-                </span>
-                <span className="text-[10px] font-mono text-slate-400">
-                  Cohort 1 (100 Spots) • Nov 15 – Nov 30
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white tracking-tight">
-                VIP Beta Access Active: Practice Hub, Coding Arena & Assessments
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                You are in our founding 100-tester cohort. Enjoy 250 free practice MCQs, unrestricted Coding Arena, and zero-fee assessments while we test system stability before our commercial launch.
-              </p>
+        {/* AI Placement Roadmap Hero Banner */}
+        <div className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+              <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 font-semibold">
+                Adaptive Career Navigator
+              </span>
             </div>
-
-            <div className="flex items-center gap-2.5 shrink-0">
-              <button
-                onClick={() => setIsFeedbackOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Submit Beta Feedback</span>
-              </button>
-            </div>
+            <h3 className="text-base font-bold text-white">
+              Personalized AI Placement Roadmap
+            </h3>
+            <p className="text-xs text-slate-300 max-w-xl">
+              Calibrated to your skill profile, target role, and upcoming campus placement drive. Track active milestones and focus quests.
+            </p>
           </div>
-
-          {/* Release Roadmap Timeline Bar */}
-          <div className="mt-4 pt-3.5 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
-              <div className="text-[10px] uppercase font-bold text-emerald-400 font-mono">Phase 1 (Live Now)</div>
-              <div className="font-semibold text-white text-[11px] mt-0.5">250 MCQ + DSA + Contests</div>
-            </div>
-            <div
-              onClick={() => openTeaser('ROADMAP')}
-              className="p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 cursor-pointer transition-colors"
-            >
-              <div className="text-[10px] uppercase font-bold text-amber-400 font-mono flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5" /> Phase 2 (Dec 1)
-              </div>
-              <div className="font-semibold text-white text-[11px] mt-0.5">AI Career Roadmap</div>
-            </div>
-            <div
-              onClick={() => openTeaser('INTERVIEW')}
-              className="p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 cursor-pointer transition-colors"
-            >
-              <div className="text-[10px] uppercase font-bold text-purple-400 font-mono flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5" /> Phase 3 (Dec 16)
-              </div>
-              <div className="font-semibold text-white text-[11px] mt-0.5">Gemini Live Mocks & GD</div>
-            </div>
-            <div
-              onClick={() => openTeaser('STORE')}
-              className="p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 cursor-pointer transition-colors"
-            >
-              <div className="text-[10px] uppercase font-bold text-indigo-400 font-mono flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5" /> Phase 4 (Jan 1)
-              </div>
-              <div className="font-semibold text-white text-[11px] mt-0.5">Full Commercial Launch</div>
-            </div>
-          </div>
+          <button
+            onClick={() => navigate("/roadmap")}
+            className="px-4 py-2.5 rounded-xl bg-white text-slate-950 text-xs font-bold hover:bg-slate-100 transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <span>Open My Roadmap</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
 
         {/* AI Placement Roadmap Focus Card */}
@@ -390,7 +323,7 @@ export function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             
-            {/* Module 1: Aptitude Track (250 Quota for Beta) */}
+            {/* Module 1: Aptitude Track */}
             <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -398,7 +331,7 @@ export function DashboardPage() {
                     <BookOpen className="w-4.5 h-4.5 text-slate-800" />
                   </div>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    250 Free Beta Quota
+                    Active Track
                   </span>
                 </div>
                 <h5 className="text-sm font-bold text-slate-900">
@@ -409,7 +342,7 @@ export function DashboardPage() {
                 </p>
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-slate-500 font-medium">Beta Quota Usage</span>
+                    <span className="text-slate-500 font-medium">Daily Quota Usage</span>
                     <span className="font-bold text-emerald-600">{mcqPercent}%</span>
                   </div>
                   <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
@@ -473,8 +406,8 @@ export function DashboardPage() {
                     <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
                       <Users className="w-4.5 h-4.5 text-slate-800" />
                     </div>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> Dec 16
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Live Peer GD
                     </span>
                   </div>
                   <h5 className="text-sm font-bold text-slate-900">
@@ -485,25 +418,19 @@ export function DashboardPage() {
                   </p>
                   <div className="mt-3">
                     <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-slate-500 font-medium">Phase 3 Release</span>
-                      <span className="font-bold text-amber-600">Unlocks Dec 16</span>
+                      <span className="text-slate-500 font-medium">GD Readiness</span>
+                      <span className="font-bold text-emerald-600">Active</span>
                     </div>
                     <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-amber-500 h-full rounded-full" style={{ width: "100%" }} />
+                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: "100%" }} />
                     </div>
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    if (isGdUnlocked) {
-                      navigate("/gd");
-                    } else {
-                      openTeaser("GD");
-                    }
-                  }}
+                  onClick={() => navigate("/gd")}
                   className="mt-4 w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer"
                 >
-                  {isGdUnlocked ? "Launch GD Lobby" : "Preview Phase 3 Drop"}
+                  Launch GD Lobby
                 </button>
               </div>
             )}
@@ -515,8 +442,8 @@ export function DashboardPage() {
                   <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
                     <Bot className="w-4.5 h-4.5 text-slate-800" />
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                    <Lock className="w-2.5 h-2.5" /> Dec 16
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                    AI Voice Live
                   </span>
                 </div>
                 <h5 className="text-sm font-bold text-slate-900">
@@ -527,25 +454,19 @@ export function DashboardPage() {
                 </p>
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-slate-500 font-medium">Phase 3 Release</span>
-                    <span className="font-bold text-amber-600">Unlocks Dec 16</span>
+                    <span className="text-slate-500 font-medium">Interview Suite</span>
+                    <span className="font-bold text-blue-600">Ready</span>
                   </div>
                   <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-amber-500 h-full rounded-full" style={{ width: "100%" }} />
+                    <div className="bg-blue-600 h-full rounded-full" style={{ width: "100%" }} />
                   </div>
                 </div>
               </div>
               <button
-                onClick={() => {
-                  if (isInterviewUnlocked) {
-                    navigate("/interview");
-                  } else {
-                    openTeaser("INTERVIEW");
-                  }
-                }}
+                onClick={() => navigate("/interview")}
                 className="mt-4 w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer"
               >
-                {isInterviewUnlocked ? "Launch Interview" : "Preview Phase 3 Drop"}
+                Launch Interview
               </button>
             </div>
 
@@ -634,23 +555,6 @@ export function DashboardPage() {
         </div>
 
       </div>
-
-      {/* Feature Teaser Modal */}
-      <PhaseTeaserModal
-        isOpen={isTeaserOpen}
-        onClose={() => setIsTeaserOpen(false)}
-        featureKey={teaserFeature}
-        onOpenFeedback={() => {
-          setIsTeaserOpen(false);
-          setIsFeedbackOpen(true);
-        }}
-      />
-
-      {/* Beta Feedback Modal */}
-      <BetaFeedbackModal
-        isOpen={isFeedbackOpen}
-        onClose={() => setIsFeedbackOpen(false)}
-      />
 
     </div>
   );
