@@ -6,7 +6,6 @@ import {
   Timer,
   Bot,
   Flag,
-  AlertCircle,
   Users,
   BookOpen,
   Zap,
@@ -417,85 +416,74 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Dashboard 2-Column Split: Trend Chart (7 cols) + Goals & Focus (5 cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Dashboard 2-Column Split: Daily Accuracy & Practice Trend (50%) + Placement Benchmark (50%) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           
-          {/* Left Column (7 cols): Performance SVG Trend Chart */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="p-5 rounded-xl border border-slate-200 bg-white">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-blue-600" /> Daily Accuracy &amp; Practice Trend
-                </span>
-                <span className="text-[11px] font-semibold text-slate-500">
-                  {avgAccuracy > 0 ? `Last 7 Days (Avg: ${avgAccuracy}%)` : "Last 7 Days"}
-                </span>
-              </div>
-              <div className="relative h-44 w-full">
-                <DailyTrendChart
-                  days={weekDays}
-                  accuracy={trendAccuracy}
-                  problems={trendProblems}
-                />
-              </div>
+          {/* Left Column: Performance SVG Trend Chart */}
+          <div className="p-5 rounded-xl border border-slate-200 bg-white shadow-xs flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <TrendingUp className="w-4 h-4 text-blue-600" /> Daily Accuracy &amp; Practice Trend
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500">
+                {avgAccuracy > 0 ? `Last 7 Days (Avg: ${avgAccuracy}%)` : "Last 7 Days"}
+              </span>
+            </div>
+            <div className="relative h-44 w-full">
+              <DailyTrendChart
+                days={weekDays}
+                accuracy={trendAccuracy}
+                problems={trendProblems}
+              />
             </div>
           </div>
 
-          {/* Right Column (5 cols): Goal Progress & Targeted Improvement Focus */}
-          <div className="lg:col-span-5 space-y-4">
-            
-            {/* Goal Progress Card */}
-            <div className="p-5 rounded-xl border border-slate-200 bg-white shadow-xs">
-              <div className="flex items-center justify-between mb-2">
+          {/* Right Column: Placement Benchmark */}
+          <div className="p-5 rounded-xl border border-slate-200 bg-white shadow-xs flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <Target className="w-4 h-4 text-slate-700" /> Placement Benchmark
+                  <Target className="w-4 h-4 text-blue-600" /> Placement Benchmark
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                   {targetGoal} Target
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mb-3">
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
                 Complete questions across MCQs and coding challenges to reach full placement readiness.
               </p>
+
               <div>
-                <div className="flex items-center justify-between text-xs text-slate-600">
+                <div className="flex items-center justify-between text-xs text-slate-600 mb-1.5">
                   <span>Questions Solved: <strong className="text-slate-900">{totalSolved} / {targetGoal}</strong></span>
                   <span className="font-bold text-blue-600">{goalPercent}%</span>
                 </div>
-                <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2 overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full transition-all" style={{ width: `${goalPercent}%` }} />
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${goalPercent}%` }}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Targeted Improvement Focus Card */}
-            <div className="p-5 rounded-xl border border-slate-200 bg-white shadow-xs">
-              <h5 className="text-xs font-bold text-slate-900 mb-3 flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4 text-slate-700" /> Targeted Improvement Focus
-              </h5>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between text-slate-700">
-                  <span>Data Interpretation</span>
-                  <span className="font-semibold text-red-600">62% (Needs work)</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-700">
-                  <span>{isTechnical ? "Dynamic Programming" : "Business Problem Sets"}</span>
-                  <span className="font-semibold text-purple-600">71% (Moderate)</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-700">
-                  <span>Quantitative Aptitude</span>
-                  <span className="font-semibold text-emerald-600">94% (Strong)</span>
-                </div>
+            {/* Benchmark Metrics Breakdown */}
+            <div className="grid grid-cols-3 gap-2.5 pt-4 mt-4 border-t border-slate-100">
+              <div className="bg-slate-50 p-2.5 rounded-lg text-center">
+                <span className="text-[10px] text-slate-500 block font-medium">MCQs</span>
+                <span className="text-xs font-bold text-slate-900">{mcqAttempted}</span>
               </div>
-              <button
-                onClick={() => navigate("/practice")}
-                className="w-full mt-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
-              >
-                Practice Diagnostic Questions
-              </button>
+              <div className="bg-slate-50 p-2.5 rounded-lg text-center">
+                <span className="text-[10px] text-slate-500 block font-medium">Coding</span>
+                <span className="text-xs font-bold text-slate-900">{dsaAttempted}</span>
+              </div>
+              <div className="bg-slate-50 p-2.5 rounded-lg text-center">
+                <span className="text-[10px] text-slate-500 block font-medium">Remaining</span>
+                <span className="text-xs font-bold text-blue-600">{Math.max(0, targetGoal - totalSolved)}</span>
+              </div>
             </div>
-
           </div>
+
         </div>
 
       </div>
