@@ -9,7 +9,7 @@ import {
   Mic,
   FileText,
   Flame,
-  Zap,
+  Coins,
   User,
   Crown,
   ShoppingBag,
@@ -180,13 +180,13 @@ export function TopNavbar() {
               <span>{streakDays}d Streak</span>
             </div>
 
-            {/* Practice XP Badge */}
+            {/* Flash Coins Badge */}
             <div
-              title="Cumulative Practice XP"
+              title="Cumulative Flash Coins"
               className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200"
             >
-              <Zap className="w-3.5 h-3.5 text-slate-700 shrink-0" />
-              <span>{practiceXp} XP</span>
+              <Coins className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span>{practiceXp} Flash Coins</span>
             </div>
 
             {/* Plan Tier Badge */}
@@ -310,8 +310,8 @@ export function TopNavbar() {
                 <span>{streakDays}d Streak</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                <Zap className="w-4 h-4 text-slate-700" />
-                <span>{practiceXp} XP</span>
+                <Coins className="w-4 h-4 text-amber-500" />
+                <span>{practiceXp} Flash Coins</span>
               </div>
             </div>
 

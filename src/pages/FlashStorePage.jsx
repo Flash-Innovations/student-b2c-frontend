@@ -575,11 +575,11 @@ export function FlashStorePage() {
     try {
       setRedeemingXp("INTERVIEW_30");
       const res = await b2cApi.redeemInterviewXp();
-      showSuccess(res.message || "Successfully redeemed 1,000 XP for 30 mock interview minutes!");
+      showSuccess(res.message || "Successfully redeemed 1,000 Flash Coins for 30 mock interview minutes!");
       await refreshSubscription();
       await fetchXpLedger();
     } catch (err) {
-      showError(err.message || "Failed to redeem XP.");
+      showError(err.message || "Failed to redeem Flash Coins.");
     } finally {
       setRedeemingXp(null);
     }
@@ -674,7 +674,7 @@ export function FlashStorePage() {
                 Flash Store
               </h1>
               <p className="mt-1 text-sm text-slate-600 max-w-2xl">
-                Purchase subscriptions, targeted subject passes, company assessment packs, AI mock interview minutes, and redeem earned XP.
+                Purchase subscriptions, targeted subject passes, company assessment packs, AI mock interview minutes, and redeem earned Flash Coins.
               </p>
             </div>
 
@@ -686,7 +686,7 @@ export function FlashStorePage() {
               <div className="flex items-center gap-2 pr-3 border-r border-slate-200">
                 <Coins className="w-4 h-4 text-amber-500" />
                 <div className="text-xs">
-                  <span className="font-bold text-slate-900">{currentXp.toLocaleString("en-IN")} XP</span>
+                  <span className="font-bold text-slate-900">{currentXp.toLocaleString("en-IN")} Flash Coins</span>
                   <span className="text-slate-500 ml-1">Wallet</span>
                 </div>
               </div>
@@ -731,7 +731,7 @@ export function FlashStorePage() {
                     Practice Streak Broken
                   </p>
                   <p className="text-xs text-red-700">
-                    Your {currentStreak}-day streak broke after missing consecutive days. Pay 5 XP to repair and resume, or reset to 0 for free.
+                    Your {currentStreak}-day streak broke after missing consecutive days. Pay 5 Flash Coins to repair and resume, or reset to 0 for free.
                   </p>
                 </div>
               </div>
@@ -742,7 +742,7 @@ export function FlashStorePage() {
                   onClick={handleRepairStreak}
                   disabled={currentXp < 5 || repairingStreak}
                 >
-                  Repair Streak (5 XP)
+                  Repair Streak (5 Coins)
                 </Button>
                 <Button
                   size="xs"
@@ -918,7 +918,7 @@ export function FlashStorePage() {
               }`}
             >
               <Coins className="w-4 h-4 text-amber-500" />
-              XP Redemption Arcade
+              Flash Coins Arcade
             </button>
           </div>
         </div>
@@ -1547,13 +1547,13 @@ export function FlashStorePage() {
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
                       Tournament Series
                     </span>
-                    <Badge variant="orchid">10,000 XP Pool</Badge>
+                    <Badge variant="orchid">10,000 Coins Pool</Badge>
                   </div>
                   <h4 className="text-base font-bold text-slate-900 mt-2">
                     Flash Coding Series
                   </h4>
                   <p className="text-xs text-slate-600 mt-1">
-                    Competitive tournament series with real-time testcase runs. 10,000 XP prize pool distributed among Top 10 participants (1,000 XP each).
+                    Competitive tournament series with real-time testcase runs. 10,000 Flash Coins prize pool distributed among Top 10 participants (1,000 Coins each).
                   </p>
                   <div className="mt-4 flex items-baseline gap-2">
                     <span className="text-2xl font-bold text-slate-900">Rs {codingSeriesData.priceInr || 150}</span>
@@ -1572,7 +1572,7 @@ export function FlashStorePage() {
                         passType: "PASS_FLASH_CODING_SERIES",
                         billingCycle: "ONE_TIME",
                         title: "Flash Coding Series Tournament Ticket",
-                        description: "Premier competitive coding tournament with 10,000 XP prize pool giveaway",
+                        description: "Premier competitive coding tournament with 10,000 Flash Coins prize pool giveaway",
                         priceInr: codingSeriesData.priceInr || 150,
                         originalPriceInr: 250,
                         badge: "Tournament Pass"
@@ -2012,21 +2012,21 @@ export function FlashStorePage() {
               <div className="flex items-center gap-2">
                 <Coins className="w-5 h-5 text-amber-600" />
                 <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">
-                  Flash XP Rewards
+                  Flash Coins Rewards
                 </span>
               </div>
               <h3 className="text-2xl font-extrabold text-slate-900 mt-1">
-                {currentXp.toLocaleString("en-IN")} XP Balance
+                {currentXp.toLocaleString("en-IN")} Flash Coins Balance
               </h3>
               <p className="text-xs text-slate-600 mt-1 max-w-xl">
-                Earn XP by answering MCQs, passing coding testcases, maintaining streaks, and competing in contests. Redeem your earned XP below for mock interview minutes, contest entries, and streak repairs.
+                Earn Flash Coins by answering MCQs, passing coding testcases, maintaining streaks, and competing in contests. Redeem your earned Flash Coins below for mock interview minutes, contest entries, and streak repairs.
               </p>
             </div>
 
             {/* Redemption Arcade Grid */}
             <div>
               <h3 className="text-base font-bold text-slate-900 mb-4">
-                Redeem Earned XP
+                Redeem Earned Flash Coins
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* 1. Mock Interview Redemption */}
@@ -2034,13 +2034,13 @@ export function FlashStorePage() {
                   <div>
                     <div className="flex items-center justify-between">
                       <Badge variant="blue">Interview</Badge>
-                      <span className="text-xs font-bold text-amber-600">1,000 XP</span>
+                      <span className="text-xs font-bold text-amber-600">1,000 Flash Coins</span>
                     </div>
                     <h4 className="text-base font-bold text-slate-900 mt-2">
                       30 Mins AI Mock Interview
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Convert 1,000 XP directly into 30 minutes of Gemini Live AI interview practice.
+                      Convert 1,000 Flash Coins directly into 30 minutes of Gemini Live AI interview practice.
                     </p>
 
                   </div>
@@ -2053,7 +2053,7 @@ export function FlashStorePage() {
                       onClick={handleRedeemInterviewXp}
                       disabled={currentXp < 1000 || redeemingXp === "INTERVIEW_30"}
                     >
-                      {currentXp < 1000 ? "Need 1,000 XP" : (redeemingXp === "INTERVIEW_30" ? "Redeeming..." : "Redeem 30 Mins")}
+                      {currentXp < 1000 ? "Need 1,000 Coins" : (redeemingXp === "INTERVIEW_30" ? "Redeeming..." : "Redeem 30 Mins")}
                     </Button>
                   </div>
                 </div>
@@ -2063,13 +2063,13 @@ export function FlashStorePage() {
                   <div>
                     <div className="flex items-center justify-between">
                       <Badge variant="primary">Contest Ticket</Badge>
-                      <span className="text-xs font-bold text-amber-600">2,500 XP</span>
+                      <span className="text-xs font-bold text-amber-600">2,500 Flash Coins</span>
                     </div>
                     <h4 className="text-base font-bold text-slate-900 mt-2">
                       Contest Entry Pass
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Join eligible placement contests for free by redeeming 2,500 XP.
+                      Join eligible placement contests for free by redeeming 2,500 Flash Coins.
                     </p>
                   </div>
 
