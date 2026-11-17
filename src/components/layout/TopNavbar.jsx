@@ -71,6 +71,11 @@ export function TopNavbar() {
     return calculateXp(subscription, streakData).toLocaleString("en-IN");
   }, [subscription, streakData]);
 
+  // Live Streak: Prioritize authoritative subscription currentStreak, fallback to practiceApi streak
+  const activeStreak = typeof subscription?.currentStreak === "number"
+    ? subscription.currentStreak
+    : (typeof streakData?.currentStreak === "number" ? streakData.currentStreak : streakDays);
+
   // Command Deck Navigation Links
   const allNavLinks = useMemo(() => [
     { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -177,16 +182,16 @@ export function TopNavbar() {
               className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200"
             >
               <Flame className="w-3.5 h-3.5 text-slate-700 shrink-0" />
-              <span>{streakDays}d Streak</span>
+              <span>{activeStreak}d Streak</span>
             </div>
 
-            {/* Flash Coins Badge */}
+            {/* Flash Coins (FC) Badge */}
             <div
-              title="Cumulative Flash Coins"
+              title="Flash Coins (FC)"
               className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200"
             >
               <Coins className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span>{practiceXp} Flash Coins</span>
+              <span>{practiceXp} FC</span>
             </div>
 
             {/* Plan Tier Badge */}
@@ -307,11 +312,11 @@ export function TopNavbar() {
             <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                 <Flame className="w-4 h-4 text-slate-700" />
-                <span>{streakDays}d Streak</span>
+                <span>{activeStreak}d Streak</span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800" title="Flash Coins (FC)">
                 <Coins className="w-4 h-4 text-amber-500" />
-                <span>{practiceXp} Flash Coins</span>
+                <span>{practiceXp} FC</span>
               </div>
             </div>
 

@@ -374,18 +374,27 @@ export function McqSessionPage() {
           .filter((_, idx) => selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null)
           .map((q) => q.id);
 
+        const correctIds = questions
+          .filter((_, idx) => verifMap[idx]?.isCorrect)
+          .map((q) => q.id);
+
         practicePreloadService.markAttempted(attemptedIds);
 
-        await b2cApi.recordQuestionAttempt({
+        const recRes = await b2cApi.recordQuestionAttempt({
           questionType: "MCQ",
           count: finalResult.attemptedQuestions,
           correctCount: finalResult.correctAnswers,
+          correctQuestionIds: correctIds,
           subject: topicId,
           topicId,
           questionIds: attemptedIds
         });
         await refreshSubscription();
-        showSuccess(`Saved ${finalResult.attemptedQuestions} questions to your placement telemetry!`);
+        if (recRes?.earnedXp > 0) {
+          showSuccess(`Saved ${finalResult.attemptedQuestions} questions! (+${recRes.earnedXp} FC earned)`);
+        } else {
+          showSuccess(`Saved ${finalResult.attemptedQuestions} questions to your placement telemetry!`);
+        }
       } catch (err) {
         console.warn("Attempt record error:", err);
       }

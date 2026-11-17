@@ -201,15 +201,15 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* Quick Metrics: Flash Coins & Dynamic Readiness Score */}
+          {/* Quick Metrics: Flash Coins (FC) & Dynamic Readiness Score */}
           <div className="flex items-center gap-3">
             <div className="bg-white border border-slate-200 px-3.5 py-2 rounded-xl flex items-center gap-2.5 shadow-xs">
               <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/50">
                 <Coins className="w-4 h-4 text-amber-500" />
               </div>
               <div>
-                <span className="text-[11px] text-slate-500 block font-medium">Flash Coins</span>
-                <span className="text-sm font-bold text-slate-900">{practiceXp} Flash Coins</span>
+                <span className="text-[11px] text-slate-500 block font-medium">Flash Coins (FC)</span>
+                <span className="text-sm font-bold text-slate-900">{practiceXp} FC</span>
               </div>
             </div>
 

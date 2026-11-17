@@ -376,7 +376,7 @@ export function CodingArenaPage() {
           }
           if (res.status === "ACCEPTED") {
             if (recRes?.earnedXp > 0) {
-              showSuccess(`Solution Accepted! (+${recRes.earnedXp} Flash Coins earned)`);
+              showSuccess(`Solution Accepted! (+${recRes.earnedXp} FC earned)`);
             } else if (recRes?.dsaXpDescription) {
               showSuccess(recRes.dsaXpDescription);
             } else {

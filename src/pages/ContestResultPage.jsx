@@ -23,7 +23,8 @@ import {
   Copy,
   CheckCheck,
   Filter,
-  History
+  History,
+  Coins
 } from "lucide-react";
 import { Card } from "../components/common/Card";
 import { Button } from "../components/common/Button";
@@ -191,6 +192,15 @@ export function ContestResultPage() {
               <span className="text-xs text-slate-500">
                 {percentage >= 70 ? "Excellent Performance" : percentage >= 40 ? "Good Performance" : "Keep Practicing"}
               </span>
+              {percentage >= 76 ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                  <Coins className="w-3.5 h-3.5 text-amber-500" /> +10 FC Earned
+                </span>
+              ) : percentage >= 41 ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                  <Coins className="w-3.5 h-3.5 text-amber-500" /> +5 FC Earned
+                </span>
+              ) : null}
             </div>
           </div>
 

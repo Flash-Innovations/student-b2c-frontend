@@ -686,7 +686,7 @@ export function FlashStorePage() {
               <div className="flex items-center gap-2 pr-3 border-r border-slate-200">
                 <Coins className="w-4 h-4 text-amber-500" />
                 <div className="text-xs">
-                  <span className="font-bold text-slate-900">{currentXp.toLocaleString("en-IN")} Flash Coins</span>
+                  <span className="font-bold text-slate-900">{currentXp.toLocaleString("en-IN")} Flash Coins (FC)</span>
                   <span className="text-slate-500 ml-1">Wallet</span>
                 </div>
               </div>
@@ -731,7 +731,7 @@ export function FlashStorePage() {
                     Practice Streak Broken
                   </p>
                   <p className="text-xs text-red-700">
-                    Your {currentStreak}-day streak broke after missing consecutive days. Pay 5 Flash Coins to repair and resume, or reset to 0 for free.
+                    Your {currentStreak}-day streak broke after missing consecutive days. Pay 5 FC to repair and resume, or reset to 0 for free.
                   </p>
                 </div>
               </div>
@@ -742,7 +742,7 @@ export function FlashStorePage() {
                   onClick={handleRepairStreak}
                   disabled={currentXp < 5 || repairingStreak}
                 >
-                  Repair Streak (5 Coins)
+                  Repair Streak (5 FC)
                 </Button>
                 <Button
                   size="xs"
@@ -918,7 +918,7 @@ export function FlashStorePage() {
               }`}
             >
               <Coins className="w-4 h-4 text-amber-500" />
-              Flash Coins Arcade
+              Flash Coins (FC) Arcade
             </button>
           </div>
         </div>
@@ -2007,26 +2007,26 @@ export function FlashStorePage() {
         {/* ========================================================================= */}
         {activeTab === "XP_ARCADE" && (
           <div className="space-y-8">
-            {/* XP Wallet Card */}
+            {/* Flash Coins (FC) Wallet Card */}
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200 shadow-sm">
               <div className="flex items-center gap-2">
                 <Coins className="w-5 h-5 text-amber-600" />
                 <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">
-                  Flash Coins Rewards
+                  Flash Coins (FC) Rewards
                 </span>
               </div>
               <h3 className="text-2xl font-extrabold text-slate-900 mt-1">
-                {currentXp.toLocaleString("en-IN")} Flash Coins Balance
+                {currentXp.toLocaleString("en-IN")} Flash Coins (FC) Balance
               </h3>
               <p className="text-xs text-slate-600 mt-1 max-w-xl">
-                Earn Flash Coins by answering MCQs, passing coding testcases, maintaining streaks, and competing in contests. Redeem your earned Flash Coins below for mock interview minutes, contest entries, and streak repairs.
+                Earn Flash Coins (FC) by answering MCQs, passing coding testcases, maintaining streaks, and competing in contests. Redeem your earned Flash Coins (FC) below for mock interview minutes, contest entries, and streak repairs.
               </p>
             </div>
 
             {/* Redemption Arcade Grid */}
             <div>
               <h3 className="text-base font-bold text-slate-900 mb-4">
-                Redeem Earned Flash Coins
+                Redeem Earned Flash Coins (FC)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* 1. Mock Interview Redemption */}
@@ -2034,13 +2034,13 @@ export function FlashStorePage() {
                   <div>
                     <div className="flex items-center justify-between">
                       <Badge variant="blue">Interview</Badge>
-                      <span className="text-xs font-bold text-amber-600">1,000 Flash Coins</span>
+                      <span className="text-xs font-bold text-amber-600">1,000 FC</span>
                     </div>
                     <h4 className="text-base font-bold text-slate-900 mt-2">
                       30 Mins AI Mock Interview
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Convert 1,000 Flash Coins directly into 30 minutes of Gemini Live AI interview practice.
+                      Convert 1,000 Flash Coins (FC) directly into 30 minutes of Gemini Live AI interview practice.
                     </p>
 
                   </div>
@@ -2053,7 +2053,7 @@ export function FlashStorePage() {
                       onClick={handleRedeemInterviewXp}
                       disabled={currentXp < 1000 || redeemingXp === "INTERVIEW_30"}
                     >
-                      {currentXp < 1000 ? "Need 1,000 Coins" : (redeemingXp === "INTERVIEW_30" ? "Redeeming..." : "Redeem 30 Mins")}
+                      {currentXp < 1000 ? "Need 1,000 FC" : (redeemingXp === "INTERVIEW_30" ? "Redeeming..." : "Redeem 30 Mins (1,000 FC)")}
                     </Button>
                   </div>
                 </div>
@@ -2063,13 +2063,13 @@ export function FlashStorePage() {
                   <div>
                     <div className="flex items-center justify-between">
                       <Badge variant="primary">Contest Ticket</Badge>
-                      <span className="text-xs font-bold text-amber-600">2,500 Flash Coins</span>
+                      <span className="text-xs font-bold text-amber-600">2,500 FC</span>
                     </div>
                     <h4 className="text-base font-bold text-slate-900 mt-2">
                       Contest Entry Pass
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Join eligible placement contests for free by redeeming 2,500 Flash Coins.
+                      Join eligible placement contests for free by redeeming 2,500 Flash Coins (FC).
                     </p>
                   </div>
 
@@ -2091,13 +2091,13 @@ export function FlashStorePage() {
                   <div>
                     <div className="flex items-center justify-between">
                       <Badge variant="orchid">Streak Recovery</Badge>
-                      <span className="text-xs font-bold text-amber-600">5 XP</span>
+                      <span className="text-xs font-bold text-amber-600">5 FC</span>
                     </div>
                     <h4 className="text-base font-bold text-slate-900 mt-2">
                       Streak Grace Repair
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Missed 2 days in a row? Spend 5 XP to repair your broken streak and keep your consecutive progress alive.
+                      Missed 2 days in a row? Spend 5 FC to repair your broken streak and keep your consecutive progress alive.
                     </p>
                     <div className="mt-3 text-[11px] text-slate-500">
                       Day 1 miss is protected by Flash Grace automatically.
@@ -2113,7 +2113,7 @@ export function FlashStorePage() {
                       disabled={currentXp < 5 || repairingStreak || !streakHealth.streakBroken}
                     >
                       {streakHealth.streakBroken
-                        ? (currentXp < 5 ? "Need 5 XP" : (repairingStreak ? "Repairing..." : "Repair Streak (5 XP)"))
+                        ? (currentXp < 5 ? "Need 5 FC" : (repairingStreak ? "Repairing..." : "Repair Streak (5 FC)"))
                         : "Streak is Active"}
                     </Button>
                   </div>
@@ -2121,61 +2121,61 @@ export function FlashStorePage() {
               </div>
             </div>
 
-            {/* XP Earning Rules Table */}
+            {/* Flash Coins (FC) Earning Rules Table */}
             <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 mb-3">
-                How You Earn XP
+                How You Earn Flash Coins (FC)
               </h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-xs">
                   <thead>
                     <tr className="bg-slate-50 text-slate-600 font-semibold">
                       <th className="px-4 py-2.5 text-left">Activity</th>
-                      <th className="px-4 py-2.5 text-left">XP Reward</th>
+                      <th className="px-4 py-2.5 text-left">Flash Coins (FC) Reward</th>
                       <th className="px-4 py-2.5 text-left">Condition & Details</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     <tr>
                       <td className="px-4 py-2.5 font-medium text-slate-900">Correct MCQ Answer</td>
-                      <td className="px-4 py-2.5 font-bold text-blue-600">+1 XP</td>
+                      <td className="px-4 py-2.5 font-bold text-blue-600">+1 FC</td>
                       <td className="px-4 py-2.5">Earned for every unique MCQ answered correctly</td>
                     </tr>
                     <tr>
                       <td className="px-4 py-2.5 font-medium text-slate-900">Coding Testcase Passed</td>
-                      <td className="px-4 py-2.5 font-bold text-blue-600">+1 XP</td>
+                      <td className="px-4 py-2.5 font-bold text-blue-600">+1 FC</td>
                       <td className="px-4 py-2.5">Earned for each passed testcase on accepted runs</td>
                     </tr>
                     <tr>
                       <td className="px-4 py-2.5 font-medium text-slate-900">Daily Practice Streak</td>
-                      <td className="px-4 py-2.5 font-bold text-amber-600">+1 XP / day</td>
+                      <td className="px-4 py-2.5 font-bold text-amber-600">+1 FC / day</td>
                       <td className="px-4 py-2.5">Complete at least 1 MCQ or coding question daily</td>
                     </tr>
                     <tr>
                       <td className="px-4 py-2.5 font-medium text-slate-900">Contest Score 41% - 75%</td>
-                      <td className="px-4 py-2.5 font-bold text-emerald-600">+5 XP</td>
+                      <td className="px-4 py-2.5 font-bold text-emerald-600">+5 FC</td>
                       <td className="px-4 py-2.5">Awarded on completing scored contest attempt</td>
                     </tr>
                     <tr>
                       <td className="px-4 py-2.5 font-medium text-slate-900">Contest Score 76% - 100%</td>
-                      <td className="px-4 py-2.5 font-bold text-emerald-600">+10 XP</td>
+                      <td className="px-4 py-2.5 font-bold text-emerald-600">+10 FC</td>
                       <td className="px-4 py-2.5">Top-tier competitive performance reward</td>
                     </tr>
                     <tr>
                       <td className="px-4 py-2.5 font-medium text-slate-900">Flash Coding Series Winner</td>
-                      <td className="px-4 py-2.5 font-bold text-purple-600">1,000 XP</td>
-                      <td className="px-4 py-2.5">Top 10 winners share a 10,000 XP tournament pool</td>
+                      <td className="px-4 py-2.5 font-bold text-purple-600">1,000 FC</td>
+                      <td className="px-4 py-2.5">Top 10 winners share a 10,000 FC tournament pool</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
-            {/* Recent XP Activity Ledger */}
+            {/* Recent Flash Coins (FC) Activity Ledger */}
             <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-slate-900">
-                  Recent XP Activity Ledger
+                  Recent Flash Coins (FC) Activity Ledger
                 </h3>
                 <Button size="xs" variant="ghost" onClick={fetchXpLedger} disabled={loadingLedger}>
                   <RotateCcw className={`w-3.5 h-3.5 ${loadingLedger ? "animate-spin" : ""}`} />
@@ -2189,7 +2189,7 @@ export function FlashStorePage() {
                 </div>
               ) : xpLedger.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-500">
-                  No XP transactions recorded yet. Start practising to earn your first XP!
+                  No Flash Coins (FC) transactions recorded yet. Start practising to earn your first Flash Coins (FC)!
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -2233,10 +2233,10 @@ export function FlashStorePage() {
                               entry.type === "CREDIT" ? "text-emerald-600" : "text-red-600"
                             }`}
                           >
-                            {entry.type === "CREDIT" ? `+${entry.amount}` : `-${entry.amount}`} XP
+                            {entry.type === "CREDIT" ? `+${entry.amount}` : `-${entry.amount}`} FC
                           </td>
                           <td className="px-4 py-2 text-right font-semibold text-slate-900">
-                            {entry.balanceAfter} XP
+                            {entry.balanceAfter} FC
                           </td>
                         </tr>
                       ))}

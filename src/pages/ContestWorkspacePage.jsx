@@ -545,11 +545,16 @@ export function ContestWorkspacePage() {
   const handleFinalSubmit = async () => {
     setSubmittingContest(true);
     try {
-      await practiceApi.submitContestAttempt(contestId, attemptId);
+      const subRes = await practiceApi.submitContestAttempt(contestId, attemptId);
       if (typeof refreshSubscription === "function") {
         try { await refreshSubscription(); } catch (_) {}
       }
-      showSuccess("Assessment submitted successfully!");
+      const earnedCoins = subRes?.earnedFc || subRes?.data?.earnedFc || subRes?.earnedXp || subRes?.data?.earnedXp;
+      if (earnedCoins > 0) {
+        showSuccess(`Assessment submitted! (+${earnedCoins} FC earned)`);
+      } else {
+        showSuccess("Assessment submitted successfully!");
+      }
       navigate(`/contests/${contestId}/result/${attemptId}`, { replace: true });
     } catch (err) {
       showError(err.message || "Failed to submit assessment.");
